@@ -47,7 +47,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
         className="relative w-full min-h-[calc(100vh-4.5rem)] flex flex-col justify-between transition-colors duration-300"
         style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
       >
-        <main className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 md:py-8 flex-1 flex flex-col">
+        <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 md:py-8 flex-1 flex flex-col">
           {/* History Page Title */}
           <h1
             className="text-3xl sm:text-4xl font-black tracking-tight mb-16 sm:mb-24"
@@ -89,7 +89,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               {t('tabs.startChatting', 'Start Chatting')}
             </button>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
         className="relative w-full min-h-[calc(100vh-4.5rem)] flex flex-col justify-between transition-colors duration-300"
         style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
       >
-        <main className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 md:py-8 flex-1 flex flex-col">
+        <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 md:py-8 flex-1 flex flex-col">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[580px]">
             {/* Left Column Card */}
             <div
@@ -179,7 +179,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </p>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -194,7 +194,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
       style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
     >
       <div className="absolute inset-0 ai-mesh-grid pointer-events-none opacity-20 z-0" />
-      <main className="relative z-10 w-full min-h-full flex-1 flex flex-col justify-center">
+      <div className="relative z-10 w-full min-h-full flex-1 flex flex-col justify-center">
         {/* ── HERO SECTION (Split-Screen: Left Stream + Right Configure & Match Card) ── */}
         <HeroSection
           sessionMode={sessionMode}
@@ -243,7 +243,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           onSelectCountry={onSelectCountry}
           userProfession={profession}
         />
-      </main>
+      </div>
     </div>
   );
 };

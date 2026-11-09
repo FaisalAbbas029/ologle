@@ -129,6 +129,8 @@ const PortraitCard: React.FC<{ card: Card; animMode?: FrameAnimationType; index?
     <img
       src={card.photo}
       alt={`${card.name} – ${card.profession}`}
+      width={450}
+      height={800}
       loading="lazy"
       className="hcard-img"
       style={{

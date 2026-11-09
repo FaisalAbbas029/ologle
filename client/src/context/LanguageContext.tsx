@@ -19,7 +19,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profession',
     'hero.andShared': '& Shared',
     'hero.interestsSpan': 'Interests.',
-    'hero.mainSubtitle': 'Move beyond random chats. Our intelligent matching engine connects you instantly with verified developers, designers, creators, and experts who match your exact domain and curiosity.',
+    'hero.mainSubtitle': 'Choose a profession and interests to look for real members who share your curiosity. Availability varies; when no compatible member is online, we’ll wait instead of showing a fabricated profile.',
     'hero.configureFilters': 'Configure Your Match Filters',
     'hero.resetFilters': 'Reset match filters',
     'hero.professionLabel': 'Your Profession or Field',
@@ -84,7 +84,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143 connecting in real-time',
     'hero.startVideoChat': 'Start Video Chat',
     'hero.startTalkingTopics': 'Start Talking with Selected Topics',
-    'hero.onlinePeers': '1,420+ Online Peers',
+
 
     // Product Preview Card
     'hero.productPreview': 'Illustrative Product Preview',
@@ -174,7 +174,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     // Start Talking Modal
     'modal.title': 'Start Talking',
     'modal.subtitle': 'Connect instantly with an intellectual peer without leaving your screen.',
-    'modal.onlineCount': '1,420+ Online',
+
     'modal.chooseFormat': '1. Choose Conversation Format',
     'modal.video': 'Video Call',
     'modal.videoDesc': 'Camera & Audio',
@@ -189,9 +189,9 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'Zero Persistence Guarantee:',
     'modal.guaranteeDesc': 'Video and audio are routed via encrypted peer-to-peer WebRTC. No recordings or conversations are saved.',
     'modal.searchingTitle': 'Searching for a Compatible Peer...',
-    'modal.searchStep1': 'Scanning active online professionals pool...',
-    'modal.searchStep2': 'Scoring mutual interests and professional affinity...',
-    'modal.searchStep3': 'Finalizing secure peer-to-peer WebRTC channel...',
+
+
+
     'modal.connectedTitle': 'Compatible Peer Located!',
     'modal.compatibilityScore': 'Compatibility',
     'modal.findPeer': 'Find Peer Now',

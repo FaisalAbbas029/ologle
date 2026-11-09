@@ -1,7 +1,5 @@
+import { Check, ChevronDown, Globe } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import Globe from 'lucide-react/dist/esm/icons/globe.js';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down.js';
-import Check from 'lucide-react/dist/esm/icons/check.js';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES } from '../data/languages.ts';
 

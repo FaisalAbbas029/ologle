@@ -1,6 +1,5 @@
+import { RefreshCw, WifiOff } from 'lucide-react';
 import React from 'react';
-import WifiOff from 'lucide-react/dist/esm/icons/wifi-off.js';
-import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
 import { ConnectionStatus } from '../services/haylooSocket.ts';
 
 interface ConnectionBannerProps {
@@ -14,7 +13,7 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
   retrySecondsLeft,
   onReconnectNow,
 }) => {
-  if (status === 'connected') return null;
+  if (status === 'connected' || status === 'disconnected') return null;
 
   return (
     <div

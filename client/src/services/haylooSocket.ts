@@ -22,11 +22,20 @@ class HaylooClientSocket {
       return;
     }
 
+    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL?.trim() || (
+      import.meta.env.DEV
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+        : ''
+    );
+
+    if (!wsUrl) {
+      this.isConnected = false;
+      this.setStatus('disconnected');
+      return;
+    }
+
     this.isExplicitlyClosed = false;
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
 
     try {
       this.socket = new WebSocket(wsUrl);
@@ -166,4 +175,3 @@ class HaylooClientSocket {
 }
 
 export const haylooSocket = new HaylooClientSocket();
-

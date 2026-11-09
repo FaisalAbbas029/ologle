@@ -1,18 +1,6 @@
+import { CircleAlert as AlertCircle, Check, CircleCheck as CheckCircle2, ChevronRight, Globe, MessageSquare, Mic, RotateCcw, SlidersHorizontal, Video, X, Zap } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right.js';
-import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal.js';
-import X from 'lucide-react/dist/esm/icons/x.js';
-import Check from 'lucide-react/dist/esm/icons/check.js';
-import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle.js';
-import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw.js';
-import Video from 'lucide-react/dist/esm/icons/video.js';
-import Mic from 'lucide-react/dist/esm/icons/mic.js';
-import MessageSquare from 'lucide-react/dist/esm/icons/message-square.js';
-import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2.js';
-import Crown from 'lucide-react/dist/esm/icons/crown.js';
-import Globe from 'lucide-react/dist/esm/icons/globe.js';
-import Zap from 'lucide-react/dist/esm/icons/zap.js';
 import { CountryFlag } from './CountryFlag.tsx';
 import { searchProfessions, validateProfession, validateTargetInterest, HAYLOO_PROFESSIONS, HAYLOO_PURPOSES } from '../data/constants.ts';
 import { COUNTRIES_LIST } from '../data/countriesData.ts';
@@ -20,392 +8,30 @@ import { useLanguage } from '../context/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES } from '../data/languages.ts';
 import { getSuggestedInterestsForProfession } from '../data/professionInterests.ts';
 
-export type FrameAnimationType = 'stream' | 'wave' | 'shimmer';
-
-/* ─────────────────────────────────────────────────────────────────
-   Photo sources — 100% locally served AI portraits + Founder Portrait
-   (Every single image is unique with zero repetitions across all cards)
-───────────────────────────────────────────────────────────────── */
-const AI_PORTRAITS = {
-  faisalFounder:     '/ai-portraits/faisal_abbas_founder.jpg',
-  miaDesigner:       '/ai-portraits/hero_mia_v1.jpg',
-  aminaCyber:        '/ai-portraits/hero_amina_cyber.jpg',
-  sofiaScientist:    '/ai-portraits/hero_sofia_v2.jpg',
-  sofiaSurgeon:      '/ai-portraits/hero_sofia_v1.jpg',
-  alexBlockchain:    '/ai-portraits/hero_alex_blockchain.jpg',
-  kenjiGameDev:      '/ai-portraits/hero_kenji_gamedev.jpg',
-
-  marcusAiLead:      '/ai-portraits/hero_marcus_v1.jpg',
-  davidAgritech:     '/ai-portraits/hero_david_agritech.jpg',
-  liamAutomotive:    '/ai-portraits/hero_liam_v1.jpg',
-  elenaAerospace:    '/ai-portraits/hero_mia_v2.jpg',
-  zainabQuantum:     '/ai-portraits/hero_zainab_quantum.jpg',
-
-  priyaCloud:        '/ai-portraits/hero_priya_v1.jpg',
-  oliverWebDev:      '/ai-portraits/hero_oliver_developer.jpg',
-  chloeCreative:     '/ai-portraits/hero_chloe_creative.jpg',
-  tariqDataScience:  '/ai-portraits/hero_tariq_datascience.jpg',
-  mateoRobotics:     '/ai-portraits/hero_mateo_robotics.jpg',
-  yunaBroker:        '/ai-portraits/hero_yuna_v1.jpg',
-};
-
-interface Card {
-  id: string;
-  name: string;
-  age?: number;
-  profession: string;
-  tags?: string[];
-  photo: string;
-  isFounder?: boolean;
-  hasPagination?: boolean;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   3 Columns with 18 Distinct Professions & Unique AI Portraits
-   Centerpiece: Faisal Abbas — Founder of Ologle
-───────────────────────────────────────────────────────────────── */
-const COL0: Card[] = [
-  { id: 'c0-1', name: 'Mia Lin',           age: 26, profession: 'UI/UX Designer',                 tags: ['Design Systems', 'Figma'],      photo: AI_PORTRAITS.miaDesigner },
-  { id: 'c0-2', name: 'Amina Diallo',      age: 27, profession: 'Cybersecurity Specialist',       tags: ['Zero-Trust', 'Firewalls'],      photo: AI_PORTRAITS.aminaCyber },
-  { id: 'c0-3', name: 'Sofia Al-Mansoor',  age: 31, profession: 'Biotech Scientist',              tags: ['Genomics', 'Bioinformatics'],   photo: AI_PORTRAITS.sofiaScientist },
-  { id: 'c0-4', name: 'Dr. Sofia Vance',   age: 35, profession: 'Chief Surgeon & Medical Dir.',   tags: ['Surgical AI', 'Oncology'],      photo: AI_PORTRAITS.sofiaSurgeon },
-  { id: 'c0-5', name: 'Alex Rivera',       age: 29, profession: 'Blockchain Infrastructure Lead', tags: ['Solidity', 'Smart Contracts'], photo: AI_PORTRAITS.alexBlockchain },
-  { id: 'c0-6', name: 'Kenji Sato',        age: 28, profession: 'Game Developer & 3D Artist',     tags: ['Unreal Engine 5', 'Shaders'],   photo: AI_PORTRAITS.kenjiGameDev },
-];
-
-const COL1: Card[] = [
-  { id: 'c1-1', name: 'Marcus Chen',       age: 28, profession: 'AI & Neural Systems Lead',       tags: ['Python', 'Neural Networks'],    photo: AI_PORTRAITS.marcusAiLead },
-  {
-    id: 'c1-faisal',
-    name: 'Faisal Abbas',
-    profession: 'Founder of Ologle',
-    tags: ['Plant Science', 'Web Development', 'AI'],
-    photo: AI_PORTRAITS.faisalFounder,
-    isFounder: true,
-  },
-  { id: 'c1-3', name: 'David Njoroge',     age: 31, profession: 'Agricultural & Farm Manager',    tags: ['Agritech', 'Precision Crops'],  photo: AI_PORTRAITS.davidAgritech, hasPagination: true },
-  { id: 'c1-4', name: 'Thomas Liam',       age: 33, profession: 'Automotive EV Systems Lead',     tags: ['EV Powertrain', 'Diagnostics'], photo: AI_PORTRAITS.liamAutomotive },
-  { id: 'c1-5', name: 'Elena Rostova',     age: 34, profession: 'Aerospace & Mechanical Eng.',    tags: ['CAD / FEA', 'Aerospace'],       photo: AI_PORTRAITS.elenaAerospace },
-  { id: 'c1-6', name: 'Zainab Al-Fassi',   age: 32, profession: 'Quantum Computing Researcher',   tags: ['Qubits', 'Quantum AI'],         photo: AI_PORTRAITS.zainabQuantum },
-];
-
-const COL2: Card[] = [
-  { id: 'c2-1', name: 'Priya Sharma',      age: 26, profession: 'Cloud Infrastructure Architect', tags: ['Kubernetes', 'AWS Cloud'],      photo: AI_PORTRAITS.priyaCloud },
-  { id: 'c2-2', name: 'Oliver Bennett',    age: 25, profession: 'Full Stack Web Developer',       tags: ['React', 'Next.js'],             photo: AI_PORTRAITS.oliverWebDev },
-  { id: 'c2-3', name: 'Chloe Dupont',      age: 32, profession: 'Creative Director & Filmmaker',  tags: ['Cinema 4D', 'Directing'],       photo: AI_PORTRAITS.chloeCreative },
-  { id: 'c2-4', name: 'Dr. Tariq Mansoor', age: 34, profession: 'Data Scientist & Quant Analyst', tags: ['Financial AI', 'Python'],     photo: AI_PORTRAITS.tariqDataScience },
-  { id: 'c2-5', name: 'Mateo Silva',       age: 30, profession: 'Robotics & Automation Engineer', tags: ['ROS', 'Computer Vision'],      photo: AI_PORTRAITS.mateoRobotics },
-  { id: 'c2-6', name: 'Yuna Takahashi',    age: 30, profession: 'Commercial Real Estate Broker',  tags: ['REITs', 'Asset Valuation'],     photo: AI_PORTRAITS.yunaBroker },
-];
-
-/* ─────────────────────────────────────────────────────────────────
-   Single Portrait Card (Matches user reference mockup)
-───────────────────────────────────────────────────────────────── */
-const PortraitCard: React.FC<{ card: Card; animMode?: FrameAnimationType; index?: number }> = ({
-  card,
-  animMode = 'stream',
-  index = 0,
-}) => (
-  <div
-    className={`hcard ${card.isFounder ? 'hcard-founder' : ''} ${
-      animMode === 'shimmer' ? 'hcard-shimmer' : ''
-    } ${animMode === 'wave' ? 'hcard-wave' : ''}`}
-    style={{
-      position: 'relative',
-      width: '100%',
-      aspectRatio: '9 / 16',
-      borderRadius: 18,
-      overflow: 'hidden',
-      flexShrink: 0,
-      boxShadow: '0 4px 18px rgba(15, 23, 42, 0.12)',
-      cursor: 'pointer',
-      background: 'rgb(248, 250, 252)',
-      animationDelay: `${index * 0.12}s`,
-    }}
-  >
-    {/* Animated Shimmer Light Sweep (Active in Neon Shimmer Mode) */}
-    {animMode === 'shimmer' && <div className="hcard-shimmer-sweep" />}
-    {/* Photo */}
-    <img
-      src={card.photo}
-      alt={`${card.name} – ${card.profession}`}
-      width={450}
-      height={800}
-      loading="lazy"
-      className="hcard-img"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        objectPosition: card.isFounder ? 'center 15%' : 'center 20%',
-      }}
-    />
-
-    {/* Vignette Scrim */}
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(to bottom, rgba(15,23,42,0.22) 0%, transparent 35%, transparent 50%, rgba(15,23,42,0.92) 100%)',
-        pointerEvents: 'none',
-      }}
-    />
-
-    {/* Top Badges Bar: ONLINE (left) + FOUNDER (right) */}
-    <div
-      style={{
-        position: 'absolute',
-        top: 10,
-        left: 10,
-        right: 10,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        zIndex: 2,
-        pointerEvents: 'none',
-      }}
-    >
-      {/* ONLINE pill */}
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4.5,
-          padding: '3px 8px',
-          borderRadius: 9999,
-          background: 'rgba(15,23,42,0.85)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          fontSize: 9.5,
-          fontWeight: 800,
-          color: '#FFFFFF',
-          letterSpacing: '0.04em',
-        }}
-      >
-        <span
-          style={{
-            display: 'inline-block',
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            flexShrink: 0,
-            background: '#22C55E',
-            boxShadow: '0 0 6px #22C55E',
-            animation: 'hero-blink 2s ease-in-out infinite',
-          }}
-        />
-        ONLINE
-      </div>
-
-      {/* Founder Badge */}
-      {card.isFounder && (
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 3,
-            padding: '3px 8px',
-            borderRadius: 9999,
-            background: 'linear-gradient(135deg, #EC5E27, #F94E0A)',
-            fontSize: 9,
-            fontWeight: 800,
-            color: '#FFFFFF',
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            boxShadow: '0 2px 10px rgba(236,94,39,0.50)',
-          }}
-        >
-          <Crown className="w-2.5 h-2.5 text-amber-200 shrink-0 inline-block" /> FOUNDER
+const PortraitGrid: React.FC = () => (
+  <div className="hero-grid-wrapper flex-col">
+    <div className="flex h-full min-h-[420px] flex-col justify-between rounded-3xl border border-orange-200/70 bg-gradient-to-br from-white via-orange-50 to-amber-100 p-8 shadow-xl dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div>
+        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-600 text-white shadow-lg shadow-orange-900/20">
+          <Globe className="h-7 w-7" aria-hidden="true" />
         </div>
-      )}
-    </div>
-
-    {/* Bottom Info Overlay */}
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: '28px 12px 12px',
-        background: 'linear-gradient(to top, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.65) 60%, transparent 100%)',
-        zIndex: 2,
-        boxSizing: 'border-box',
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          color: '#FFFFFF',
-          fontWeight: 800,
-          fontSize: 14.5,
-          lineHeight: 1.2,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {card.name}{card.age ? `, ${card.age}` : ''}
-      </p>
-      <p
-        style={{
-          margin: '2px 0 0',
-          color: card.isFounder ? '#FF8A50' : 'rgba(255,255,255,0.90)',
-          fontSize: 11.5,
-          fontWeight: card.isFounder ? 700 : 500,
-          lineHeight: 1.2,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {card.isFounder ? 'Founder of Ologle' : `(${card.profession})`}
-      </p>
-
-      {/* Tags matching user's design (green Python, purple Figma, orange, etc.) */}
-      {card.tags && card.tags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, marginTop: 5, overflow: 'hidden' }}>
-          {card.tags.slice(0, 3).map(tag => {
-            const bg = tag.toLowerCase().includes('python') ? '#10B981'
-                     : tag.toLowerCase().includes('figma') ? '#8B5CF6'
-                     : card.isFounder ? 'linear-gradient(135deg, #EC5E27, #D94E1A)'
-                     : '#EC5E27';
-            return (
-              <span
-                key={tag}
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: 5,
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  background: bg,
-                  color: '#FFFFFF',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
-                }}
-              >
-                {tag}
-              </span>
-            );
-          })}
-        </div>
-      )}
-    </div>
-
-    {/* Bottom Pagination Pill Indicator (as seen in bottom center card of screenshot) */}
-    {card.hasPagination && (
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 8,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4.5,
-          padding: '3px 8px',
-          borderRadius: 9999,
-          background: 'rgba(255, 255, 255, 0.88)',
-          backdropFilter: 'blur(6px)',
-          zIndex: 3,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        }}
-      >
-        <span style={{ width: 14, height: 4.5, borderRadius: 9999, background: '#0F172A' }} />
-        <span style={{ width: 4.5, height: 4.5, borderRadius: '50%', background: '#94A3B8' }} />
-        <span style={{ width: 4.5, height: 4.5, borderRadius: '50%', background: '#94A3B8' }} />
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-700 dark:text-orange-300">
+          Real people. Real conversations.
+        </p>
+        <h2 className="mt-3 max-w-md text-3xl font-extrabold leading-tight text-slate-900 dark:text-white">
+          Meet someone who shares your curiosity.
+        </h2>
+        <p className="mt-4 max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">
+          Ologle searches for compatible members based on your profession and interests. If nobody is available, we will wait instead of showing bots or fabricated profiles.
+        </p>
       </div>
-    )}
+      <div className="mt-8 rounded-2xl border border-orange-200/70 bg-white/80 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
+        <span className="font-semibold">Your match is always a real member.</span>
+        <span className="ml-1 text-slate-500 dark:text-slate-400">Availability can vary.</span>
+      </div>
+    </div>
   </div>
 );
-
-/* ─────────────────────────────────────────────────────────────────
-   Kinetic Stream Column (Continuous Ultra-Smooth Forward Loop)
-   - 100% seamless infinite linear motion without any reversal or jump
-───────────────────────────────────────────────────────────────── */
-interface KineticStreamColProps {
-  cards: Card[];
-  duration: number;
-  gap?: number;
-  animMode?: FrameAnimationType;
-}
-
-const KineticStreamCol: React.FC<KineticStreamColProps> = ({
-  cards,
-  duration,
-  gap = 14,
-  animMode = 'stream',
-}) => {
-  return (
-    <div className={`kinetic-stream-col ${animMode === 'wave' ? 'wave-perspective' : ''}`}>
-      <div
-        className="kinetic-stream-track"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: `${gap}px`,
-          animation: `stream-continuous-up ${duration}s linear infinite`,
-          willChange: 'transform',
-        }}
-      >
-        {/* Set 1 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px`, flexShrink: 0 }}>
-          {cards.map((card, i) => (
-            <div key={`set1-${card.id}-${i}`} style={{ flexShrink: 0, width: '100%' }}>
-              <PortraitCard card={card} animMode={animMode} index={i} />
-            </div>
-          ))}
-        </div>
-        {/* Set 2 (Exact duplicate for seamless infinite linear loop) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px`, flexShrink: 0 }} aria-hidden="true">
-          {cards.map((card, i) => (
-            <div key={`set2-${card.id}-${i}`} style={{ flexShrink: 0, width: '100%' }}>
-              <PortraitCard card={card} animMode={animMode} index={i} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ─────────────────────────────────────────────────────────────────
-   Portrait Grid (9:16 Aspect Ratio Frames with Continuous Smooth Loop)
-───────────────────────────────────────────────────────────────── */
-const PortraitGrid: React.FC = () => {
-  const animMode: FrameAnimationType = 'stream';
-  const gap = 14;
-
-  return (
-    <div className="hero-grid-wrapper flex-col">
-      <div className={`hero-grid-showcase anim-mode-${animMode}`}>
-        {/* Left Column: Streams smoothly forward at 34s */}
-        <KineticStreamCol
-          cards={COL0}
-          duration={34}
-          gap={gap}
-          animMode={animMode}
-        />
-        {/* Center Column: Streams smoothly forward at 40s (features Founder Faisal Abbas) */}
-        <KineticStreamCol
-          cards={COL1}
-          duration={40}
-          gap={gap}
-          animMode={animMode}
-        />
-        {/* Right Column: Streams smoothly forward at 30s */}
-        <KineticStreamCol
-          cards={COL2}
-          duration={30}
-          gap={gap}
-          animMode={animMode}
-        />
-      </div>
-    </div>
-  );
-};
 
 /* ─────────────────────────────────────────────────────────────────
    Filter card (Right Column)
@@ -1694,7 +1320,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <p
               className="m-0 transition-colors duration-300 text-xs sm:text-[13px] leading-snug text-slate-600 dark:text-slate-300 line-clamp-2 max-w-xl"
             >
-              {t('hero.mainSubtitle', 'Move beyond random chats. Our intelligent matching engine connects you instantly with verified developers, designers, creators, and experts who match your exact domain and curiosity.')}
+              {t('hero.mainSubtitle', 'Choose a profession and interests to look for real members who share your curiosity. Availability varies; when no compatible member is online, we’ll let you know and wait instead of showing a fabricated profile.')}
             </p>
             <FilterCard
               sessionMode={sessionMode}

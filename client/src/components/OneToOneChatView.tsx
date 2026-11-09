@@ -63,6 +63,8 @@ import {
 interface OneToOneChatViewProps {
   room: Active1on1Room;
   sessionId: string;
+  sessionMode: 'video' | 'voice' | 'messaging';
+  isInitiator: boolean;
   messages: ChatMessage[];
   partnerLeftReason: string | null;
   incomingSignal: { signal: any; id: number } | null;
@@ -82,6 +84,8 @@ interface OneToOneChatViewProps {
 export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
   room,
   sessionId,
+  sessionMode,
+  isInitiator,
   messages,
   partnerLeftReason,
   incomingSignal,
@@ -284,10 +288,11 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
     terminateConnection,
   } = useWebRTC({
     roomId: room.roomId,
-    isInitiator: true,
+    isInitiator,
+    mediaMode: sessionMode === 'voice' ? 'voice' : 'video',
     onSendSignal,
     incomingSignal,
-    autoStart: true,
+    autoStart: sessionMode !== 'messaging',
   });
 
   // Client-side On-Device ML Stream Moderation (Volatile RAM only, zero recording)
@@ -827,7 +832,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
         </div>
 
         {/* Media Alert Banner */}
-        {mediaError && (
+        {sessionMode !== 'messaging' && mediaError && (
           <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs text-amber-200 flex items-center justify-between gap-2 mb-2 shrink-0">
             <div className="flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
@@ -835,16 +840,16 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => startLocalMedia(true)}
+              onClick={() => startLocalMedia(sessionMode === 'video')}
               className="px-2.5 py-1 rounded-lg bg-amber-500 text-black text-[11px] font-bold hover:bg-amber-400 whitespace-nowrap"
             >
-              Retry Camera
+              {sessionMode === 'voice' ? 'Retry Microphone' : 'Retry Camera'}
             </button>
           </div>
         )}
 
         {/* Real-Time Voice Transcription & Language Bar */}
-        <div className="mb-2 shrink-0">
+        {sessionMode !== 'messaging' && <div className="mb-2 shrink-0">
           <LanguageSelector
             spokenLanguage={spokenLanguage}
             onSelectSpokenLanguage={handleSelectSpokenLanguage}
@@ -855,14 +860,18 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             isListening={isListening}
             speechError={speechError}
           />
-        </div>
+        </div>}
 
         {/* Main Layout: Video Stream on Left + Text Chat on Right */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
           {/* LEFT / VIDEO AREA */}
           <div
             className={`${
-              isVideoExpanded ? 'lg:col-span-12' : 'lg:col-span-7 xl:col-span-8'
+              sessionMode === 'messaging'
+                ? 'hidden'
+                : isVideoExpanded
+                ? 'lg:col-span-12'
+                : 'lg:col-span-7 xl:col-span-8'
             } flex flex-col gap-2 rounded-2xl bg-[#141414] backdrop-blur-xl border border-white/10 p-2.5 shadow-xl min-h-[260px] lg:min-h-0 relative overflow-hidden`}
           >
             {/* Dual Video Grid */}
@@ -1039,8 +1048,12 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
                       <div className="w-16 h-16 rounded-2xl bg-[#141414] border border-white/10 flex items-center justify-center text-neutral-400 mb-2 shadow-inner">
                         <VideoOff className="w-8 h-8 text-[#EC5E27]" />
                       </div>
-                      <p className="text-xs font-semibold text-white">Camera is off</p>
-                      <p className="text-[11px] text-neutral-400 mt-0.5">Click "Camera On" below to share video.</p>
+                      <p className="text-xs font-semibold text-white">
+                        {sessionMode === 'voice' ? 'Voice-only conversation' : 'Camera is off'}
+                      </p>
+                      {sessionMode === 'video' && (
+                        <p className="text-[11px] text-neutral-400 mt-0.5">Turn on your camera whenever you’re ready.</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1051,6 +1064,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             <div className="p-2 rounded-xl bg-[#111111]/60 border border-white/10 flex flex-wrap items-center justify-between gap-2 shrink-0">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 {/* Camera Toggle */}
+                {sessionMode === 'video' && (
                 <button
                   type="button"
                   onClick={toggleCamera}
@@ -1063,6 +1077,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
                   {isCameraOn ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
                   <span>{isCameraOn ? 'Camera On' : 'Camera Off'}</span>
                 </button>
+                )}
 
                 {/* Mic Toggle */}
                 <button
@@ -1164,7 +1179,11 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
           {/* RIGHT / TEXT CHAT AREA */}
           <div
             className={`${
-              isVideoExpanded ? 'hidden' : 'lg:col-span-5 xl:col-span-4'
+              isVideoExpanded
+                ? 'hidden'
+                : sessionMode === 'messaging'
+                ? 'lg:col-span-12 xl:col-span-12'
+                : 'lg:col-span-5 xl:col-span-4'
             } flex flex-col rounded-2xl bg-[#141414] backdrop-blur-xl border border-white/10 shadow-xl p-3 min-h-[300px] lg:min-h-0 relative overflow-hidden`}
           >
             {/* Chat Stream Header */}

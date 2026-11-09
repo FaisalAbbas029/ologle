@@ -10,6 +10,7 @@ export interface QueuedSession {
   ipAddress?: string;
   profession: string;
   interests: string[];
+  sessionMode?: 'video' | 'voice' | 'messaging';
   country?: string; // 'GLOBAL' or country code/name
   queuedAt: number;
   blockedSessionIds: Set<string>; // Sessions this user has skipped, reported, or blocked
@@ -456,6 +457,7 @@ export class MatchmakerQueue {
 
     for (const [candidateId, candidateSession] of this.queue.entries()) {
       if (candidateId === currentSession.sessionId) continue;
+      if (candidateSession.sessionMode && currentSession.sessionMode !== candidateSession.sessionMode) continue;
 
       // 1. Session ID check (skips/recent matches)
       if (

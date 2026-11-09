@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 interface UseWebRTCOptions {
   roomId: string;
   isInitiator?: boolean;
+  mediaMode?: 'video' | 'voice';
   onSendSignal: (signal: any) => void;
   incomingSignal: { signal: any; id: number } | null;
   autoStart?: boolean;
@@ -30,6 +31,7 @@ const ICE_SERVERS: RTCConfiguration = {
 export const useWebRTC = ({
   roomId,
   isInitiator = true,
+  mediaMode = 'video',
   onSendSignal,
   incomingSignal,
   autoStart = true,
@@ -78,12 +80,12 @@ export const useWebRTC = ({
 
     try {
       const constraints: MediaStreamConstraints = {
-        video: {
+        video: mediaMode === 'video' ? {
           facingMode: facingUser ? 'user' : 'environment',
           width: { ideal: 640 },
           height: { ideal: 480 },
           frameRate: { ideal: 24, max: 30 },
-        },
+        } : false,
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -95,27 +97,17 @@ export const useWebRTC = ({
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err: any) {
-        // If video fails (no camera or blocked), try audio only
-        console.warn('Video + Audio capture failed, trying audio only:', err);
+        if (mediaMode !== 'video') throw err;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          stream = await navigator.mediaDevices.getUserMedia({ audio: constraints.audio, video: false });
           setIsCameraOn(false);
-        } catch (audioErr: any) {
-          console.warn('Audio capture failed as well, creating silent fallback stream:', audioErr);
-          // Create synthetic silent audio stream so WebRTC can still negotiate
-          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const dst = audioCtx.createMediaStreamDestination();
-          osc.connect(dst);
-          osc.start();
-          stream = dst.stream;
-          setIsCameraOn(false);
-          setIsMicOn(false);
-          setMediaError('Camera/Microphone access was denied or not available. Text chat remains fully functional.');
+        } catch {
+          throw err;
         }
       }
 
       localStreamRef.current = stream;
+      setIsCameraOn(stream.getVideoTracks().length > 0);
 
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
@@ -131,7 +123,7 @@ export const useWebRTC = ({
       setMediaError('Could not access camera or microphone.');
       return null;
     }
-  }, []);
+  }, [mediaMode]);
 
   // Initialize WebRTC PeerConnection
   const initPeerConnection = useCallback((stream: MediaStream) => {
@@ -217,7 +209,7 @@ export const useWebRTC = ({
 
     // If initiator, send initial offer
     if (isInitiator) {
-      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: mediaMode === 'video' })
         .then((offer) => pc.setLocalDescription(offer))
         .then(() => {
           if (pc.localDescription) {
@@ -233,7 +225,7 @@ export const useWebRTC = ({
     }
 
     return pc;
-  }, [isInitiator, onSendSignal]);
+  }, [isInitiator, mediaMode, onSendSignal]);
 
   // Handle incoming signals from the signaling server
   useEffect(() => {
@@ -335,7 +327,7 @@ export const useWebRTC = ({
         remoteStreamRef.current = null;
       }
     };
-  }, [roomId, autoStart]);
+  }, [roomId, autoStart, mediaMode]);
 
   // Toggle Video Track
   const toggleCamera = useCallback(() => {

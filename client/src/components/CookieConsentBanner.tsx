@@ -1,6 +1,5 @@
+import { ShieldCheck, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import ShieldCheck from 'lucide-react/dist/esm/icons/shield-check.js';
-import X from 'lucide-react/dist/esm/icons/x.js';
 
 export const CookieConsentBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

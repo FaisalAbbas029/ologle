@@ -1,8 +1,5 @@
+import { ArrowRight, CircleCheck as CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
 import React, { useState } from 'react';
-import Mail from 'lucide-react/dist/esm/icons/mail.js';
-import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2.js';
-import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right.js';
-import ShieldCheck from 'lucide-react/dist/esm/icons/shield-check.js';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
 export const NewsletterSection: React.FC = () => {

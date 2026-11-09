@@ -103,3 +103,7 @@ npm run build
 npm start
 ```
 *Note: No persistent database (PostgreSQL, MongoDB, Redis) is required. All session state is ephemeral and in-memory by architectural mandate.*
+
+When hosting the static client separately (for example, on Netlify), deploy the Node.js WebSocket server on a WebSocket-capable host and set `VITE_WEBSOCKET_URL` in the client build environment to that server's secure `/ws` URL. Without this setting, production builds do not attempt a same-origin WebSocket connection. Local development continues to use the integrated Vite WebSocket server.
+
+The Netlify `_redirects` file serves the React app for direct navigation to client routes. Live matching requires the WebSocket server to be deployed and `VITE_WEBSOCKET_URL` configured; with no relay configured, the app does not fabricate matches and displays matching as unavailable.

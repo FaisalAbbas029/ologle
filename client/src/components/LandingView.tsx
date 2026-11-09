@@ -1,6 +1,6 @@
+import { ChevronRight } from 'lucide-react';
 import React from 'react';
 import { AppView } from '../types/index.ts';
-import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right.js';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { HeroSection } from './HeroSection.tsx';
 

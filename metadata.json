@@ -1,0 +1,11 @@
+{
+  "name": "Remix Hayloo",
+  "description": "Privacy-first, accountless, interest-based text conversation platform connecting people through shared interests.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

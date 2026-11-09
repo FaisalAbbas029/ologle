@@ -1,0 +1,9 @@
+# Ologle — Privacy-First Professional Network
+
+> Instant profession-based peer conversation platform with WebRTC peer-to-peer encryption and zero logs.
+
+## Core Features & Links
+- [Platform Home](https://ologle.network/): Discover professionals across tech, design, AI, medicine, and business.
+- [Community Guidelines](https://ologle.network/): Verified conduct standards and zero harassment policy.
+- [Privacy Architecture](https://ologle.network/): Zero data retention specification, ephemeral in-memory signaling, and decentralized WebRTC streams.
+- [Terms of Service](https://ologle.network/): Safe usage policy and mutual confidentiality terms.

@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with human verification status, profession, and interests",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "profession": { "type": "string", "maxLength": 100 },
+        "interests": { "type": "array" },
+        "isHumanVerified": { "type": "boolean" },
+        "trustScore": { "type": "number" },
+        "firewallPassedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "isHumanVerified", "trustScore"]
+    },
+    "SecurityLog": {
+      "title": "SecurityLog",
+      "description": "Log of firewall checks, bot challenges, and security events for a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "action": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "maxLength": 32 },
+        "details": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "action", "status"]
+    },
+    "FirewallMetrics": {
+      "title": "FirewallMetrics",
+      "description": "Aggregate firewall telemetry and bot block statistics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "totalBotChallenges": { "type": "number" },
+        "botsBlocked": { "type": "number" },
+        "verifiedHumans": { "type": "number" },
+        "lastShieldCheck": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "totalBotChallenges", "botsBlocked", "verifiedHumans"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Secure user profile and human verification status"
+    },
+    "/users/{userId}/securityLogs/{logId}": {
+      "schema": "SecurityLog",
+      "description": "Security audit and bot firewall logs for the user"
+    },
+    "/firewallMetrics/{metricsId}": {
+      "schema": "FirewallMetrics",
+      "description": "Global telemetry and firewall stats"
+    }
+  }
+}

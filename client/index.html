@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth" data-theme="default">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OLOGLE — Meet Beyond Your Circle</title>
+  <meta name="description"
+    content="Talk to a professional, not just a stranger. Instant profession-based video, audio, and text conversations with zero logs." />
+  <meta name="keywords"
+    content="Ologle, professional network, peer conversation, tech discussions, innovation, zero logs, privacy-first" />
+  <meta name="author" content="Ologle Network" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#EC5E27" />
+
+  <!-- Orange Block SVG Favicon for Ologle -->
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23EC5E27'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='%23FFFFFF' font-family='Plus Jakarta Sans, Montserrat, Inter, sans-serif' font-weight='900' font-size='38'%3EO%3C/text%3E%3C/svg%3E" />
+
+  <!-- Open Graph Social Share Cards -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ologle" />
+  <meta property="og:title" content="OLOGLE — Meet Beyond Your Circle" />
+  <meta property="og:description"
+    content="Meet professionals beyond your network. Discover new perspectives, exchange ideas, and connect with people who understand your ambitions." />
+  <meta property="og:url" content="https://ologle.network" />
+
+  <!-- Non-render-blocking Fonts with display=swap (Plus Jakarta Sans, Outfit, Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800&family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+  >
+  <script>
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem('ologle_theme') || localStorage.getItem('hayloo_theme');
+        if (savedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'white');
+        }
+      } catch (e) { }
+    })();
+  </script>
+</head>
+
+<body class="font-['Plus_Jakarta_Sans',sans-serif] antialiased min-h-screen">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

@@ -15,7 +15,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesión',
     'hero.andShared': 'y',
     'hero.interestsSpan': 'Intereses Compartidos.',
-    'hero.mainSubtitle': 'Ve más allá de chats aleatorios. Nuestro motor de emparejamiento te conecta al instante con desarrolladores, diseñadores, creadores y expertos verificados.',
+
     'hero.configureFilters': 'Configurar Filtros de Emparejamiento',
     'hero.resetFilters': 'Restablecer filtros',
     'hero.professionLabel': 'Tu Profesión o Especialidad',
@@ -256,7 +256,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'پیشہ',
     'hero.andShared': 'اور مشترکہ',
     'hero.interestsSpan': 'دلچسپیاں۔',
-    'hero.mainSubtitle': 'غیر متعلقہ گفتگو سے آگے بڑھیں۔ ہمارا جدید الٹرا میچنگ انجن آپ کو فوری طور پر تصدیق شدہ انجینئرز، ڈیزائنرز، اور ماہرین سے ملاتا ہے۔',
+
     'hero.configureFilters': 'میچنگ فلٹرز ترتیب دیں',
     'hero.resetFilters': 'فلٹرز دوبارہ ترتیب دیں',
     'hero.professionLabel': 'آپ کا پیشہ یا شعبہ',
@@ -497,7 +497,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'المهنة',
     'hero.andShared': 'والاهتمامات',
     'hero.interestsSpan': 'المشتركة.',
-    'hero.mainSubtitle': 'تجاوز المحادثات العشوائية. محرك المطابقة الذكي يربطك فوراً بمهندسين ومصممين وخبراء معتمدين يشاركونك نفس المجال والشغف.',
+
     'hero.configureFilters': 'تكوين فلاتر المطابقة',
     'hero.resetFilters': 'إعادة تعيين الفلاتر',
     'hero.professionLabel': 'مهنتك أو مجالك التخصصي',
@@ -736,7 +736,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Métier',
     'hero.andShared': '&',
     'hero.interestsSpan': 'Centres d’intérêt partagés.',
-    'hero.mainSubtitle': 'Dépassez les discussions aléatoires. Notre moteur intelligent vous connecte instantanément à des développeurs, designers et experts vérifiés.',
+
     'hero.configureFilters': 'Configurer les Filtres de Match',
     'hero.resetFilters': 'Réinitialiser les filtres',
     'hero.professionLabel': 'Votre Métier ou Domaine',
@@ -963,7 +963,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Beruf',
     'hero.andShared': '& gemeinsamen',
     'hero.interestsSpan': 'Interessen.',
-    'hero.mainSubtitle': 'Verlasse zufällige Chats. Unsere intelligente Matching-Engine verbindet dich sofort mit verifizierten Entwicklern, Designern und Experten.',
+
     'hero.configureFilters': 'Match-Filter Konfigurieren',
     'hero.resetFilters': 'Filter zurücksetzen',
     'hero.professionLabel': 'Dein Beruf oder Fachgebiet',
@@ -1190,7 +1190,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': '职业领域',
     'hero.andShared': '及共同',
     'hero.interestsSpan': '兴趣标签连线。',
-    'hero.mainSubtitle': '告别随机漫聊。我们的智能匹配引擎即时将您与经过验证的开发者、设计师、研究人员及专业专家相连，完美契合您的专业领域。',
+
     'hero.configureFilters': '配置智能匹配筛选条件',
     'hero.resetFilters': '重置所有筛选',
     'hero.professionLabel': '您的职业或专业领域',
@@ -1420,7 +1420,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'पेशा',
     'hero.andShared': '& साझा',
     'hero.interestsSpan': 'रुचियाँ।',
-    'hero.mainSubtitle': 'यादृच्छिक चैट से आगे बढ़ें। हमारा बुद्धिमान मैचिंग इंजन आपको सत्यापित डेवलपर्स, डिजाइनरों और विशेषज्ञों से तुरंत जोड़ता है।',
+
     'hero.configureFilters': 'मैच फ़िल्टर कॉन्फ़िगर करें',
     'hero.resetFilters': 'फ़िल्टर रीसेट करें',
     'hero.professionLabel': 'आपका पेशा या क्षेत्र',
@@ -1659,7 +1659,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': '専門分野',
     'hero.andShared': '& 共通の',
     'hero.interestsSpan': '関心テーマ。',
-    'hero.mainSubtitle': '単なるランダムチャットを超えて。インテリジェントマッチングで、あなたの関心に合った検証済みのエンジニア、デザイナー、専門家とすぐにつながります。',
+
     'hero.configureFilters': 'マッチフィルターを設定',
     'hero.resetFilters': 'フィルターをリセット',
     'hero.professionLabel': 'あなたの専門分野・職業',
@@ -1886,7 +1886,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profissão',
     'hero.andShared': 'e',
     'hero.interestsSpan': 'Interesses em Comum.',
-    'hero.mainSubtitle': 'Vá além dos chats aleatórios. Nosso motor inteligente conecta você instantaneamente a desenvolvedores, designers e especialistas verificados.',
+
     'hero.configureFilters': 'Configurar Filtros de Combinação',
     'hero.resetFilters': 'Redefinir filtros',
     'hero.professionLabel': 'Sua Profissão ou Área',
@@ -2113,7 +2113,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Профессии',
     'hero.andShared': 'и общим',
     'hero.interestsSpan': 'Интересам.',
-    'hero.mainSubtitle': 'Выйдите за рамки случайных чатов. Наш алгоритм мгновенно соединит вас с верифицированными разработчиками, дизайнерами, исследователями и экспертами.',
+
     'hero.configureFilters': 'Настройте фильтры поиска',
     'hero.resetFilters': 'Сбросить все фильтры',
     'hero.professionLabel': 'Ваша профессия или сфера',
@@ -2340,7 +2340,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'تخصص',
     'hero.andShared': 'و علایق',
     'hero.interestsSpan': 'مشترک.',
-    'hero.mainSubtitle': 'فراتر از چت‌های تصادفی بروید. موتور هوشمند ما شما را فوراً به متخصصان، طراحان و پژوهشگران هم‌مسیرتان متصل می‌کند.',
+
     'hero.configureFilters': 'تنظیم فیلترهای همتایابی',
     'hero.resetFilters': 'بازنشانی فیلترها',
     'hero.professionLabel': 'حرفه یا حوزه تخصصی شما',
@@ -2569,7 +2569,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Meslek',
     'hero.andShared': '& Ortak',
     'hero.interestsSpan': 'İlgi Alanları.',
-    'hero.mainSubtitle': 'Rastgele sohbetlerin ötesine geçin. Akıllı eşleştirme motorumuz sizi doğrulanmış geliştiriciler, tasarımcılar, içerik üreticileri ve uzmanlarla anında buluşturur.',
+
     'hero.configureFilters': 'Eşleşme Filtrelerinizi Yapılandırın',
     'hero.resetFilters': 'Filtreleri Sıfırla',
     'hero.professionLabel': 'Mesleğiniz veya Alanınız',
@@ -2780,7 +2780,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Professione',
     'hero.andShared': 'e',
     'hero.interestsSpan': 'Interessi Comuni.',
-    'hero.mainSubtitle': 'Vai oltre le chat casuali. Il nostro motore intelligente ti connette all\'istante con sviluppatori, designer ed esperti verificati.',
+
     'hero.configureFilters': 'Configura i Filtri di Abbinamento',
     'hero.resetFilters': 'Reimposta filtri',
     'hero.professionLabel': 'La tua Professione o Settore',
@@ -2864,7 +2864,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': '직업',
     'hero.andShared': '및 공유',
     'hero.interestsSpan': '관심사 연결.',
-    'hero.mainSubtitle': '단순 무작위 채팅을 넘어, 검증된 개발자, 디자이너, 크리에이터 및 전문가와 지능적으로 즉시 연결됩니다.',
+
     'hero.configureFilters': '매칭 필터 설정',
     'hero.resetFilters': '필터 초기화',
     'hero.professionLabel': '나의 직업 또는 분야',
@@ -2948,7 +2948,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Beroep',
     'hero.andShared': '& Gedeelde',
     'hero.interestsSpan': 'Interesses.',
-    'hero.mainSubtitle': 'Ga verder dan willekeurige chats. Onze slimme matching engine verbindt je direct met geverifieerde ontwikkelaars, ontwerpers en experts.',
+
     'hero.configureFilters': 'Configureer Je Matchfilters',
     'hero.resetFilters': 'Reset filters',
     'hero.professionLabel': 'Jouw Beroep of Vakgebied',
@@ -3029,7 +3029,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Zawodu',
     'hero.andShared': 'i Wspólnych',
     'hero.interestsSpan': 'Zainteresowań.',
-    'hero.mainSubtitle': 'Więcej niż losowe czaty. Nasz inteligentny algorytm natychmiast łączy Cię ze zweryfikowanymi specjalistami i twórcami z Twojej dziedziny.',
+
     'hero.configureFilters': 'Skonfiguruj Filtry Dopasowania',
     'hero.resetFilters': 'Resetuj filtry',
     'hero.professionLabel': 'Twój Zawód lub Branża',
@@ -3108,7 +3108,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesi',
     'hero.andShared': '& Minat',
     'hero.interestsSpan': 'Bersama.',
-    'hero.mainSubtitle': 'Lebih dari obrolan acak. Algoritma cerdas kami menghubungkan Anda langsung dengan profesional dan pakar terverifikasi sesuai bidang Anda.',
+
     'hero.configureFilters': 'Konfigurasi Filter Pencocokan',
     'hero.resetFilters': 'Atur ulang filter',
     'hero.professionLabel': 'Profesi atau Bidang Anda',
@@ -3187,7 +3187,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Nghề Nghiệp',
     'hero.andShared': '& Sở Thích',
     'hero.interestsSpan': 'Chung.',
-    'hero.mainSubtitle': 'Vượt ra ngoài các cuộc trò chuyện ngẫu nhiên. Công nghệ thông minh kết nối bạn tức thì với các chuyên gia phù hợp trong lĩnh vực.',
+
     'hero.configureFilters': 'Cấu Hình Bộ Lọc Ghép Nối',
     'hero.resetFilters': 'Đặt lại bộ lọc',
     'hero.professionLabel': 'Nghề Nghiệp Hoặc Lĩnh Vực Của Bạn',
@@ -3266,7 +3266,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Професією',
     'hero.andShared': 'та Спільними',
     'hero.interestsSpan': 'Інтересами.',
-    'hero.mainSubtitle': 'Більше ніж випадкові чати. Наш розумний алгоритм миттєво з’єднує вас із перевіреними експертами у вашій сфері.',
+
     'hero.configureFilters': 'Налаштувати Фільтри Підбору',
     'hero.resetFilters': 'Скинути фільтри',
     'hero.professionLabel': 'Ваша Професія або Сфера',
@@ -3345,7 +3345,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Yrke',
     'hero.andShared': '& Gemensamma',
     'hero.interestsSpan': 'Intressen.',
-    'hero.mainSubtitle': 'Mer än bara slumpmässiga chattar. Vår intelligenta algoritm matchar dig direkt med verifierade experter inom ditt område.',
+
     'hero.configureFilters': 'Konfigurera Matchningsfilter',
     'hero.resetFilters': 'Återställ filter',
     'hero.professionLabel': 'Ditt Yrke eller Område',
@@ -3424,7 +3424,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Επαγγέλματος',
     'hero.andShared': '& Κοινών',
     'hero.interestsSpan': 'Ενδιαφερόντων.',
-    'hero.mainSubtitle': 'Πέρα από τυχαίες συνομιλίες. Ο έξυπνος αλγόριθμος σας συνδέει άμεσα με επαληθευμένους ειδικούς στον τομέα σας.',
+
     'hero.configureFilters': 'Ρύθμιση Φίλτρων Αντιστοίχισης',
     'hero.resetFilters': 'Επαναφορά φίλτρων',
     'hero.professionLabel': 'Το Επάγγελμα ή ο Τομέας σας',
@@ -3503,7 +3503,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'สายอาชีพ',
     'hero.andShared': 'และความสนใจ',
     'hero.interestsSpan': 'ร่วมกัน.',
-    'hero.mainSubtitle': 'เหนือกว่าแชทสุ่มทั่วไป อัลกอริทึมอัจฉริยะเชื่อมโยงคุณกับผู้เชี่ยวชาญตัวจริงในสายงานได้ทันที',
+
     'hero.configureFilters': 'กำหนดค่าตัวกรองการจับคู่',
     'hero.resetFilters': 'รีเซ็ตตัวกรอง',
     'hero.professionLabel': 'อาชีพหรือสายงานของคุณ',
@@ -3582,7 +3582,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'পেশা',
     'hero.andShared': 'ও অভিন্ন',
     'hero.interestsSpan': 'আগ্রহের ভিত্তিতে।',
-    'hero.mainSubtitle': 'সাধারণ র‍্যান্ডম চ্যাটের চেয়ে উন্নত। আমাদের বুদ্ধিমান অ্যালগরিদম আপনাকে নির্দিষ্ট বিষয়ের দক্ষ বিশেষজ্ঞদের সাথে সরাসরি যুক্ত করে।',
+
     'hero.configureFilters': 'ম্যাচিং ফিল্টার কনফিগার করুন',
     'hero.resetFilters': 'ফিল্টার রিসেট করুন',
     'hero.professionLabel': 'আপনার পেশা বা ক্ষেত্র',
@@ -3661,7 +3661,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesion',
     'hero.andShared': '& Minat',
     'hero.interestsSpan': 'Bersama.',
-    'hero.mainSubtitle': 'Lebih daripada perbualan rawak. Algoritma pintar kami memadankan anda secara langsung dengan pakar terbukti dalam bidang anda.',
+
     'hero.configureFilters': 'Konfigurasikan Penapis Padanan',
     'hero.resetFilters': 'Tetapkan semula penapis',
     'hero.professionLabel': 'Profesion atau Bidang Anda',
@@ -3740,7 +3740,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Propesyon',
     'hero.andShared': '& Parehong',
     'hero.interestsSpan': 'Interes.',
-    'hero.mainSubtitle': 'Higit pa sa karaniwang random chat. Agad kang ikinokonekta ng aming matalinong algorithm sa mga beripikadong eksperto sa iyong larangan.',
+
     'hero.configureFilters': 'I-configure ang Mga Filter',
     'hero.resetFilters': 'I-reset ang mga filter',
     'hero.professionLabel': 'Iyong Propesyon o Larangan',
@@ -3819,7 +3819,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profese',
     'hero.andShared': '& Společných',
     'hero.interestsSpan': 'Zájmů.',
-    'hero.mainSubtitle': 'Více než náhodný chat. Náš inteligentní algoritmus vás okamžitě spojí s ověřenými odborníky z vašeho oboru.',
+
     'hero.configureFilters': 'Nastavit Filtry Párování',
     'hero.resetFilters': 'Obnovit filtry',
     'hero.professionLabel': 'Vaše Profese nebo Obor',
@@ -3898,7 +3898,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesie',
     'hero.andShared': '& Interese',
     'hero.interestsSpan': 'Comune.',
-    'hero.mainSubtitle': 'Mai mult decât chat-uri la întâmplare. Algoritmul nostru inteligent te conectează instantaneu cu profesioniști verificați din domeniul tău.',
+
     'hero.configureFilters': 'Configurare Filtre de Potrivire',
     'hero.resetFilters': 'Resetează filtrele',
     'hero.professionLabel': 'Profesia sau Domeniul Tău',

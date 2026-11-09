@@ -19,7 +19,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profession',
     'hero.andShared': '& Shared',
     'hero.interestsSpan': 'Interests.',
-    'hero.mainSubtitle': 'Choose a profession and interests to look for real members who share your curiosity. Availability varies; when no compatible member is online, we’ll wait instead of showing a fabricated profile.',
+
     'hero.configureFilters': 'Configure Your Match Filters',
     'hero.resetFilters': 'Reset match filters',
     'hero.professionLabel': 'Your Profession or Field',

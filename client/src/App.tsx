@@ -678,7 +678,7 @@ export default function App() {
   };
 
   // 1:1 Matching Flow Handlers (Direct to Finding Screen)
-  const handleStart1on1 = (
+  const handleStart1on1 = async (
     customProf?: string,
     customInterests?: string[],
     customCountry?: string,
@@ -724,9 +724,8 @@ export default function App() {
       return;
     }
 
-    if (!haylooSocket.isConnected) {
-      haylooSocket.connect();
-      addToast('warning', 'Live matching is unavailable because the WebSocket service is not connected. Please try again later.');
+    if (!(await haylooSocket.waitUntilConnected())) {
+      addToast('warning', 'Live matching could not connect. Please try again in a moment.');
       return;
     }
 

@@ -11,7 +11,7 @@ import {
 } from './geminiService.ts';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const server = createServer(app);
 
 // Security Headers Middleware
@@ -25,6 +25,10 @@ app.use((_req, res, next) => {
 
 // Enable JSON body parsing for payloads with safe size limit
 app.use(express.json({ limit: '25mb' }));
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // -------------------------------------------------------------
 // IN-MEMORY RESPONSE CACHE (TTL LRU for Gemini endpoints)

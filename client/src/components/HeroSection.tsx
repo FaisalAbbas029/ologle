@@ -8,26 +8,44 @@ import { useLanguage } from '../context/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES } from '../data/languages.ts';
 import { getSuggestedInterestsForProfession } from '../data/professionInterests.ts';
 
+const PORTRAIT_COLUMNS = [
+  ['/ai-portraits/hero_mia_v1.jpg', '/ai-portraits/hero_marcus_v1.jpg'],
+  ['/ai-portraits/hero_amina_cyber.jpg', '/ai-portraits/hero_priya_v1.jpg'],
+  ['/ai-portraits/hero_mateo_robotics.jpg', '/ai-portraits/hero_chloe_creative.jpg'],
+];
+
 const PortraitGrid: React.FC = () => (
-  <div className="hero-grid-wrapper flex-col">
-    <div className="flex h-full min-h-[420px] flex-col justify-between rounded-3xl border border-orange-200/70 bg-gradient-to-br from-white via-orange-50 to-amber-100 p-8 shadow-xl dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-      <div>
-        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-600 text-white shadow-lg shadow-orange-900/20">
-          <Globe className="h-7 w-7" aria-hidden="true" />
+  <div className="hero-portrait-wrap">
+    <div className="hero-portrait-grid" aria-label="Illustrative portrait gallery">
+      {PORTRAIT_COLUMNS.map((column, columnIndex) => (
+        <div
+          className="hero-portrait-column"
+          key={columnIndex}
+          style={{ '--portrait-duration': `${36 + columnIndex * 5}s` } as React.CSSProperties}
+        >
+          <div className="hero-portrait-track">
+            {[0, 1].map((copy) => (
+              <div className="hero-portrait-set" key={copy} aria-hidden={copy === 1}>
+                {column.map((src) => (
+                  <div className="hero-portrait-card" key={src}>
+                    <img
+                      src={src}
+                      alt=""
+                      width="640"
+                      height="800"
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-700 dark:text-orange-300">
-          Real people. Real conversations.
-        </p>
-        <h2 className="mt-3 max-w-md text-3xl font-extrabold leading-tight text-slate-900 dark:text-white">
-          Meet someone who shares your curiosity.
-        </h2>
-        <p className="mt-4 max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">
-          Ologle searches for compatible members based on your profession and interests. If nobody is available, we will wait instead of showing bots or fabricated profiles.
-        </p>
-      </div>
-      <div className="mt-8 rounded-2xl border border-orange-200/70 bg-white/80 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
-        <span className="font-semibold">Your match is always a real member.</span>
-        <span className="ml-1 text-slate-500 dark:text-slate-400">Availability can vary.</span>
+      ))}
+      <div className="hero-portrait-disclaimer">
+        Illustrative portraits · not live member profiles
       </div>
     </div>
   </div>
@@ -1317,11 +1335,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {' '}{t('hero.andShared', '& Shared')}{' '}
               <span style={{ color: 'var(--theme-primary, #EC5E27)' }}>{t('hero.interestsSpan', 'Interests.')}</span>
             </h1>
-            <p
-              className="m-0 transition-colors duration-300 text-xs sm:text-[13px] leading-snug text-slate-600 dark:text-slate-300 line-clamp-2 max-w-xl"
-            >
-              {t('hero.mainSubtitle', 'Choose a profession and interests to look for real members who share your curiosity. Availability varies; when no compatible member is online, we’ll let you know and wait instead of showing a fabricated profile.')}
-            </p>
             <FilterCard
               sessionMode={sessionMode}
               onSessionModeChange={onSessionModeChange}
@@ -1363,190 +1376,110 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         .hero-col-right { flex: 1.05; order: 2; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
       }
 
-      /* ── Hero 3-Column Seamless Canvas Showcase ── */
-      .hero-grid-wrapper {
+      .hero-portrait-wrap {
         width: 100%;
-        max-width: 100%;
-        position: relative;
-        display: flex;
-        justify-content: center;
-        height: 100%;
+        max-width: 620px;
       }
 
-      .hero-grid-showcase {
-        width: 100%;
-        height: 640px;
+      .hero-portrait-grid {
+        position: relative;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-        position: relative;
+        gap: 12px;
+        width: 100%;
+        height: clamp(360px, calc(100vh - 190px), 540px);
         overflow: hidden;
-        border-radius: 22px;
-        box-sizing: border-box;
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%);
-        mask-image: linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%);
+        border-radius: 24px;
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 7%, black 93%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, black 7%, black 93%, transparent);
       }
 
-      @media (min-width: 1024px) {
-        .hero-grid-showcase {
-          height: clamp(340px, calc(100vh - 170px), 560px);
-          gap: 12px;
-        }
-      }
-
-      @media (max-width: 1024px) {
-        .hero-grid-showcase {
-          height: 480px;
-          gap: 10px;
-        }
-      }
-
-      @media (max-width: 640px) {
-        .hero-grid-showcase {
-          height: 400px;
-          gap: 8px;
-        }
-      }
-
-      .kinetic-stream-col {
-        flex: 1;
+      .hero-portrait-column {
         min-width: 0;
         overflow: hidden;
-        position: relative;
       }
 
-      .kinetic-stream-track {
+      .hero-portrait-track {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        animation: portrait-scroll var(--portrait-duration) linear infinite;
         will-change: transform;
       }
 
-      /* ── Ultra-Smooth Continuous Linear Infinite Stream (Zero Reversal, Zero Jump) ── */
-      @keyframes stream-continuous-up {
-        0% {
-          transform: translate3d(0, 0, 0);
-        }
-        100% {
-          transform: translate3d(0, calc(-50% - 7px), 0);
-        }
+      .hero-portrait-column:nth-child(2) .hero-portrait-track {
+        animation-direction: reverse;
       }
 
-      /* ── Pause on Hover for Entire Column ── */
-      .kinetic-stream-col:hover .kinetic-stream-track {
+      .hero-portrait-set {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .hero-portrait-card {
+        position: relative;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 18px;
+        background: #e2e8f0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+      }
+
+      .hero-portrait-card::after {
+        position: absolute;
+        inset: auto 0 0;
+        height: 35%;
+        background: linear-gradient(transparent, rgba(15, 23, 42, 0.24));
+        content: '';
+        pointer-events: none;
+      }
+
+      .hero-portrait-card img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 500ms ease;
+      }
+
+      .hero-portrait-column:hover .hero-portrait-track,
+      .hero-portrait-column:focus-within .hero-portrait-track {
         animation-play-state: paused;
       }
 
-      /* ── Card Hover Elevation & Vibrant Orange Glow ── */
-      .hcard {
-        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                    border-color 0.3s ease;
-        will-change: transform, box-shadow;
+      .hero-portrait-column:hover img {
+        transform: scale(1.04);
       }
 
-      .hcard:hover {
-        transform: translateY(-3px) scale(1.025) !important;
-        border-color: #EC5E27 !important;
-        box-shadow: 0 14px 30px rgba(236, 94, 39, 0.28) !important;
-        z-index: 50 !important;
-      }
-
-      /* Photo subtle zoom on card hover */
-      .hcard-img {
-        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
-      }
-      .hcard:hover .hcard-img {
-        transform: scale(1.05);
-        filter: brightness(1.04) saturate(1.05);
-      }
-
-      /* Green ONLINE status pulse dot */
-      @keyframes hero-blink {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50%      { opacity: 0.35; transform: scale(0.75); }
-      }
-
-      /* ── 3D Harmonic Wave Float Perspective Styles ── */
-      .anim-mode-wave {
-        perspective: 1200px;
-      }
-      .anim-mode-wave .wave-perspective {
-        perspective: 1000px;
-      }
-      .anim-mode-wave .hcard {
-        transform: rotateY(1.5deg) rotateX(1deg);
-      }
-
-      .hcard-wave {
-        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-      .hcard-wave:hover {
-        transform: translateY(-8px) scale(1.04) rotateX(4deg) !important;
-        box-shadow: 0 20px 35px rgba(236, 94, 39, 0.32) !important;
-      }
-
-      /* ── Neon Glow & Shimmering Holographic Frame Styles ── */
-      .shimmer-stream-col {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        position: relative;
-      }
-
-      .hcard-shimmer {
-        border: 2px solid #EC5E27 !important;
-        animation: frame-border-flow 4s ease-in-out infinite;
-      }
-
-      @keyframes frame-border-flow {
-        0% {
-          border-color: #EC5E27;
-          box-shadow: 0 0 16px rgba(236, 94, 39, 0.5), 0 4px 20px rgba(15, 23, 42, 0.15);
-        }
-        33% {
-          border-color: #F59E0B;
-          box-shadow: 0 0 20px rgba(245, 158, 11, 0.55), 0 4px 20px rgba(15, 23, 42, 0.15);
-        }
-        66% {
-          border-color: #EC4899;
-          box-shadow: 0 0 22px rgba(236, 72, 153, 0.5), 0 4px 20px rgba(15, 23, 42, 0.15);
-        }
-        100% {
-          border-color: #EC5E27;
-          box-shadow: 0 0 16px rgba(236, 94, 39, 0.5), 0 4px 20px rgba(15, 23, 42, 0.15);
-        }
-      }
-
-      .hcard-shimmer-sweep {
+      .hero-portrait-disclaimer {
         position: absolute;
-        top: -60%;
-        left: -60%;
-        width: 220%;
-        height: 220%;
-        background: linear-gradient(
-          115deg,
-          transparent 35%,
-          rgba(255, 255, 255, 0.45) 50%,
-          transparent 65%
-        );
-        pointer-events: none;
-        z-index: 10;
-        animation: frame-shimmer-sweep 3.6s ease-in-out infinite;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        z-index: 1;
+        width: fit-content;
+        margin: 0 auto;
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.72);
+        color: white;
+        font-size: 11px;
+        font-weight: 600;
+        text-align: center;
+        backdrop-filter: blur(12px);
       }
 
-      @keyframes frame-shimmer-sweep {
-        0% {
-          transform: translateX(-150%) rotate(25deg);
-          opacity: 0;
-        }
-        15% {
-          opacity: 0.65;
-        }
-        38% {
-          transform: translateX(180%) rotate(25deg);
-          opacity: 0;
-        }
-        100% {
-          transform: translateX(180%) rotate(25deg);
-          opacity: 0;
+      @keyframes portrait-scroll {
+        to { transform: translateY(calc(-50% - 6px)); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .hero-portrait-track {
+          animation: none;
         }
       }
     `}</style>

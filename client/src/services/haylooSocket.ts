@@ -78,6 +78,32 @@ class HaylooClientSocket {
     }
   }
 
+  public waitUntilConnected(timeoutMs = 8000): Promise<boolean> {
+    if (this.isConnected) return Promise.resolve(true);
+
+    this.connect();
+    if (this.isConnected) return Promise.resolve(true);
+
+    return new Promise((resolve) => {
+      let unsubscribe: (() => void) | undefined;
+      let settled = false;
+      const timeout = setTimeout(() => finish(false), timeoutMs);
+      const finish = (connected: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        unsubscribe?.();
+        resolve(connected);
+      };
+
+      unsubscribe = this.subscribeStatus((status) => {
+        if (status === 'connected') finish(true);
+        if (status === 'disconnected') finish(false);
+      });
+      if (settled) unsubscribe?.();
+    });
+  }
+
   private clearTimers(): void {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

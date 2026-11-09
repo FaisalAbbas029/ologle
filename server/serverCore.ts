@@ -54,6 +54,7 @@ export interface EphemeralSession {
   sessionId: string;
   visitorId: string;
   ipAddress: string;
+  isLoopback: boolean;
   ws: WebSocket | null;
   profession: string;
   interests: string[];
@@ -349,6 +350,11 @@ export class HaylooEngine {
       .substring(0, 16);
   }
 
+  private isLoopbackAddress(ip: string): boolean {
+    const address = ip.trim().toLowerCase().replace(/^::ffff:/, '');
+    return address === '::1' || address === 'localhost' || address.startsWith('127.');
+  }
+
   public createEphemeralTicket(
     flaggedSession: EphemeralSession,
     category: string,
@@ -404,6 +410,7 @@ export class HaylooEngine {
         sessionId,
         visitorId: visitorId || `vst_${Math.random().toString(36).substring(2, 10)}`,
         ipAddress: hashedIp,
+        isLoopback: this.isLoopbackAddress(ipAddress),
         ws,
         profession: '',
         interests: [],
@@ -425,6 +432,7 @@ export class HaylooEngine {
       session.ws = ws;
       session.lastActivity = now;
       session.ipAddress = hashedIp;
+      session.isLoopback = this.isLoopbackAddress(ipAddress);
       if (visitorId) session.visitorId = visitorId;
     }
 
@@ -703,6 +711,7 @@ export class HaylooEngine {
       sessionId: session.sessionId,
       visitorId: session.visitorId,
       ipAddress: session.ipAddress,
+      isLoopback: session.isLoopback,
       profession: session.profession,
       interests: session.interests,
       country: session.country || 'GLOBAL',
@@ -745,6 +754,9 @@ export class HaylooEngine {
       // Re-enqueue sessionA if candidate is gone or no longer matching
       const queuedA: QueuedSession = {
         sessionId: sessionA.sessionId,
+        visitorId: sessionA.visitorId,
+        ipAddress: sessionA.ipAddress,
+        isLoopback: sessionA.isLoopback,
         profession: sessionA.profession,
         interests: sessionA.interests,
         country: sessionA.country || 'GLOBAL',

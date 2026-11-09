@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 interface UseWebRTCOptions {
   roomId: string;
   isInitiator?: boolean;
+  mediaMode?: 'video' | 'voice' | 'messaging';
   onSendSignal: (signal: any) => void;
   incomingSignal: { signal: any; id: number } | null;
   autoStart?: boolean;
@@ -30,13 +31,14 @@ const ICE_SERVERS: RTCConfiguration = {
 export const useWebRTC = ({
   roomId,
   isInitiator = true,
+  mediaMode = 'video',
   onSendSignal,
   incomingSignal,
   autoStart = true,
 }: UseWebRTCOptions) => {
   const [connectionState, setConnectionState] = useState<WebRTCConnectionState>('idle');
-  const [isCameraOn, setIsCameraOn] = useState(true);
-  const [isMicOn, setIsMicOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(mediaMode === 'video');
+  const [isMicOn, setIsMicOn] = useState(mediaMode !== 'messaging');
   const [isFacingUser, setIsFacingUser] = useState(true);
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [isRemoteVideoActive, setIsRemoteVideoActive] = useState(false);
@@ -53,6 +55,11 @@ export const useWebRTC = ({
   const isSettingRemoteAnswerPending = useRef<boolean>(false);
   const processedSignalIdRef = useRef<number | null>(null);
 
+  useEffect(() => {
+    setIsCameraOn(mediaMode === 'video');
+    setIsMicOn(mediaMode !== 'messaging');
+  }, [mediaMode]);
+
   // Check available camera devices
   useEffect(() => {
     if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
@@ -67,6 +74,8 @@ export const useWebRTC = ({
 
   // Initialize or update local media stream
   const startLocalMedia = useCallback(async (facingUser = true): Promise<MediaStream | null> => {
+    if (mediaMode === 'messaging') return null;
+
     setConnectionState('requesting_media');
     setMediaError(null);
 
@@ -78,12 +87,12 @@ export const useWebRTC = ({
 
     try {
       const constraints: MediaStreamConstraints = {
-        video: {
+        video: mediaMode === 'video' ? {
           facingMode: facingUser ? 'user' : 'environment',
           width: { ideal: 640 },
           height: { ideal: 480 },
           frameRate: { ideal: 24, max: 30 },
-        },
+        } : false,
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -95,23 +104,14 @@ export const useWebRTC = ({
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err: any) {
-        // If video fails (no camera or blocked), try audio only
-        console.warn('Video + Audio capture failed, trying audio only:', err);
+        if (mediaMode !== 'video') throw err;
+
+        console.warn('Video capture failed, retrying with audio only:', err);
         try {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
           setIsCameraOn(false);
-        } catch (audioErr: any) {
-          console.warn('Audio capture failed as well, creating silent fallback stream:', audioErr);
-          // Create synthetic silent audio stream so WebRTC can still negotiate
-          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const dst = audioCtx.createMediaStreamDestination();
-          osc.connect(dst);
-          osc.start();
-          stream = dst.stream;
-          setIsCameraOn(false);
-          setIsMicOn(false);
-          setMediaError('Camera/Microphone access was denied or not available. Text chat remains fully functional.');
+        } catch (audioErr) {
+          throw audioErr;
         }
       }
 
@@ -131,7 +131,7 @@ export const useWebRTC = ({
       setMediaError('Could not access camera or microphone.');
       return null;
     }
-  }, []);
+  }, [mediaMode]);
 
   // Initialize WebRTC PeerConnection
   const initPeerConnection = useCallback((stream: MediaStream) => {
@@ -310,7 +310,7 @@ export const useWebRTC = ({
     let isMounted = true;
 
     const setup = async () => {
-      if (autoStart) {
+      if (autoStart && mediaMode !== 'messaging') {
         const stream = await startLocalMedia(isFacingUser);
         if (stream && isMounted) {
           initPeerConnection(stream);
@@ -335,10 +335,11 @@ export const useWebRTC = ({
         remoteStreamRef.current = null;
       }
     };
-  }, [roomId, autoStart]);
+  }, [roomId, autoStart, mediaMode]);
 
   // Toggle Video Track
   const toggleCamera = useCallback(() => {
+    if (mediaMode !== 'video') return;
     if (!localStreamRef.current) return;
     const videoTracks = localStreamRef.current.getVideoTracks();
     if (videoTracks.length === 0) {
@@ -365,7 +366,7 @@ export const useWebRTC = ({
       track.enabled = nextState;
     });
     setIsCameraOn(nextState);
-  }, [isCameraOn, isFacingUser, startLocalMedia]);
+  }, [isCameraOn, isFacingUser, mediaMode, startLocalMedia]);
 
   // Toggle Audio Track
   const toggleMic = useCallback(() => {
@@ -380,6 +381,7 @@ export const useWebRTC = ({
 
   // Switch Camera (Front vs Back)
   const flipCamera = useCallback(async () => {
+    if (mediaMode !== 'video') return;
     const nextFacing = !isFacingUser;
     setIsFacingUser(nextFacing);
     const newStream = await startLocalMedia(nextFacing);

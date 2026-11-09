@@ -8,6 +8,7 @@ Hayloo is a lightweight, zero-footprint web application for interest-based text 
 
 ### Matchmaking & Coordination
 - **Infrastructure Requirement**: Peer discovery requires a centralized WebSocket signaling service. Two standalone browsers cannot discover or exchange peer state without an intermediary signaling coordinator. Hayloo uses an in-memory Node.js WebSocket engine for this purpose.
+- **Production Hosting**: The standalone Node.js server serves both the app and `/ws`. Static hosting providers such as Netlify cannot run that persistent WebSocket engine; host the Node server separately and set `VITE_WEBSOCKET_URL` to its full secure endpoint (for example, `wss://signals.example.com/ws`) in the frontend build environment.
 
 ### Content Moderation Boundaries
 - **Imperfect Detection**: Automated rule-based and machine-learning text classification reduces harmful behavior (threats, harassment, sexual solicitation, spam), but cannot reliably detect sarcasm, contextual nuance, adversarial character substitutions (l33tspeak), or evolving coded language.
@@ -102,4 +103,6 @@ npm run build
 # Run production standalone server
 npm start
 ```
+For a separate frontend and signaling deployment, set `VITE_WEBSOCKET_URL` to the signaling server's full `/ws` URL before building.
+
 *Note: No persistent database (PostgreSQL, MongoDB, Redis) is required. All session state is ephemeral and in-memory by architectural mandate.*

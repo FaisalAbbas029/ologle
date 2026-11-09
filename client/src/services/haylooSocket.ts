@@ -26,7 +26,7 @@ class HaylooClientSocket {
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL?.trim() || `${protocol}//${host}/ws`;
 
     try {
       this.socket = new WebSocket(wsUrl);
@@ -166,4 +166,3 @@ class HaylooClientSocket {
 }
 
 export const haylooSocket = new HaylooClientSocket();
-

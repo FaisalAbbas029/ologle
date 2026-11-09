@@ -8,6 +8,7 @@ export interface QueuedSession {
   sessionId: string;
   visitorId?: string;
   ipAddress?: string;
+  isLoopback?: boolean;
   profession: string;
   interests: string[];
   country?: string; // 'GLOBAL' or country code/name
@@ -456,6 +457,12 @@ export class MatchmakerQueue {
 
     for (const [candidateId, candidateSession] of this.queue.entries()) {
       if (candidateId === currentSession.sessionId) continue;
+      if (
+        currentSession.visitorId &&
+        currentSession.visitorId === candidateSession.visitorId
+      ) {
+        continue;
+      }
 
       // 1. Session ID check (skips/recent matches)
       if (
@@ -482,11 +489,6 @@ export class MatchmakerQueue {
 
       // 3. Secondary IP check: Compare IP addresses as a secondary check to prevent re-matching if localStorage is cleared
       if (currentSession.ipAddress && candidateSession.ipAddress) {
-        const isLoopback =
-          currentSession.ipAddress === '127.0.0.1' ||
-          currentSession.ipAddress === '::1' ||
-          currentSession.ipAddress.includes('localhost');
-
         const ipPairKeyA = `${currentSession.ipAddress}:${candidateSession.ipAddress}`;
         const ipPairKeyB = `${candidateSession.ipAddress}:${currentSession.ipAddress}`;
 
@@ -495,7 +497,10 @@ export class MatchmakerQueue {
         }
 
         // Prevent self-matching on same IP in production (allow loopback for multi-tab local testing)
-        if (!isLoopback && currentSession.ipAddress === candidateSession.ipAddress) {
+        if (
+          currentSession.ipAddress === candidateSession.ipAddress &&
+          !(currentSession.isLoopback && candidateSession.isLoopback)
+        ) {
           continue;
         }
       }

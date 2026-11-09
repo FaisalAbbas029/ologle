@@ -22,20 +22,11 @@ class HaylooClientSocket {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL?.trim() || (
-      import.meta.env.DEV
-        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
-        : ''
-    );
-
-    if (!wsUrl) {
-      this.isConnected = false;
-      this.setStatus('disconnected');
-      return;
-    }
-
     this.isExplicitlyClosed = false;
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const wsUrl = `${protocol}//${host}/ws`;
 
     try {
       this.socket = new WebSocket(wsUrl);
@@ -76,32 +67,6 @@ class HaylooClientSocket {
       this.isConnected = false;
       this.scheduleReconnect();
     }
-  }
-
-  public waitUntilConnected(timeoutMs = 8000): Promise<boolean> {
-    if (this.isConnected) return Promise.resolve(true);
-
-    this.connect();
-    if (this.isConnected) return Promise.resolve(true);
-
-    return new Promise((resolve) => {
-      let unsubscribe: (() => void) | undefined;
-      let settled = false;
-      const timeout = setTimeout(() => finish(false), timeoutMs);
-      const finish = (connected: boolean) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe?.();
-        resolve(connected);
-      };
-
-      unsubscribe = this.subscribeStatus((status) => {
-        if (status === 'connected') finish(true);
-        if (status === 'disconnected') finish(false);
-      });
-      if (settled) unsubscribe?.();
-    });
   }
 
   private clearTimers(): void {
@@ -201,3 +166,4 @@ class HaylooClientSocket {
 }
 
 export const haylooSocket = new HaylooClientSocket();
+

@@ -1,6 +1,9 @@
-import { TriangleAlert as AlertTriangle, Info, ShieldAlert, X } from 'lucide-react';
 import React from 'react';
 import { SafetyToast } from '../types/index.ts';
+import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle.js';
+import ShieldAlert from 'lucide-react/dist/esm/icons/shield-alert.js';
+import X from 'lucide-react/dist/esm/icons/x.js';
+import Info from 'lucide-react/dist/esm/icons/info.js';
 
 interface SafetyWarningBannerProps {
   toasts: SafetyToast[];

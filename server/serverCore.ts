@@ -57,7 +57,6 @@ export interface EphemeralSession {
   ws: WebSocket | null;
   profession: string;
   interests: string[];
-  sessionMode: 'video' | 'voice' | 'messaging';
   country?: string; // 'GLOBAL' or country code/name
   currentMode: 'none' | 'matching' | '1on1' | 'community' | 'class';
   currentRoomId: string | null;
@@ -107,7 +106,7 @@ export interface ClassRoom {
 // Client -> Server Action Messages
 export type ClientMessage =
   | { type: 'REGISTER_SESSION'; visitorId?: string; blockedStrangers?: string[]; profession?: string; interests?: string[] }
-  | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; interests: string[]; country?: string; sessionMode?: 'video' | 'voice' | 'messaging' }
+  | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; interests: string[]; country?: string }
   | { type: 'CANCEL_MATCHING' }
   | { type: 'NEXT_PERSON' }
   | { type: 'END_CONVERSATION' }
@@ -408,7 +407,6 @@ export class HaylooEngine {
         ws,
         profession: '',
         interests: [],
-        sessionMode: 'video',
         currentMode: 'none',
         currentRoomId: null,
         pairedSessionId: null,
@@ -519,7 +517,7 @@ export class HaylooEngine {
             if (bid && typeof bid === 'string') session.blockedVisitorIds.add(bid);
           }
         }
-        this.startMatching(session, msg.profession, msg.interests, msg.country, msg.sessionMode);
+        this.startMatching(session, msg.profession, msg.interests, msg.country);
         break;
 
       case 'CANCEL_MATCHING':
@@ -660,13 +658,7 @@ export class HaylooEngine {
 
   // --- Matchmaking Implementation ---
 
-  private startMatching(
-    session: EphemeralSession,
-    profession: string,
-    interests: string[],
-    country?: string,
-    requestedMode?: 'video' | 'voice' | 'messaging'
-  ): void {
+  private startMatching(session: EphemeralSession, profession: string, interests: string[], country?: string): void {
     const banCheck = this.isBanned(session.visitorId, session.ipAddress);
     if (banCheck.banned) {
       if (session.ws) {
@@ -705,7 +697,6 @@ export class HaylooEngine {
 
     session.profession = cleanProf;
     session.interests = activeInterests;
-    if (requestedMode) session.sessionMode = requestedMode;
     session.currentMode = 'matching';
 
     const queuedSession: QueuedSession = {
@@ -714,7 +705,6 @@ export class HaylooEngine {
       ipAddress: session.ipAddress,
       profession: session.profession,
       interests: session.interests,
-      sessionMode: session.sessionMode,
       country: session.country || 'GLOBAL',
       queuedAt: Date.now(),
       blockedSessionIds: session.blockedSessionIds,
@@ -757,7 +747,6 @@ export class HaylooEngine {
         sessionId: sessionA.sessionId,
         profession: sessionA.profession,
         interests: sessionA.interests,
-        sessionMode: sessionA.sessionMode,
         country: sessionA.country || 'GLOBAL',
         queuedAt: Date.now(),
         blockedSessionIds: sessionA.blockedSessionIds,
@@ -878,7 +867,7 @@ export class HaylooEngine {
     session.currentRoomId = null;
 
     // Put straight back into matching queue
-    this.startMatching(session, session.profession, session.interests, session.country, session.sessionMode);
+    this.startMatching(session, session.profession, session.interests, session.country);
   }
 
   private handleEndConversation(session: EphemeralSession): void {

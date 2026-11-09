@@ -40,6 +40,24 @@ export interface HaylooPurpose {
 }
 export type OloglePurpose = HaylooPurpose;
 
+export interface CandidatePeer {
+  id: string;
+  displayName: string;
+  headline: string;
+  professionId: string;
+  professionName: string;
+  experience: string;
+  languages: string[];
+  purpose: string;
+  skills: string[];
+  bio: string;
+  location?: string;
+  countryCode?: string;
+  avatarUrl?: string;
+  matchScore?: number;
+  starterMessage?: string;
+}
+
 export interface ModerationReportItem {
   id: string;
   reporter: string;
@@ -243,3 +261,4 @@ export type ServerMessage =
   | { type: 'MOD_QUEUE_UPDATE'; tickets: EphemeralLiveTicket[] }
   | { type: 'STREAM_MUTED_BY_MODERATOR'; reason: string }
   | { type: 'ERROR'; message: string };
+

@@ -3,6 +3,7 @@
  */
 
 import { RECOGNIZED_PROFESSIONS, OCCUPATIONAL_STEMS, NON_PROFESSION_WORDS } from './professionsData.ts';
+import { CandidatePeer } from '../types/index.ts';
 
 export const PRESET_INTERESTS = [
   'AI',
@@ -372,4 +373,75 @@ export const STARTER_PROMPTS = [
   "What is one thing you wish you had known earlier in your career?",
   "What is changing fastest in your industry this year?",
   "Can you recommend a book, tool, or resource that shaped your work?"
+];
+
+export const CANDIDATE_POOL: CandidatePeer[] = [
+  {
+    id: 'peer-sophia',
+    displayName: 'Sophia Al-Mansoor',
+    headline: 'SaaS Founder & Product Lead',
+    professionId: 'business-entrepreneurship',
+    professionName: 'Startup Founder',
+    experience: 'Founder & Product Lead',
+    languages: ['English', 'Arabic'],
+    purpose: 'EXCHANGE_IDEAS',
+    skills: ['SaaS', 'Startups', 'ProductStrategy'],
+    bio: 'Building SaaS platforms, user-centered product discovery, and early stage scaling.',
+    countryCode: 'AE',
+    location: 'Dubai',
+    avatarUrl: '/ai-portraits/hero_sofia_v2.jpg',
+    matchScore: 96,
+    starterMessage: 'Hello! Always great meeting fellow builders. What stage is your current project in?',
+  },
+  {
+    id: 'peer-1',
+    displayName: 'Elena Rostova',
+    headline: 'Staff Systems Architect',
+    professionId: 'software-development',
+    professionName: 'Software Development',
+    experience: 'Senior',
+    languages: ['English'],
+    purpose: 'EXCHANGE_IDEAS',
+    skills: ['Distributed Systems', 'TypeScript', 'Next.js', 'PostgreSQL'],
+    bio: 'Building resilient real-time infrastructure and mentoring engineers transitioning into architecture.',
+    countryCode: 'DE',
+    location: 'Berlin',
+    avatarUrl: '/ai-portraits/hero_priya_v1.jpg',
+    matchScore: 94,
+    starterMessage: 'Hey there! Working on high-throughput microservices architecture lately. How about you?',
+  },
+  {
+    id: 'peer-2',
+    displayName: 'Tariq Mahmood',
+    headline: 'Principal ML & Computer Vision Engineer',
+    professionId: 'data-ai',
+    professionName: 'Data & Artificial Intelligence',
+    experience: 'Expert',
+    languages: ['English', 'Urdu'],
+    purpose: 'SHARE_EXPERTISE',
+    skills: ['Computer Vision', 'PyTorch', 'YOLOv8', 'Edge Deployment'],
+    bio: 'Focused on real-time video inference pipelines and applied deep learning.',
+    countryCode: 'AE',
+    location: 'Abu Dhabi',
+    avatarUrl: '/ai-portraits/hero_tariq_datascience.jpg',
+    matchScore: 91,
+    starterMessage: 'Salam! Exciting to connect. Are you experimenting with any local AI models or edge pipelines?',
+  },
+  {
+    id: 'peer-3',
+    displayName: 'Claire Vance',
+    headline: 'Founding Product Designer',
+    professionId: 'design-creative',
+    professionName: 'Design & Creative',
+    experience: 'Founder or Executive',
+    languages: ['English'],
+    purpose: 'DISCUSS_PROJECT',
+    skills: ['Design Systems', 'Brand Identity', 'UX Research', 'Prototyping'],
+    bio: 'Obsessed with typography-first interfaces, dark mode ergonomics, and zero-fluff product workflows.',
+    countryCode: 'US',
+    location: 'San Francisco',
+    avatarUrl: '/ai-portraits/hero_chloe_creative.jpg',
+    matchScore: 89,
+    starterMessage: 'Hi! Love chatting about clean UX, subtle motion design, and delightful user experiences.',
+  }
 ];

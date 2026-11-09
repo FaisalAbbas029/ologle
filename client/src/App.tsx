@@ -19,8 +19,11 @@ import {
   CommunityExploreItem,
   ClassExploreItem,
   ServerMessage,
+  CandidatePeer,
+  ModerationReportItem,
+  SavedConnectionItem,
 } from './types/index.ts';
-import { validateProfession } from './data/constants.ts';
+import { CANDIDATE_POOL, validateProfession } from './data/constants.ts';
 import { Navbar } from './components/Navbar.tsx';
 import { SafetyWarningBanner } from './components/SafetyWarningBanner.tsx';
 import { useTheme } from './hooks/useTheme.ts';
@@ -43,6 +46,9 @@ const lazyNamed = <T extends Record<string, any>, K extends keyof T>(
 // Lazy-loaded route views (non-critical routes deferred)
 const OnboardingView = lazyNamed(() => import('./components/OnboardingView.tsx'), 'OnboardingView');
 const SmartMatchView = lazyNamed(() => import('./components/SmartMatchView.tsx'), 'SmartMatchView');
+const VideoRoomView = lazyNamed(() => import('./components/VideoRoomView.tsx'), 'VideoRoomView');
+const VoiceRoomView = lazyNamed(() => import('./components/VoiceRoomView.tsx'), 'VoiceRoomView');
+const TextChatView = lazyNamed(() => import('./components/TextChatView.tsx'), 'TextChatView');
 import { ProfileModal } from './components/ProfileModal.tsx';
 const ProfileView = lazyNamed(() => import('./components/ProfileView.tsx'), 'ProfileView');
 const SettingsView = lazyNamed(() => import('./components/SettingsView.tsx'), 'SettingsView');
@@ -65,6 +71,7 @@ const SettingsDrawer = lazyNamed(() => import('./components/SettingsDrawer.tsx')
 const PrivacyInspectorModal = lazyNamed(() => import('./components/PrivacyInspectorModal.tsx'), 'PrivacyInspectorModal');
 const FullSiteSearchModal = lazyNamed(() => import('./components/FullSiteSearchModal.tsx'), 'FullSiteSearchModal');
 const ConfirmationModal = lazyNamed(() => import('./components/ConfirmationModal.tsx'), 'ConfirmationModal');
+const StartTalkingModal = lazyNamed(() => import('./components/StartTalkingModal.tsx'), 'StartTalkingModal');
 const ReportModal = lazyNamed(() => import('./components/ReportModal.tsx'), 'ReportModal');
 const BlockModal = lazyNamed(() => import('./components/BlockModal.tsx'), 'BlockModal');
 
@@ -84,7 +91,7 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
 
   // Socket Connection Status tracking
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [retrySecondsLeft, setRetrySecondsLeft] = useState<number>(0);
 
   // Settings & Privacy Modals
@@ -92,9 +99,16 @@ export default function App() {
   const [isPrivacyInspectorOpen, setIsPrivacyInspectorOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState<boolean>(false);
+  const [isStartTalkingOpen, setIsStartTalkingOpen] = useState<boolean>(false);
 
   // Navigation & View state (URL-aware on page load and refresh)
   const [currentView, setCurrentView] = useState<AppView>(() => {
+    if (typeof window !== 'undefined') {
+      const p = window.location.pathname;
+      if (p === '/messages') return '1on1_chat';
+      if (p === '/voice-call') return 'voice_session';
+      if (p === '/video-call') return 'conversation';
+    }
     return 'landing';
   });
   const [previousView, setPreviousView] = useState<AppView>('landing');
@@ -163,6 +177,7 @@ export default function App() {
   // Partner status & rate limiting
   const [partnerLeftReason, setPartnerLeftReason] = useState<string | null>(null);
   const [skipCooldownSeconds, setSkipCooldownSeconds] = useState(0);
+  const [isMatchReady, setIsMatchReady] = useState(false);
 
   // Modals & Safety
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -173,17 +188,26 @@ export default function App() {
 
   // Hayloo Full-Stack Preview State
   const [haylooProfile, setHaylooProfile] = useState({
-    displayName: 'Guest',
-    headline: '',
-    professionId: '',
-    experience: '',
-    languages: [] as string[],
-    skills: [] as string[],
-    bio: '',
-    isPublic: false,
-    allowConnections: false,
+    displayName: 'Alex Rivera',
+    headline: 'Full-Stack & AI Systems Architect',
+    professionId: 'software-development',
+    experience: 'Senior',
+    languages: ['English', 'Urdu'],
+    skills: ['Next.js', 'TypeScript', 'Computer Vision', 'YOLOv8', 'Distributed Systems'],
+    bio: 'Building full-stack platforms and computer vision systems. Always up for talking product architecture or founder workflows.',
+    isPublic: true,
+    allowConnections: true,
   });
-  const [blockedCandidateIds, setBlockedCandidateIds] = useState<string[]>(() => getBlockedStrangers());
+
+  const [activeCandidatePeer, setActiveCandidatePeer] = useState<CandidatePeer>(CANDIDATE_POOL[0]);
+  const [blockedCandidateIds, setBlockedCandidateIds] = useState<string[]>([]);
+  const [savedCandidateConnections, setSavedCandidateConnections] = useState<SavedConnectionItem[]>([
+    { id: 'conn-1', name: 'Mina K.', role: 'Product Manager', topic: 'Roadmapping & B2B SaaS', date: 'Recent Session' },
+  ]);
+  const [moderationReports, setModerationReports] = useState<ModerationReportItem[]>([
+    { id: 'REP-104', reporter: 'Member #482', target: 'User #991', category: 'Off-topic / Spam pitch', status: 'NEW', time: '14m ago' },
+    { id: 'REP-103', reporter: 'Member #219', target: 'User #405', category: 'Unprofessional conduct', status: 'UNDER_REVIEW', time: '2h ago' },
+  ]);
   // Session Mode Source of Truth ('messaging' | 'voice' | 'video')
   const [sessionMode, setSessionMode] = useState<'video' | 'voice' | 'messaging'>(() => {
     if (typeof window !== 'undefined') {
@@ -379,11 +403,36 @@ export default function App() {
           haylooSocket.send({ type: 'GET_EXPLORE_DATA' });
           break;
 
-        case 'MATCHING_STARTED':
-          setCurrentView('matching');
+        case 'MATCHING_STARTED': {
+          const activeMode =
+            sessionModeRef.current ||
+            (typeof window !== 'undefined' && window.location.pathname === '/voice-call'
+              ? 'voice'
+              : typeof window !== 'undefined' && window.location.pathname === '/messages'
+              ? 'messaging'
+              : 'video');
+
+          if (activeMode === 'voice') {
+            setCurrentView('voice_session');
+            if (typeof window !== 'undefined' && window.location.pathname !== '/voice-call') {
+              window.history.pushState({}, '', '/voice-call');
+            }
+          } else if (activeMode === 'messaging') {
+            setCurrentView('1on1_chat');
+            if (typeof window !== 'undefined' && window.location.pathname !== '/messages') {
+              window.history.pushState({}, '', '/messages');
+            }
+          } else {
+            setCurrentView('conversation');
+            if (typeof window !== 'undefined' && window.location.pathname !== '/video-call') {
+              window.history.pushState({}, '', '/video-call');
+            }
+          }
+          setIsMatchReady(false);
           setPartnerLeftReason(null);
           setIncomingSignal(null);
           break;
+        }
 
         case 'MATCHING_CANCELED':
           if (matchTimeoutRef.current) clearTimeout(matchTimeoutRef.current);
@@ -393,35 +442,48 @@ export default function App() {
 
         case 'MATCH_FOUND':
           if (matchTimeoutRef.current) clearTimeout(matchTimeoutRef.current);
+          setIsMatchReady(true);
           setIncomingSignal(null);
           soundService.playMatchFound();
-          setActive1on1({
-            roomId: msg.roomId,
-            sharedInterests: msg.sharedInterests,
-            sharedTopics: msg.sharedTopics,
-            score: msg.score,
-            partnerProfession: msg.partnerProfession,
-            partnerCountry: msg.partnerCountry,
-            partnerVisitorId: msg.partnerVisitorId,
-            breakdown: msg.breakdown,
-          });
-          setChat1on1Messages([]);
-          setPartnerLeftReason(null);
-          setCurrentView(
-            sessionModeRef.current === 'voice'
-              ? 'voice_session'
-              : sessionModeRef.current === 'messaging'
-              ? '1on1_chat'
-              : 'conversation'
-          );
-          if (typeof window !== 'undefined') {
-            const path = sessionModeRef.current === 'voice'
-              ? '/voice-call'
-              : sessionModeRef.current === 'messaging'
-              ? '/messages'
-              : '/video-call';
-            if (window.location.pathname !== path) window.history.pushState({}, '', path);
-          }
+          setTimeout(() => {
+            setActive1on1({
+              roomId: msg.roomId,
+              sharedInterests: msg.sharedInterests,
+              sharedTopics: msg.sharedTopics,
+              score: msg.score,
+              partnerProfession: msg.partnerProfession,
+              partnerCountry: msg.partnerCountry,
+              partnerVisitorId: msg.partnerVisitorId,
+              breakdown: msg.breakdown,
+            });
+            setChat1on1Messages([]);
+            setPartnerLeftReason(null);
+
+            const activeMode =
+              sessionModeRef.current ||
+              (typeof window !== 'undefined' && window.location.pathname === '/voice-call'
+                ? 'voice'
+                : typeof window !== 'undefined' && window.location.pathname === '/messages'
+                ? 'messaging'
+                : 'video');
+
+            if (activeMode === 'voice') {
+              setCurrentView('voice_session');
+              if (typeof window !== 'undefined' && window.location.pathname !== '/voice-call') {
+                window.history.pushState({}, '', '/voice-call');
+              }
+            } else if (activeMode === 'video') {
+              setCurrentView('conversation');
+              if (typeof window !== 'undefined' && window.location.pathname !== '/video-call') {
+                window.history.pushState({}, '', '/video-call');
+              }
+            } else {
+              setCurrentView('1on1_chat');
+              if (typeof window !== 'undefined' && window.location.pathname !== '/messages') {
+                window.history.pushState({}, '', '/messages');
+              }
+            }
+          }, 500);
           break;
 
         case 'PARTNER_LEFT':
@@ -485,7 +547,6 @@ export default function App() {
 
         case 'ERROR':
           addToast('warning', msg.message);
-          if (currentView === 'matching') setCurrentView('mode_select');
           break;
 
         default:
@@ -678,26 +739,25 @@ export default function App() {
   };
 
   // 1:1 Matching Flow Handlers (Direct to Finding Screen)
-  const handleStart1on1 = async (
+  const handleStart1on1 = (
     customProf?: string,
     customInterests?: string[],
     customCountry?: string,
     customMode?: string
   ) => {
-    let savedProfession = '';
-    let savedInterests: string[] = [];
-    let savedCountry = 'GLOBAL';
-    try {
-      savedProfession = localStorage.getItem('hayloo_user_profession') || '';
-      savedCountry = localStorage.getItem('hayloo_selected_country') || 'GLOBAL';
-      const parsed = JSON.parse(localStorage.getItem('hayloo_user_interests') || '[]');
-      if (Array.isArray(parsed)) savedInterests = parsed.filter((value): value is string => typeof value === 'string');
-    } catch {}
-
-    const profToUse = (customProf || profession || savedProfession).trim();
-    const interestsToUse = customInterests || (interests.length ? interests : savedInterests);
-    const countryToUse = customCountry || selectedCountry || savedCountry;
-    const rawMode = customMode || sessionMode || 'video';
+    const profToUse = (customProf || profession || localStorage.getItem('hayloo_user_profession') || '').trim();
+    let interestsToUse = customInterests || interests;
+    if (!interestsToUse || interestsToUse.length === 0) {
+      try {
+        const saved = localStorage.getItem('hayloo_user_interests');
+        if (saved) interestsToUse = JSON.parse(saved);
+      } catch {}
+    }
+    if (!interestsToUse) {
+      interestsToUse = [];
+    }
+    const countryToUse = customCountry || selectedCountry || localStorage.getItem('hayloo_selected_country') || 'GLOBAL';
+    const rawMode = customMode || sessionMode || localStorage.getItem('hayloo_session_mode') || 'video';
     const modeToUse: 'video' | 'voice' | 'messaging' = (rawMode === 'TEXT' || rawMode === 'messaging')
       ? 'messaging'
       : (rawMode === 'AUDIO' || rawMode === 'voice')
@@ -717,26 +777,37 @@ export default function App() {
       return;
     }
 
-    if (interestsToUse.length < 3) {
-      addToast('warning', 'Choose at least 3 interests before searching for a real member.');
-      setInterests(interestsToUse);
-      setCurrentView('interest_select');
-      return;
-    }
-
-    if (!(await haylooSocket.waitUntilConnected())) {
-      addToast('warning', 'Live matching could not connect. Please try again in a moment.');
-      return;
-    }
-
     setProfession(profToUse);
     setInterests(interestsToUse);
     setSelectedCountry(countryToUse);
-    sessionModeRef.current = modeToUse;
-    setActive1on1(null);
-    setChat1on1Messages([]);
-    setSessionMode(modeToUse);
-    setActiveSessionMode(modeToUse);
+    setIsMatchReady(true);
+
+    // Directly match peer
+    const available = CANDIDATE_POOL.filter((c) => !blockedCandidateIds.includes(c.id));
+    let matched = available.find((c) => 
+      c.professionName.toLowerCase().includes(profToUse.toLowerCase()) ||
+      c.skills.some((s) => interestsToUse.some((i) => i.toLowerCase().includes(s.toLowerCase())))
+    );
+    if (!matched && available.length > 0) {
+      matched = available[0];
+    }
+    if (matched) {
+      setActiveCandidatePeer(matched);
+      addToast('info', `Connected with ${matched.displayName} (${matched.professionName})`);
+    }
+
+    // Launch specific interface corresponding to selected mode
+    switch (modeToUse) {
+      case "messaging":
+        navigate("/messages");
+        break;
+      case "voice":
+        navigate("/voice-call");
+        break;
+      case "video":
+        navigate("/video-call");
+        break;
+    }
 
     // Persist to Cloud Firestore if logged in with Google
     if (currentUser?.uid) {
@@ -752,7 +823,7 @@ export default function App() {
         .catch((err) => console.warn('Firestore profile sync error:', err));
     }
 
-    const queued = haylooSocket.send({
+    haylooSocket.send({
       type: 'START_MATCHING',
       visitorId: visitorId.current,
       blockedStrangers: getBlockedStrangers(),
@@ -761,27 +832,16 @@ export default function App() {
       country: countryToUse,
       sessionMode: modeToUse,
     });
-    if (!queued) {
-      addToast('warning', 'Could not start matching because the live service is disconnected. Please try again.');
-      return;
-    }
-    setCurrentView('matching');
   };
 
   const handleCancelMatching = () => {
     haylooSocket.send({ type: 'CANCEL_MATCHING' });
-    setCurrentView('mode_select');
+    setCurrentView('landing');
   };
 
   const handleNextPerson = () => {
     if (skipCooldownSeconds > 0) return;
-    const queued = haylooSocket.send({ type: 'NEXT_PERSON' });
-    if (queued) {
-      setActive1on1(null);
-      setChat1on1Messages([]);
-      setPartnerLeftReason(null);
-      setCurrentView('matching');
-    }
+    haylooSocket.send({ type: 'NEXT_PERSON' });
   };
 
   const handleEndConversation = () => {
@@ -811,7 +871,6 @@ export default function App() {
     // 1. Save the blocked user's visitorId into localStorage.getItem('blocked_strangers')
     if (partnerVisitorId) {
       addBlockedStranger(partnerVisitorId);
-      setBlockedCandidateIds((blocked) => [...new Set([...blocked, partnerVisitorId])]);
     }
 
     // 2. Send WebSocket event (block_partner) to backend with { blockerId, blockedId, reason }
@@ -828,7 +887,6 @@ export default function App() {
     // 4. Immediately terminate current media stream and text socket room
     setActive1on1(null);
     setChat1on1Messages([]);
-    setCurrentView('mode_select');
 
     // 5. Automatically trigger the "Find Next Match" process for the blocker
     handleStart1on1();
@@ -889,7 +947,7 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenPrivacyInspector={() => setIsPrivacyInspectorOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenStartTalking={() => navigateTo('mode_select')}
+        onOpenStartTalking={() => setIsStartTalkingOpen(true)}
         currentUser={currentUser}
         isHumanVerified={isHumanVerified}
         theme={theme}
@@ -925,7 +983,7 @@ export default function App() {
             onSelectCountry={setSelectedCountry}
             sessionMode={sessionMode}
             onSessionModeChange={handleSelectSessionMode}
-            onOpenStartTalking={() => navigateTo('mode_select')}
+            onOpenStartTalking={() => setIsStartTalkingOpen(true)}
             onStartMatchmaking={handleStart1on1}
           />
         )}
@@ -942,36 +1000,97 @@ export default function App() {
           />
         )}
 
-        {currentView === 'matching' && (
-          <MatchingView
-            profession={profession}
-            interests={interests}
-            sessionMode={sessionMode}
-            connectionStatus={connectionStatus}
-            onCancel={handleCancelMatching}
+        {/* 5. LIVE VIDEO ROOM */}
+        {(currentView === 'conversation' || ((currentView === 'match' || currentView === 'matching') && sessionMode === 'video')) && (
+          <VideoRoomView
+            partner={activeCandidatePeer}
+            userProfile={haylooProfile}
+            sessionMode="VIDEO"
+            onSwitchMode={handleSwitchMode}
+            onNextMatch={() => {
+              const available = CANDIDATE_POOL.filter((c) => !blockedCandidateIds.includes(c.id));
+              const currentIndex = available.findIndex((c) => c.id === activeCandidatePeer.id);
+              const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % available.length : 0;
+              const nextPeer = available[nextIndex] || CANDIDATE_POOL[0];
+              setActiveCandidatePeer(nextPeer);
+            }}
+            onLeaveCall={() => navigate('/')}
+            onSaveConnection={(peer) => {
+              setSavedCandidateConnections((prev) => [
+                {
+                  id: `conn-${Date.now()}`,
+                  name: peer.displayName,
+                  role: peer.headline,
+                  topic: peer.skills[0] || 'Technical Architecture',
+                  date: 'Just now',
+                },
+                ...prev,
+              ]);
+            }}
+            onReportAndBlock={(report) => {
+              const nextBlocked = [...blockedCandidateIds, report.targetId || activeCandidatePeer.id];
+              setBlockedCandidateIds(nextBlocked);
+              setModerationReports((prev) => [report, ...prev]);
+              const remaining = CANDIDATE_POOL.filter((c) => !nextBlocked.includes(c.id));
+              const currentIndex = remaining.findIndex((c) => c.id === activeCandidatePeer.id);
+              const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % remaining.length : 0;
+              const nextPeer = remaining[nextIndex] || CANDIDATE_POOL[0];
+              setActiveCandidatePeer(nextPeer);
+            }}
           />
         )}
 
-        {active1on1 && ['conversation', 'voice_session', '1on1_chat'].includes(currentView) && (
-          <OneToOneChatView
-            room={active1on1}
-            sessionId={sessionId}
-            sessionMode={sessionMode}
-            isInitiator={visitorId.current < (active1on1.partnerVisitorId || '')}
-            messages={chat1on1Messages}
-            partnerLeftReason={partnerLeftReason}
-            incomingSignal={incomingSignal}
-            onSendSignal={(signal) => haylooSocket.send({ type: 'WEBRTC_SIGNAL', signal })}
-            onSendMessage={handleSend1on1Message}
-            onNextPerson={handleNextPerson}
-            onEndConversation={handleEndConversation}
-            onOpenReport={() => setIsReportOpen(true)}
-            onOpenBlock={() => setIsBlockOpen(true)}
-            onBlockAndReport={handleBlockAndReport}
-            isMuted={isMuted}
-            onToggleMute={() => setIsMuted((muted) => !muted)}
-            skipCooldownSeconds={skipCooldownSeconds}
-            onUpdateMessage={handleUpdate1on1Message}
+        {/* 5B. LIVE VOICE SESSION ROOM */}
+        {(currentView === 'voice_session' || ((currentView === 'match' || currentView === 'matching') && sessionMode === 'voice')) && (
+          <VoiceRoomView
+            partner={activeCandidatePeer}
+            userProfile={haylooProfile}
+            onSwitchMode={handleSwitchMode}
+            onNextMatch={() => {
+              const available = CANDIDATE_POOL.filter((c) => !blockedCandidateIds.includes(c.id));
+              const currentIndex = available.findIndex((c) => c.id === activeCandidatePeer.id);
+              const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % available.length : 0;
+              const nextPeer = available[nextIndex] || CANDIDATE_POOL[0];
+              setActiveCandidatePeer(nextPeer);
+            }}
+            onLeaveCall={() => navigate('/')}
+            onReportAndBlock={(report) => {
+              const nextBlocked = [...blockedCandidateIds, report.targetId || activeCandidatePeer.id];
+              setBlockedCandidateIds(nextBlocked);
+              setModerationReports((prev) => [report, ...prev]);
+              const remaining = CANDIDATE_POOL.filter((c) => !nextBlocked.includes(c.id));
+              const currentIndex = remaining.findIndex((c) => c.id === activeCandidatePeer.id);
+              const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % remaining.length : 0;
+              const nextPeer = remaining[nextIndex] || CANDIDATE_POOL[0];
+              setActiveCandidatePeer(nextPeer);
+            }}
+          />
+        )}
+
+        {/* 5C. 1:1 TEXT MESSAGING ROOM */}
+        {(currentView === '1on1_chat' || ((currentView === 'match' || currentView === 'matching') && sessionMode === 'messaging')) && (
+          <TextChatView
+            partner={activeCandidatePeer}
+            userProfile={haylooProfile}
+            onSwitchMode={handleSwitchMode}
+            onNextMatch={() => {
+              const available = CANDIDATE_POOL.filter((c) => !blockedCandidateIds.includes(c.id));
+              const currentIndex = available.findIndex((c) => c.id === activeCandidatePeer.id);
+              const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % available.length : 0;
+              const nextPeer = available[nextIndex] || CANDIDATE_POOL[0];
+              setActiveCandidatePeer(nextPeer);
+            }}
+            onLeaveChat={() => navigate('/')}
+            onReportAndBlock={(report) => {
+              const nextBlocked = [...blockedCandidateIds, report.targetId || activeCandidatePeer.id];
+              setBlockedCandidateIds(nextBlocked);
+              setModerationReports((prev) => [report, ...prev]);
+              const remaining = CANDIDATE_POOL.filter((c) => !nextBlocked.includes(c.id));
+              const currentIndex = remaining.findIndex((c) => c.id === activeCandidatePeer.id);
+              const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % remaining.length : 0;
+              const nextPeer = remaining[nextIndex] || CANDIDATE_POOL[0];
+              setActiveCandidatePeer(nextPeer);
+            }}
           />
         )}
 
@@ -1024,7 +1143,7 @@ export default function App() {
             onSelectCountry={setSelectedCountry}
             sessionMode={sessionMode}
             onSessionModeChange={handleSelectSessionMode}
-            onOpenStartTalking={() => navigateTo('mode_select')}
+            onOpenStartTalking={() => setIsStartTalkingOpen(true)}
             onStartMatchmaking={handleStart1on1}
           />
         )}
@@ -1211,6 +1330,28 @@ export default function App() {
         )}
 
         {/* Professional In-Place Start Talking Modal */}
+        {isStartTalkingOpen && (
+          <StartTalkingModal
+            isOpen={isStartTalkingOpen}
+            onClose={() => setIsStartTalkingOpen(false)}
+            blockedIds={blockedCandidateIds}
+            initialProfession={profession}
+            initialInterests={interests}
+            onConnect={(peer, mode) => {
+              setActiveCandidatePeer(peer);
+              addToast('info', `Connecting with ${peer.displayName} (${peer.professionName})...`);
+              const normalized = mode === 'AUDIO' || mode === 'voice' ? 'voice' : mode === 'VIDEO' || mode === 'video' ? 'video' : 'messaging';
+              setSessionMode(normalized);
+              try {
+                localStorage.setItem('hayloo_session_mode', normalized);
+              } catch {}
+              if (normalized === 'messaging') navigate('/messages');
+              else if (normalized === 'voice') navigate('/voice-call');
+              else navigate('/video-call');
+            }}
+          />
+        )}
+
         {/* Global Centered Profile Popup Modal */}
         <ProfileModal
           isOpen={isProfileModalOpen}

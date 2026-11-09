@@ -15,7 +15,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesión',
     'hero.andShared': 'y',
     'hero.interestsSpan': 'Intereses Compartidos.',
-
+    'hero.mainSubtitle': 'Ve más allá de chats aleatorios. Nuestro motor de emparejamiento te conecta al instante con desarrolladores, diseñadores, creadores y expertos verificados.',
     'hero.configureFilters': 'Configurar Filtros de Emparejamiento',
     'hero.resetFilters': 'Restablecer filtros',
     'hero.professionLabel': 'Tu Profesión o Especialidad',
@@ -71,7 +71,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143 conectando en tiempo real',
     'hero.startVideoChat': 'Iniciar Videochat',
     'hero.startTalkingTopics': 'Empezar a Hablar con Temas Seleccionados',
-
+    'hero.onlinePeers': '1,420+ Conectados',
 
     // Product Preview
     'hero.productPreview': 'Vista Previa del Producto',
@@ -161,7 +161,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     // Modal
     'modal.title': 'Empezar a Hablar',
     'modal.subtitle': 'Conéctate al instante con un colega intelectual sin salir de tu pantalla.',
-
+    'modal.onlineCount': '1,420+ Conectados',
     'modal.chooseFormat': '1. Elegir Formato de Conversación',
     'modal.video': 'Videollamada',
     'modal.videoDesc': 'Cámara y Audio',
@@ -176,9 +176,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'Garantía de Persistencia Cero:',
     'modal.guaranteeDesc': 'El video y el audio se transmiten mediante WebRTC punto a punto cifrado. No se guarda ninguna grabación ni conversación.',
     'modal.searchingTitle': 'Buscando un colega compatible...',
-
-
-
+    'modal.searchStep1': 'Analizando el grupo de profesionales en línea...',
+    'modal.searchStep2': 'Evaluando intereses mutuos y afinidad técnica...',
+    'modal.searchStep3': 'Estableciendo canal WebRTC seguro...',
     'modal.connectedTitle': '¡Colega compatible encontrado!',
     'modal.compatibilityScore': 'Compatibilidad',
     'modal.findPeer': 'Buscar Colega Ahora',
@@ -256,7 +256,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'پیشہ',
     'hero.andShared': 'اور مشترکہ',
     'hero.interestsSpan': 'دلچسپیاں۔',
-
+    'hero.mainSubtitle': 'غیر متعلقہ گفتگو سے آگے بڑھیں۔ ہمارا جدید الٹرا میچنگ انجن آپ کو فوری طور پر تصدیق شدہ انجینئرز، ڈیزائنرز، اور ماہرین سے ملاتا ہے۔',
     'hero.configureFilters': 'میچنگ فلٹرز ترتیب دیں',
     'hero.resetFilters': 'فلٹرز دوبارہ ترتیب دیں',
     'hero.professionLabel': 'آپ کا پیشہ یا شعبہ',
@@ -312,7 +312,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143 براہِ راست رابطے میں',
     'hero.startVideoChat': 'ویڈیو چیٹ شروع کریں',
     'hero.startTalkingTopics': 'منتخب موضوعات پر بات چیت شروع کریں',
-
+    'hero.onlinePeers': '1,420+ فعال ساتھی',
 
     // Product Preview
     'hero.productPreview': 'پروڈکٹ کا عملی نمونہ',
@@ -402,7 +402,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     // Modal
     'modal.title': 'گفتگو شروع کریں',
     'modal.subtitle': 'اسکرین چھوڑے بغیر فوری طور پر کسی فکری ساتھی سے رابطہ کریں۔',
-
+    'modal.onlineCount': '1,420+ آن لائن ساتھی',
     'modal.chooseFormat': '1. گفتگو کا طریقہ منتخب کریں',
     'modal.video': 'ویڈیو کال',
     'modal.videoDesc': 'کیمرہ اور آواز',
@@ -417,9 +417,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'زیرو ڈیٹا لاگز گارنٹی:',
     'modal.guaranteeDesc': 'تمام کالز خفیہ اور ڈائریکٹ WebRTC پیئر ٹو پیئر ہیں۔ کوئی گفتگو یا ریکارڈنگ سرور پر محفوظ نہیں ہوتی۔',
     'modal.searchingTitle': 'مطابق ساتھی تلاش کیا جا رہا ہے...',
-
-
-
+    'modal.searchStep1': 'فعال آن لائن پیشہ ور افراد کی فہرست دیکھی جا رہی ہے...',
+    'modal.searchStep2': 'مشترکہ دلچسپیوں اور مہارت کا تخمینہ لگایا جا رہا ہے...',
+    'modal.searchStep3': 'محفوظ کنکشن قائم کیا جا رہا ہے...',
     'modal.connectedTitle': 'مطابق ساتھی مل گیا!',
     'modal.compatibilityScore': 'مطابقت',
     'modal.findPeer': 'ابھی ساتھی تلاش کریں',
@@ -497,7 +497,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'المهنة',
     'hero.andShared': 'والاهتمامات',
     'hero.interestsSpan': 'المشتركة.',
-
+    'hero.mainSubtitle': 'تجاوز المحادثات العشوائية. محرك المطابقة الذكي يربطك فوراً بمهندسين ومصممين وخبراء معتمدين يشاركونك نفس المجال والشغف.',
     'hero.configureFilters': 'تكوين فلاتر المطابقة',
     'hero.resetFilters': 'إعادة تعيين الفلاتر',
     'hero.professionLabel': 'مهنتك أو مجالك التخصصي',
@@ -553,7 +553,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143 متصلون الآن بالوقت الفعلي',
     'hero.startVideoChat': 'بدء محادثة الفيديو',
     'hero.startTalkingTopics': 'بدء الحديث بالموضوعات المحددة',
-
+    'hero.onlinePeers': '1,420+ متصل الآن',
 
     // Product Preview
     'hero.productPreview': 'معاينة توضيحية للمنصة',
@@ -643,7 +643,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     // Modal
     'modal.title': 'ابدأ التحدث',
     'modal.subtitle': 'تواصل فورياً مع نظير فكري دون مغادرة شاشتك.',
-
+    'modal.onlineCount': '1,420+ متصل الآن',
     'modal.chooseFormat': '1. نوع المحادثة',
     'modal.video': 'مكالمة فيديو',
     'modal.videoDesc': 'صوت وكاميرا',
@@ -658,9 +658,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'ضمان انعدام حفظ البيانات:',
     'modal.guaranteeDesc': 'جميع الاتصالات مشفرة عبر WebRTC مباشرة بين الأجهزة. لا يتم حفظ أي تسجيلات أو محادثات مطلقاً.',
     'modal.searchingTitle': 'جارٍ البحث عن شريك محادثة متوافق...',
-
-
-
+    'modal.searchStep1': 'مسح قائمة المحترفين المتصلين حالياً...',
+    'modal.searchStep2': 'تقييم الاهتمامات المشتركة والتوافق التخصصي...',
+    'modal.searchStep3': 'تأسيس قناة اتصال آمنة ومباشرة...',
     'modal.connectedTitle': 'تم العثور على نظير متوافق!',
     'modal.compatibilityScore': 'توافق',
     'modal.findPeer': 'ابحث عن نظير الآن',
@@ -736,7 +736,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Métier',
     'hero.andShared': '&',
     'hero.interestsSpan': 'Centres d’intérêt partagés.',
-
+    'hero.mainSubtitle': 'Dépassez les discussions aléatoires. Notre moteur intelligent vous connecte instantanément à des développeurs, designers et experts vérifiés.',
     'hero.configureFilters': 'Configurer les Filtres de Match',
     'hero.resetFilters': 'Réinitialiser les filtres',
     'hero.professionLabel': 'Votre Métier ou Domaine',
@@ -792,7 +792,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74 143 connectés en direct',
     'hero.startVideoChat': 'Lancer le Chat Vidéo',
     'hero.startTalkingTopics': 'Parler des Sujets Sélectionnés',
-
+    'hero.onlinePeers': '1 420+ Pairs en ligne',
 
     'hero.productPreview': 'Aperçu du Produit',
     'hero.compatibility': 'Compatibilité : 94%',
@@ -875,7 +875,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': 'Commencer à Parler',
     'modal.subtitle': 'Connectez-vous instantanément avec un pair intellectuel sans quitter votre écran.',
-
+    'modal.onlineCount': '1 420+ Connectés',
     'modal.chooseFormat': '1. Format de la Conversation',
     'modal.video': 'Appel Vidéo',
     'modal.videoDesc': 'Caméra et Audio',
@@ -890,9 +890,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'Garantie Zéro Donnée Persistante :',
     'modal.guaranteeDesc': 'Les flux vidéo et audio transitent via WebRTC chiffré de pair à pair. Aucun enregistrement n’est conservé.',
     'modal.searchingTitle': 'Recherche d’un pair compatible...',
-
-
-
+    'modal.searchStep1': 'Analyse des professionnels connectés...',
+    'modal.searchStep2': 'Évaluation des affinités et intérêts...',
+    'modal.searchStep3': 'Connexion au canal WebRTC sécurisé...',
     'modal.connectedTitle': 'Pair compatible trouvé !',
     'modal.compatibilityScore': 'Compatibilité',
     'modal.findPeer': 'Trouver un Pair Maintenant',
@@ -963,7 +963,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Beruf',
     'hero.andShared': '& gemeinsamen',
     'hero.interestsSpan': 'Interessen.',
-
+    'hero.mainSubtitle': 'Verlasse zufällige Chats. Unsere intelligente Matching-Engine verbindet dich sofort mit verifizierten Entwicklern, Designern und Experten.',
     'hero.configureFilters': 'Match-Filter Konfigurieren',
     'hero.resetFilters': 'Filter zurücksetzen',
     'hero.professionLabel': 'Dein Beruf oder Fachgebiet',
@@ -1019,7 +1019,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74.143 verbinden sich in Echtzeit',
     'hero.startVideoChat': 'Video-Chat Starten',
     'hero.startTalkingTopics': 'Mit ausgewählten Themen sprechen',
-
+    'hero.onlinePeers': '1.420+ Online',
 
     'hero.productPreview': 'Produkt-Vorschau',
     'hero.compatibility': 'Kompatibilität: 94%',
@@ -1102,7 +1102,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': 'Jetzt Sprechen',
     'modal.subtitle': 'Verbinde dich sofort mit einem intellektuellen Peer ohne den Bildschirm zu verlassen.',
-
+    'modal.onlineCount': '1.420+ Online',
     'modal.chooseFormat': '1. Gesprächsformat wählen',
     'modal.video': 'Videoanruf',
     'modal.videoDesc': 'Kamera und Audio',
@@ -1117,9 +1117,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'Null-Daten-Garantie:',
     'modal.guaranteeDesc': 'Video und Audio werden über verschlüsseltes Peer-to-Peer WebRTC übertragen. Es werden keinerlei Aufzeichnungen gespeichert.',
     'modal.searchingTitle': 'Suche nach passendem Partner...',
-
-
-
+    'modal.searchStep1': 'Durchsuche aktive Online-Experten...',
+    'modal.searchStep2': 'Bewerte gemeinsame Interessen und Affinitäten...',
+    'modal.searchStep3': 'Sichere Verbindung wird aufgebaut...',
     'modal.connectedTitle': 'Passender Partner gefunden!',
     'modal.compatibilityScore': 'Kompatibilität',
     'modal.findPeer': 'Jetzt Peer Suchen',
@@ -1190,7 +1190,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': '职业领域',
     'hero.andShared': '及共同',
     'hero.interestsSpan': '兴趣标签连线。',
-
+    'hero.mainSubtitle': '告别随机漫聊。我们的智能匹配引擎即时将您与经过验证的开发者、设计师、研究人员及专业专家相连，完美契合您的专业领域。',
     'hero.configureFilters': '配置智能匹配筛选条件',
     'hero.resetFilters': '重置所有筛选',
     'hero.professionLabel': '您的职业或专业领域',
@@ -1247,7 +1247,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143 人正在实时连线',
     'hero.startVideoChat': '开启视频对话',
     'hero.startTalkingTopics': '根据所选话题开启对话',
-
+    'hero.onlinePeers': '1,420+ 在线同行',
 
     'hero.productPreview': '产品实际预览',
     'hero.compatibility': '契合度: 94%',
@@ -1330,7 +1330,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': '开始对话',
     'modal.subtitle': '无需离开当前页面，即刻与志同道合的同行展开深度交流。',
-
+    'modal.onlineCount': '1,420+ 位同行在线',
     'modal.chooseFormat': '1. 选择交流形式',
     'modal.video': '视频通话',
     'modal.videoDesc': '音画同步',
@@ -1345,9 +1345,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': '零数据残留坚实承诺:',
     'modal.guaranteeDesc': '音视频数据均由加密 P2P WebRTC 通信直接传输，绝不保存任何录音、录像或文本记录。',
     'modal.searchingTitle': '正在匹配高契合度专业同行...',
-
-
-
+    'modal.searchStep1': '正在扫描在线专业同行智库...',
+    'modal.searchStep2': '正在多维计算技术契合度与共同关注...',
+    'modal.searchStep3': '正在建立高安全 WebRTC 通信通道...',
     'modal.connectedTitle': '已找到匹配同仁！',
     'modal.compatibilityScore': '综合契合度',
     'modal.findPeer': '立即寻找同仁',
@@ -1420,7 +1420,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'पेशा',
     'hero.andShared': '& साझा',
     'hero.interestsSpan': 'रुचियाँ।',
-
+    'hero.mainSubtitle': 'यादृच्छिक चैट से आगे बढ़ें। हमारा बुद्धिमान मैचिंग इंजन आपको सत्यापित डेवलपर्स, डिजाइनरों और विशेषज्ञों से तुरंत जोड़ता है।',
     'hero.configureFilters': 'मैच फ़िल्टर कॉन्फ़िगर करें',
     'hero.resetFilters': 'फ़िल्टर रीसेट करें',
     'hero.professionLabel': 'आपका पेशा या क्षेत्र',
@@ -1476,7 +1476,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143 लोग लाइव जुड़े हैं',
     'hero.startVideoChat': 'वीडियो चैट शुरू करें',
     'hero.startTalkingTopics': 'चयनित विषयों पर बात शुरू करें',
-
+    'hero.onlinePeers': '1,420+ ऑनलाइन सदस्य',
 
     // Product Preview
     'hero.productPreview': 'उत्पाद का पूर्वावलोकन',
@@ -1566,7 +1566,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     // Modal
     'modal.title': 'बात शुरू करें',
     'modal.subtitle': 'स्क्रीन छोड़े बिना तुरंत एक बौद्धिक साथी से जुड़ें।',
-
+    'modal.onlineCount': '1,420+ ऑनलाइन सदस्य',
     'modal.chooseFormat': '1. बातचीत का प्रारूप चुनें',
     'modal.video': 'वीडियो कॉल',
     'modal.videoDesc': 'कैमरा और आवाज़',
@@ -1581,9 +1581,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'शून्य डेटा प्रतिधारण गारंटी:',
     'modal.guaranteeDesc': 'वीडियो और ऑडियो एन्क्रिप्टेड पीयर-टू-पीयर WebRTC द्वारा प्रेषित होते हैं। कोई रिकॉर्डिंग या चैट सहेजी नहीं जाती।',
     'modal.searchingTitle': 'अनुकूल साथी की तलाश जारी है...',
-
-
-
+    'modal.searchStep1': 'सक्रिय ऑनलाइन पेशेवरों को स्कैन किया जा रहा है...',
+    'modal.searchStep2': 'आपसी रुचियों और पेशेवर तालमेल का मूल्यांकन...',
+    'modal.searchStep3': 'सुरक्षित कनेक्शन स्थापित किया जा रहा है...',
     'modal.connectedTitle': 'अनुकूल साथी मिल गया!',
     'modal.compatibilityScore': 'अनुकूलता',
     'modal.findPeer': 'साथी खोजें',
@@ -1659,7 +1659,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': '専門分野',
     'hero.andShared': '& 共通の',
     'hero.interestsSpan': '関心テーマ。',
-
+    'hero.mainSubtitle': '単なるランダムチャットを超えて。インテリジェントマッチングで、あなたの関心に合った検証済みのエンジニア、デザイナー、専門家とすぐにつながります。',
     'hero.configureFilters': 'マッチフィルターを設定',
     'hero.resetFilters': 'フィルターをリセット',
     'hero.professionLabel': 'あなたの専門分野・職業',
@@ -1715,7 +1715,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74,143人がリアルタイム接続中',
     'hero.startVideoChat': 'ビデオチャットを開始',
     'hero.startTalkingTopics': '選択したトピックで会話を開始',
-
+    'hero.onlinePeers': '1,420人以上がオンライン',
 
     'hero.productPreview': 'プロダクトプレビュー',
     'hero.compatibility': '相性度: 94%',
@@ -1798,7 +1798,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': '会話を始める',
     'modal.subtitle': '画面を離れずに、即座に知的な仲間と接続します。',
-
+    'modal.onlineCount': '1,420人以上がオンライン',
     'modal.chooseFormat': '1. 通話形式を選択',
     'modal.video': 'ビデオ通話',
     'modal.videoDesc': '映像と音声',
@@ -1813,9 +1813,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'データ完全非保持の保証:',
     'modal.guaranteeDesc': '暗号化された P2P WebRTC 経由で直接通信します。録音やチャットログは一切保存されません。',
     'modal.searchingTitle': '相性の良い相手を探しています...',
-
-
-
+    'modal.searchStep1': 'オンラインのプロフェッショナルを検索中...',
+    'modal.searchStep2': '共通の関心事と専門性を分析中...',
+    'modal.searchStep3': '安全な接続を確立中...',
     'modal.connectedTitle': '最適な仲間が見つかりました！',
     'modal.compatibilityScore': '適合度',
     'modal.findPeer': '今すぐ相手を探す',
@@ -1886,7 +1886,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profissão',
     'hero.andShared': 'e',
     'hero.interestsSpan': 'Interesses em Comum.',
-
+    'hero.mainSubtitle': 'Vá além dos chats aleatórios. Nosso motor inteligente conecta você instantaneamente a desenvolvedores, designers e especialistas verificados.',
     'hero.configureFilters': 'Configurar Filtros de Combinação',
     'hero.resetFilters': 'Redefinir filtros',
     'hero.professionLabel': 'Sua Profissão ou Área',
@@ -1942,7 +1942,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74.143 conectados em tempo real',
     'hero.startVideoChat': 'Iniciar Chat de Vídeo',
     'hero.startTalkingTopics': 'Conversar sobre Tópicos Selecionados',
-
+    'hero.onlinePeers': 'Mais de 1.420 Conectados',
 
     'hero.productPreview': 'Prévia do Produto',
     'hero.compatibility': 'Compatibilidade: 94%',
@@ -2025,7 +2025,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': 'Começar a Conversar',
     'modal.subtitle': 'Conecte-se instantaneamente com um colega sem sair da sua tela.',
-
+    'modal.onlineCount': '1.420+ Online',
     'modal.chooseFormat': '1. Escolha o Formato',
     'modal.video': 'Chamada de Vídeo',
     'modal.videoDesc': 'Câmera e Áudio',
@@ -2040,9 +2040,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'Garantia de Zero Persistência:',
     'modal.guaranteeDesc': 'Vídeo e áudio são transmitidos via WebRTC ponto a ponto criptografado. Nenhuma gravação ou mensagem é armazenada.',
     'modal.searchingTitle': 'Procurando um colega compatível...',
-
-
-
+    'modal.searchStep1': 'Analisando profissionais online...',
+    'modal.searchStep2': 'Avaliando afinidades e interesses em comum...',
+    'modal.searchStep3': 'Finalizando canal WebRTC seguro...',
     'modal.connectedTitle': 'Colega compatível localizado!',
     'modal.compatibilityScore': 'Compatibilidade',
     'modal.findPeer': 'Encontrar Colega Agora',
@@ -2113,7 +2113,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Профессии',
     'hero.andShared': 'и общим',
     'hero.interestsSpan': 'Интересам.',
-
+    'hero.mainSubtitle': 'Выйдите за рамки случайных чатов. Наш алгоритм мгновенно соединит вас с верифицированными разработчиками, дизайнерами, исследователями и экспертами.',
     'hero.configureFilters': 'Настройте фильтры поиска',
     'hero.resetFilters': 'Сбросить все фильтры',
     'hero.professionLabel': 'Ваша профессия или сфера',
@@ -2169,7 +2169,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '74 143 участников онлайн',
     'hero.startVideoChat': 'Начать видеочат',
     'hero.startTalkingTopics': 'Начать разговор по выбранным темам',
-
+    'hero.onlinePeers': '1 420+ собеседников онлайн',
 
     'hero.productPreview': 'Демонстрация интерфейса',
     'hero.compatibility': 'Совместимость: 94%',
@@ -2252,7 +2252,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': 'Начать разговор',
     'modal.subtitle': 'Мгновенное безопасное соединение с интеллектуальным собеседником.',
-
+    'modal.onlineCount': '1 420+ онлайн',
     'modal.chooseFormat': '1. Выберите формат общения',
     'modal.video': 'Видеозвонок',
     'modal.videoDesc': 'Камера и микрофон',
@@ -2267,9 +2267,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'Гарантия нулевого сохранения данных:',
     'modal.guaranteeDesc': 'Видео и звук передаются по зашифрованному P2P WebRTC каналу. Никаких записей не сохраняется.',
     'modal.searchingTitle': 'Поиск подходящего собеседника...',
-
-
-
+    'modal.searchStep1': 'Сканирование пула активных профессионалов...',
+    'modal.searchStep2': 'Расчет взаимных интересов и профессиональной совместимости...',
+    'modal.searchStep3': 'Установка защищенного P2P WebRTC соединения...',
     'modal.connectedTitle': 'Собеседник найден!',
     'modal.compatibilityScore': 'Совместимость',
     'modal.findPeer': 'Найти собеседника',
@@ -2340,7 +2340,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'تخصص',
     'hero.andShared': 'و علایق',
     'hero.interestsSpan': 'مشترک.',
-
+    'hero.mainSubtitle': 'فراتر از چت‌های تصادفی بروید. موتور هوشمند ما شما را فوراً به متخصصان، طراحان و پژوهشگران هم‌مسیرتان متصل می‌کند.',
     'hero.configureFilters': 'تنظیم فیلترهای همتایابی',
     'hero.resetFilters': 'بازنشانی فیلترها',
     'hero.professionLabel': 'حرفه یا حوزه تخصصی شما',
@@ -2396,7 +2396,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': '۷۴,۱۴۳ نفر هم‌اکنون آنلاین',
     'hero.startVideoChat': 'شروع ویدیو چت',
     'hero.startTalkingTopics': 'شروع صحبت با موضوعات انتخابی',
-
+    'hero.onlinePeers': '۱,۴۲۰+ همتای آنلاین',
 
     'hero.productPreview': 'نمایش زنده محصول',
     'hero.compatibility': 'میزان تطابق: ۹۴٪',
@@ -2479,7 +2479,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
 
     'modal.title': 'شروع گفتگو',
     'modal.subtitle': 'بدون نیاز به ترک صفحه، بلافاصله با یک همتای فرهیخته ارتباط برقرار کنید.',
-
+    'modal.onlineCount': '۱,۴۲۰+ آنلاین',
     'modal.chooseFormat': '۱. انتخاب قالب گفتگو',
     'modal.video': 'تماس تصویری',
     'modal.videoDesc': 'دوربین و صدا',
@@ -2494,9 +2494,9 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'modal.guaranteeTitle': 'ضمانت عدم ماندگاری داده:',
     'modal.guaranteeDesc': 'صدا و تصویر از طریق وب‌آرتی‌سی رمزنگاری‌شده همتا‌به‌همتا منتقل می‌شود. هیچ صدا یا ویدیویی ذخیره نمی‌شود.',
     'modal.searchingTitle': 'در حال جستجوی همتای سازگار...',
-
-
-
+    'modal.searchStep1': 'اسکن فعالان آنلاین در حوزه تخصصی...',
+    'modal.searchStep2': 'امتیازدهی به علایق و تناسب متقابل...',
+    'modal.searchStep3': 'نهایی‌سازی کانال امن همتابه‌همتا WebRTC...',
     'modal.connectedTitle': 'همتای سازگار پیدا شد!',
     'modal.compatibilityScore': 'میزان تطابق',
     'modal.findPeer': 'یافتن همتا',
@@ -2569,7 +2569,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Meslek',
     'hero.andShared': '& Ortak',
     'hero.interestsSpan': 'İlgi Alanları.',
-
+    'hero.mainSubtitle': 'Rastgele sohbetlerin ötesine geçin. Akıllı eşleştirme motorumuz sizi doğrulanmış geliştiriciler, tasarımcılar, içerik üreticileri ve uzmanlarla anında buluşturur.',
     'hero.configureFilters': 'Eşleşme Filtrelerinizi Yapılandırın',
     'hero.resetFilters': 'Filtreleri Sıfırla',
     'hero.professionLabel': 'Mesleğiniz veya Alanınız',
@@ -2634,7 +2634,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.liveConnecting': 'Gerçek zamanlı bağlananlar',
     'hero.startVideoChat': 'Görüntülü Sohbet Başlat',
     'hero.startTalkingTopics': 'Seçili Konularla Konuşmaya Başla',
-
+    'hero.onlinePeers': '1.420+ Çevrim İçi Akran',
 
     // Product Preview Card
     'hero.productPreview': 'Örnek Ürün Önizlemesi',
@@ -2707,7 +2707,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     // Start Talking Modal
     'modal.title': 'Konuşmaya Başla',
     'modal.subtitle': 'Ekranınızdan ayrılmadan bir akranla anında bağlanın.',
-
+    'modal.onlineCount': '1.420+ Çevrim İçi',
     'modal.chooseFormat': '1. Sohbet Formatını Seçin',
     'modal.video': 'Görüntülü Görüşme',
     'modal.videoDesc': 'Kamera ve Ses',
@@ -2780,7 +2780,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Professione',
     'hero.andShared': 'e',
     'hero.interestsSpan': 'Interessi Comuni.',
-
+    'hero.mainSubtitle': 'Vai oltre le chat casuali. Il nostro motore intelligente ti connette all\'istante con sviluppatori, designer ed esperti verificati.',
     'hero.configureFilters': 'Configura i Filtri di Abbinamento',
     'hero.resetFilters': 'Reimposta filtri',
     'hero.professionLabel': 'La tua Professione o Settore',
@@ -2864,7 +2864,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': '직업',
     'hero.andShared': '및 공유',
     'hero.interestsSpan': '관심사 연결.',
-
+    'hero.mainSubtitle': '단순 무작위 채팅을 넘어, 검증된 개발자, 디자이너, 크리에이터 및 전문가와 지능적으로 즉시 연결됩니다.',
     'hero.configureFilters': '매칭 필터 설정',
     'hero.resetFilters': '필터 초기화',
     'hero.professionLabel': '나의 직업 또는 분야',
@@ -2948,7 +2948,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Beroep',
     'hero.andShared': '& Gedeelde',
     'hero.interestsSpan': 'Interesses.',
-
+    'hero.mainSubtitle': 'Ga verder dan willekeurige chats. Onze slimme matching engine verbindt je direct met geverifieerde ontwikkelaars, ontwerpers en experts.',
     'hero.configureFilters': 'Configureer Je Matchfilters',
     'hero.resetFilters': 'Reset filters',
     'hero.professionLabel': 'Jouw Beroep of Vakgebied',
@@ -3029,7 +3029,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Zawodu',
     'hero.andShared': 'i Wspólnych',
     'hero.interestsSpan': 'Zainteresowań.',
-
+    'hero.mainSubtitle': 'Więcej niż losowe czaty. Nasz inteligentny algorytm natychmiast łączy Cię ze zweryfikowanymi specjalistami i twórcami z Twojej dziedziny.',
     'hero.configureFilters': 'Skonfiguruj Filtry Dopasowania',
     'hero.resetFilters': 'Resetuj filtry',
     'hero.professionLabel': 'Twój Zawód lub Branża',
@@ -3108,7 +3108,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesi',
     'hero.andShared': '& Minat',
     'hero.interestsSpan': 'Bersama.',
-
+    'hero.mainSubtitle': 'Lebih dari obrolan acak. Algoritma cerdas kami menghubungkan Anda langsung dengan profesional dan pakar terverifikasi sesuai bidang Anda.',
     'hero.configureFilters': 'Konfigurasi Filter Pencocokan',
     'hero.resetFilters': 'Atur ulang filter',
     'hero.professionLabel': 'Profesi atau Bidang Anda',
@@ -3187,7 +3187,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Nghề Nghiệp',
     'hero.andShared': '& Sở Thích',
     'hero.interestsSpan': 'Chung.',
-
+    'hero.mainSubtitle': 'Vượt ra ngoài các cuộc trò chuyện ngẫu nhiên. Công nghệ thông minh kết nối bạn tức thì với các chuyên gia phù hợp trong lĩnh vực.',
     'hero.configureFilters': 'Cấu Hình Bộ Lọc Ghép Nối',
     'hero.resetFilters': 'Đặt lại bộ lọc',
     'hero.professionLabel': 'Nghề Nghiệp Hoặc Lĩnh Vực Của Bạn',
@@ -3266,7 +3266,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Професією',
     'hero.andShared': 'та Спільними',
     'hero.interestsSpan': 'Інтересами.',
-
+    'hero.mainSubtitle': 'Більше ніж випадкові чати. Наш розумний алгоритм миттєво з’єднує вас із перевіреними експертами у вашій сфері.',
     'hero.configureFilters': 'Налаштувати Фільтри Підбору',
     'hero.resetFilters': 'Скинути фільтри',
     'hero.professionLabel': 'Ваша Професія або Сфера',
@@ -3345,7 +3345,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Yrke',
     'hero.andShared': '& Gemensamma',
     'hero.interestsSpan': 'Intressen.',
-
+    'hero.mainSubtitle': 'Mer än bara slumpmässiga chattar. Vår intelligenta algoritm matchar dig direkt med verifierade experter inom ditt område.',
     'hero.configureFilters': 'Konfigurera Matchningsfilter',
     'hero.resetFilters': 'Återställ filter',
     'hero.professionLabel': 'Ditt Yrke eller Område',
@@ -3424,7 +3424,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Επαγγέλματος',
     'hero.andShared': '& Κοινών',
     'hero.interestsSpan': 'Ενδιαφερόντων.',
-
+    'hero.mainSubtitle': 'Πέρα από τυχαίες συνομιλίες. Ο έξυπνος αλγόριθμος σας συνδέει άμεσα με επαληθευμένους ειδικούς στον τομέα σας.',
     'hero.configureFilters': 'Ρύθμιση Φίλτρων Αντιστοίχισης',
     'hero.resetFilters': 'Επαναφορά φίλτρων',
     'hero.professionLabel': 'Το Επάγγελμα ή ο Τομέας σας',
@@ -3503,7 +3503,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'สายอาชีพ',
     'hero.andShared': 'และความสนใจ',
     'hero.interestsSpan': 'ร่วมกัน.',
-
+    'hero.mainSubtitle': 'เหนือกว่าแชทสุ่มทั่วไป อัลกอริทึมอัจฉริยะเชื่อมโยงคุณกับผู้เชี่ยวชาญตัวจริงในสายงานได้ทันที',
     'hero.configureFilters': 'กำหนดค่าตัวกรองการจับคู่',
     'hero.resetFilters': 'รีเซ็ตตัวกรอง',
     'hero.professionLabel': 'อาชีพหรือสายงานของคุณ',
@@ -3582,7 +3582,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'পেশা',
     'hero.andShared': 'ও অভিন্ন',
     'hero.interestsSpan': 'আগ্রহের ভিত্তিতে।',
-
+    'hero.mainSubtitle': 'সাধারণ র‍্যান্ডম চ্যাটের চেয়ে উন্নত। আমাদের বুদ্ধিমান অ্যালগরিদম আপনাকে নির্দিষ্ট বিষয়ের দক্ষ বিশেষজ্ঞদের সাথে সরাসরি যুক্ত করে।',
     'hero.configureFilters': 'ম্যাচিং ফিল্টার কনফিগার করুন',
     'hero.resetFilters': 'ফিল্টার রিসেট করুন',
     'hero.professionLabel': 'আপনার পেশা বা ক্ষেত্র',
@@ -3661,7 +3661,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesion',
     'hero.andShared': '& Minat',
     'hero.interestsSpan': 'Bersama.',
-
+    'hero.mainSubtitle': 'Lebih daripada perbualan rawak. Algoritma pintar kami memadankan anda secara langsung dengan pakar terbukti dalam bidang anda.',
     'hero.configureFilters': 'Konfigurasikan Penapis Padanan',
     'hero.resetFilters': 'Tetapkan semula penapis',
     'hero.professionLabel': 'Profesion atau Bidang Anda',
@@ -3740,7 +3740,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Propesyon',
     'hero.andShared': '& Parehong',
     'hero.interestsSpan': 'Interes.',
-
+    'hero.mainSubtitle': 'Higit pa sa karaniwang random chat. Agad kang ikinokonekta ng aming matalinong algorithm sa mga beripikadong eksperto sa iyong larangan.',
     'hero.configureFilters': 'I-configure ang Mga Filter',
     'hero.resetFilters': 'I-reset ang mga filter',
     'hero.professionLabel': 'Iyong Propesyon o Larangan',
@@ -3819,7 +3819,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profese',
     'hero.andShared': '& Společných',
     'hero.interestsSpan': 'Zájmů.',
-
+    'hero.mainSubtitle': 'Více než náhodný chat. Náš inteligentní algoritmus vás okamžitě spojí s ověřenými odborníky z vašeho oboru.',
     'hero.configureFilters': 'Nastavit Filtry Párování',
     'hero.resetFilters': 'Obnovit filtry',
     'hero.professionLabel': 'Vaše Profese nebo Obor',
@@ -3898,7 +3898,7 @@ export const OTHER_TRANSLATIONS: Record<string, Record<string, string>> = {
     'hero.professionSpan': 'Profesie',
     'hero.andShared': '& Interese',
     'hero.interestsSpan': 'Comune.',
-
+    'hero.mainSubtitle': 'Mai mult decât chat-uri la întâmplare. Algoritmul nostru inteligent te conectează instantaneu cu profesioniști verificați din domeniul tău.',
     'hero.configureFilters': 'Configurare Filtre de Potrivire',
     'hero.resetFilters': 'Resetează filtrele',
     'hero.professionLabel': 'Profesia sau Domeniul Tău',

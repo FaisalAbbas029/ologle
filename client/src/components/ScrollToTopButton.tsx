@@ -1,5 +1,5 @@
-import { ArrowUp } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up.js';
 
 export const ScrollToTopButton: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

@@ -103,17 +103,3 @@ npm run build
 npm start
 ```
 *Note: No persistent database (PostgreSQL, MongoDB, Redis) is required. All session state is ephemeral and in-memory by architectural mandate.*
-
-When hosting the static client separately (for example, on Netlify), deploy the Node.js WebSocket server on a WebSocket-capable host and set `VITE_WEBSOCKET_URL` in the client build environment to that server's secure `/ws` URL. Without this setting, production builds do not attempt a same-origin WebSocket connection. Local development continues to use the integrated Vite WebSocket server.
-
-The Netlify `_redirects` file serves the React app for direct navigation to client routes. Live matching requires the WebSocket server to be deployed and `VITE_WEBSOCKET_URL` configured; with no relay configured, the app does not fabricate matches and displays matching as unavailable.
-
-### Deploying the live-matching service
-
-The Netlify site is static and cannot host WebSocket connections. To create the companion Node service, open the repository in Render as a Blueprint and deploy the included `render.yaml`. After Render reports the service healthy, copy its public hostname and set this Netlify build environment variable:
-
-```text
-VITE_WEBSOCKET_URL=wss://<your-render-service-host>/ws
-```
-
-Trigger a new Netlify deploy after saving the variable. The service exposes `/health` for deployment checks and uses the `PORT` provided by its host. Free Render services may sleep while idle, so the first connection after inactivity can take longer.

@@ -1,7 +1,15 @@
-import { CircleCheckBig as CheckCircle, Clock, Cpu, Radio, RefreshCw, Shield, ShieldAlert, UserX, VolumeX } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { EphemeralLiveTicket } from '../types/index.ts';
 import { haylooSocket } from '../services/haylooSocket.ts';
+import Shield from 'lucide-react/dist/esm/icons/shield.js';
+import ShieldAlert from 'lucide-react/dist/esm/icons/shield-alert.js';
+import Radio from 'lucide-react/dist/esm/icons/radio.js';
+import UserX from 'lucide-react/dist/esm/icons/user-x.js';
+import VolumeX from 'lucide-react/dist/esm/icons/volume-x.js';
+import CheckCircle from 'lucide-react/dist/esm/icons/check-circle.js';
+import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
+import Clock from 'lucide-react/dist/esm/icons/clock.js';
+import Cpu from 'lucide-react/dist/esm/icons/cpu.js';
 
 interface AdminModerationViewProps {
   onBackToApp?: () => void;

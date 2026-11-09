@@ -1,5 +1,11 @@
-import { ArrowLeft, Award, Calendar, Check, ChevronDown, Globe, User } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
+import User from 'lucide-react/dist/esm/icons/user.js';
+import Globe from 'lucide-react/dist/esm/icons/globe.js';
+import Calendar from 'lucide-react/dist/esm/icons/calendar.js';
+import Check from 'lucide-react/dist/esm/icons/check.js';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down.js';
+import ArrowLeft from 'lucide-react/dist/esm/icons/arrow-left.js';
+import Award from 'lucide-react/dist/esm/icons/award.js';
 import { COUNTRIES_LIST } from '../data/countriesData.ts';
 import { CountryFlag } from './CountryFlag.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';

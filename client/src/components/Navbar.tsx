@@ -1,5 +1,16 @@
-import { BookOpen, ChevronRight, Compass, FileText, Menu, MessageSquare, Mic, ShieldCheck, User, CircleUser as UserCircle, Video, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import UserCircle from 'lucide-react/dist/esm/icons/user-circle.js';
+import Menu from 'lucide-react/dist/esm/icons/menu.js';
+import X from 'lucide-react/dist/esm/icons/x.js';
+import User from 'lucide-react/dist/esm/icons/user.js';
+import Compass from 'lucide-react/dist/esm/icons/compass.js';
+import Video from 'lucide-react/dist/esm/icons/video.js';
+import Mic from 'lucide-react/dist/esm/icons/mic.js';
+import MessageSquare from 'lucide-react/dist/esm/icons/message-square.js';
+import ShieldCheck from 'lucide-react/dist/esm/icons/shield-check.js';
+import BookOpen from 'lucide-react/dist/esm/icons/book-open.js';
+import FileText from 'lucide-react/dist/esm/icons/file-text.js';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right.js';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { AppView } from '../types/index.ts';
 import { HeylooLogo } from './HeylooLogo.tsx';

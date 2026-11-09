@@ -32,7 +32,11 @@ export const SiteLanguageDropdown: React.FC<SiteLanguageDropdownProps> = ({
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="relative inline-flex items-center" id={`${idPrefix}-wrapper`}>
+    <div
+      ref={containerRef}
+      className={`relative items-center ${compact ? 'flex w-full flex-1' : 'inline-flex'}`}
+      id={`${idPrefix}-wrapper`}
+    >
       <button
         type="button"
         id={`${idPrefix}-btn`}
@@ -40,14 +44,12 @@ export const SiteLanguageDropdown: React.FC<SiteLanguageDropdownProps> = ({
         aria-expanded={isOpen}
         aria-haspopup="true"
         title="Select Site Language"
-        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-[#1E293B] dark:hover:bg-[#283548] border border-[#FFD9C6] dark:border-[#EC5E27]/30 hover:border-[#EC5E27] text-xs font-bold text-slate-800 dark:text-slate-100 transition-all cursor-pointer shadow-xs"
+        className={`flex items-center ${compact ? 'w-full flex-1 justify-between gap-1.5 px-3 py-2' : 'gap-2 px-3 py-1.5'} rounded-xl bg-white/90 hover:bg-white dark:bg-[#1E293B] dark:hover:bg-[#283548] border border-[#FFD9C6] dark:border-[#EC5E27]/30 hover:border-[#EC5E27] text-xs font-bold text-slate-800 dark:text-slate-100 transition-all cursor-pointer shadow-xs`}
       >
         <Globe className="w-3.5 h-3.5 text-[#EC5E27]" />
-        {!compact ? (
-          <span className="font-semibold">{currentLanguageOption.label}</span>
-        ) : (
-          <span className="font-bold uppercase text-[11px]">{currentLanguageOption.shortCode}</span>
-        )}
+        <span className={compact ? 'min-w-0 flex-1 whitespace-nowrap text-left font-semibold' : 'font-semibold'}>
+          {currentLanguageOption.label}
+        </span>
         <ChevronDown className={`w-3 h-3 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#EC5E27]' : ''}`} />
       </button>
 

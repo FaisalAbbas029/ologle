@@ -190,7 +190,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
   return (
     <div
       id="landing-view-root"
-      className="relative w-full min-h-full flex-1 flex flex-col justify-center font-['Plus_Jakarta_Sans',sans-serif] transition-colors duration-300 overflow-x-hidden overflow-y-auto"
+      className="relative w-full min-h-[calc(100svh-3.5rem)] sm:min-h-[calc(100svh-4rem)] lg:min-h-full flex-1 flex flex-col justify-center font-['Plus_Jakarta_Sans',sans-serif] transition-colors duration-300 overflow-x-hidden overflow-y-auto"
       style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
     >
       <div className="absolute inset-0 ai-mesh-grid pointer-events-none opacity-20 z-0" />

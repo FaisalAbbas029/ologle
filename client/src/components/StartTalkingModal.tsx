@@ -192,9 +192,9 @@ export const StartTalkingModal: React.FC<StartTalkingModalProps> = ({
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
                   {[
-                    { id: 'messaging', label: t('modal.text', 'Messaging'), desc: t('modal.textDesc', 'Encrypted text chat'), icon: MessageSquare },
-                    { id: 'voice', label: t('modal.audio', 'Voice Call'), desc: t('modal.audioDesc', 'Microphone stream'), icon: Mic },
                     { id: 'video', label: t('modal.video', 'Video Call'), desc: t('modal.videoDesc', 'Camera & Audio'), icon: Video },
+                    { id: 'voice', label: t('modal.audio', 'Voice Call'), desc: t('modal.audioDesc', 'Microphone stream'), icon: Mic },
+                    { id: 'messaging', label: t('modal.text', 'Messaging'), desc: t('modal.textDesc', 'Encrypted text chat'), icon: MessageSquare },
                   ].map((mode) => {
                     const active =
                       selectedMode === mode.id ||

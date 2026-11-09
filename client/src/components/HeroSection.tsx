@@ -482,9 +482,14 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
   // Real-time synchronization with User Profile updates
   useEffect(() => {
-    const handleProfileSync = (e: any) => {
-      const updatedProf = e?.detail || localStorage.getItem('hayloo_user_profession');
-      if (updatedProf) {
+    const handleProfileSync = (event: Event) => {
+      if (event instanceof StorageEvent && event.key !== 'hayloo_user_profession') return;
+
+      const updatedProf =
+        event instanceof StorageEvent
+          ? event.newValue
+          : localStorage.getItem('hayloo_user_profession');
+      if (typeof updatedProf === 'string') {
         setProfession(updatedProf);
         setProfessionError(null);
       }
@@ -1263,9 +1268,9 @@ const FilterCard: React.FC<FilterCardProps> = ({
         </div>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { id: 'messaging', label: t('hero.messaging', 'Messaging'), title: 'Messaging', icon: MessageSquare },
-            { id: 'voice', label: t('hero.voiceCall', 'Voice Call'), title: 'Voice Call', icon: Mic },
             { id: 'video', label: t('hero.videoCall', 'Video Call'), title: 'Video Call', icon: Video },
+            { id: 'voice', label: t('hero.voiceCall', 'Voice Call'), title: 'Voice Call', icon: Mic },
+            { id: 'messaging', label: t('hero.messaging', 'Messaging'), title: 'Messaging', icon: MessageSquare },
           ].map((mode) => {
             const active =
               sessionMode === mode.id ||

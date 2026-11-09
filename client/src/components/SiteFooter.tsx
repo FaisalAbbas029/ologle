@@ -7,14 +7,21 @@ import { MessageSquarePlus, X, Send, CheckCircle2 } from 'lucide-react';
 interface SiteFooterProps {
   onNavigate: (view: AppView) => void;
   onOpenReport?: () => void;
+  isSupportOpen: boolean;
+  onOpenSupport: () => void;
+  onCloseSupport: () => void;
+  isFooterVisible: boolean;
 }
 
 export const SiteFooter: React.FC<SiteFooterProps> = ({
   onNavigate,
   onOpenReport,
+  isSupportOpen,
+  onOpenSupport,
+  onCloseSupport,
+  isFooterVisible,
 }) => {
   const { t } = useLanguage();
-  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [supportCategory, setSupportCategory] = useState<'feedback' | 'bug' | 'safety' | 'privacy'>('feedback');
   const [supportEmail, setSupportEmail] = useState('');
   const [supportMessage, setSupportMessage] = useState('');
@@ -38,7 +45,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
         setIsSubmitted(false);
         setSupportMessage('');
         setSupportEmail('');
-        setIsSupportOpen(false);
+        onCloseSupport();
       }, 2000);
     }, 600);
   };
@@ -47,7 +54,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
     <>
       <footer
         id="site-footer"
-        className="w-full border-t transition-colors duration-300 py-2 sm:py-2.5 lg:py-2 mt-auto select-none shrink-0"
+        className={`${isFooterVisible ? '' : 'hidden'} w-full border-t transition-colors duration-300 py-2 sm:py-2.5 lg:py-2 mt-auto select-none shrink-0`}
         style={{
           backgroundColor: 'var(--nav-bg, rgba(253, 237, 209, 0.94))',
           borderColor: 'var(--nav-border, rgba(236, 94, 39, 0.20))',
@@ -68,7 +75,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
           {/* Right Navigation Links */}
           <nav
             aria-label="Footer Navigation"
-            className="flex items-center flex-wrap justify-center sm:justify-end gap-3.5 sm:gap-5 md:gap-6"
+            className="hidden sm:flex items-center flex-wrap justify-center sm:justify-end gap-3.5 sm:gap-5 md:gap-6"
           >
             <button
               type="button"
@@ -115,7 +122,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
             <button
               type="button"
               id="footer-support-btn"
-              onClick={() => setIsSupportOpen(true)}
+              onClick={onOpenSupport}
               className="text-xs sm:text-[13px] font-bold text-[#EC5E27] dark:text-[#FB923C] hover:text-[#C2410C] dark:hover:text-[#FDBA74] hover:underline transition-colors cursor-pointer"
             >
               {t('footer.contact', 'Contact Support')}
@@ -131,7 +138,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
           aria-modal="true"
           aria-label="Contact Support"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn"
-          onClick={() => setIsSupportOpen(false)}
+          onClick={onCloseSupport}
         >
           <div
             className="w-full max-w-md rounded-2xl p-6 sm:p-7 shadow-2xl transition-all border animate-scaleUp bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100"
@@ -156,7 +163,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setIsSupportOpen(false)}
+                onClick={onCloseSupport}
                 className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                 aria-label="Close dialog"
               >
@@ -234,7 +241,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-white/10">
                   <button
                     type="button"
-                    onClick={() => setIsSupportOpen(false)}
+                    onClick={onCloseSupport}
                     className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     Cancel

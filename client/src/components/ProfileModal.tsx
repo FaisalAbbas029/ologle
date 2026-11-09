@@ -132,7 +132,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onS
   return (
     <div
       id="profile-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md animate-fadeIn transition-all"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-2 sm:items-center sm:p-6 bg-black/60 backdrop-blur-md animate-fadeIn transition-all"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -143,7 +143,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onS
       <div
         ref={modalRef}
         id="profile-modal-card"
-        className="relative w-full max-w-md rounded-3xl shadow-2xl border overflow-hidden animate-scaleUp transition-all duration-300"
+        className="relative my-auto w-full max-w-md max-h-[calc(100dvh-1rem)] rounded-3xl shadow-2xl border overflow-y-auto overscroll-contain animate-scaleUp transition-all duration-300 sm:max-h-[calc(100dvh-3rem)]"
         style={{
           background: 'var(--card-bg, #FFFFFF)',
           backdropFilter: 'blur(28px)',
@@ -155,21 +155,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onS
       >
         {/* Header Bar */}
         <div
-          className="flex items-center justify-between px-6 py-5 border-b"
+          className="flex items-center justify-between gap-2 px-4 py-4 border-b sm:px-6 sm:py-5"
           style={{ borderColor: 'var(--border-subtle, rgba(236, 94, 39, 0.18))' }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md"
               style={{ background: 'linear-gradient(135deg, #EC5E27 0%, #EA580C 100%)' }}
             >
               <User className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h2 id="profile-modal-title" className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+            <div className="min-w-0">
+              <h2 id="profile-modal-title" className="text-base font-black text-slate-900 dark:text-white tracking-tight sm:text-lg">
                 {t('profile.title', 'Your Profile Details')}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[10px] leading-snug text-slate-500 dark:text-slate-400 font-medium sm:text-xs">
                 {t('profile.subtitle', 'All fields are optional. Details are visible only when provided.')}
               </p>
             </div>
@@ -180,7 +180,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onS
             id="profile-modal-close-btn"
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-slate-200/70 hover:bg-slate-300 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200/70 text-slate-600 transition-all hover:bg-slate-300 hover:text-slate-900 dark:bg-slate-700/80 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer active:scale-95"
             aria-label="Close profile modal"
             title="Close (Esc)"
           >
@@ -189,7 +189,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onS
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSave} className="p-6 space-y-4">
+        <form onSubmit={handleSave} className="space-y-4 p-4 sm:p-6">
           {/* 1. Name Field (Optional) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">

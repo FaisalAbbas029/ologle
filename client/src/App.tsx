@@ -181,6 +181,7 @@ export default function App() {
 
   // Modals & Safety
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [toasts, setToasts] = useState<SafetyToast[]>([]);
@@ -937,9 +938,6 @@ export default function App() {
 
       {/* Universal Top Bar Header */}
       <Navbar
-        currentView={currentView}
-        sessionMode={sessionMode}
-        onSwitchMode={handleSwitchMode}
         onNavigate={navigateTo}
         onStartFlow={() => navigateTo('landing')}
         isInActiveSession={isInActiveSession}
@@ -948,6 +946,8 @@ export default function App() {
         onOpenPrivacyInspector={() => setIsPrivacyInspectorOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenStartTalking={() => setIsStartTalkingOpen(true)}
+        onOpenReport={() => setIsReportOpen(true)}
+        onOpenSupport={() => setIsSupportOpen(true)}
         currentUser={currentUser}
         isHumanVerified={isHumanVerified}
         theme={theme}
@@ -1249,12 +1249,14 @@ export default function App() {
       </main>
 
       {/* Site Footer matching Reference Design (hidden only during active full-screen calls) */}
-      {!isInActiveSession && (
-        <SiteFooter
-          onNavigate={navigateTo}
-          onOpenReport={() => setIsReportOpen(true)}
-        />
-      )}
+      <SiteFooter
+        onNavigate={navigateTo}
+        onOpenReport={() => setIsReportOpen(true)}
+        isSupportOpen={isSupportOpen}
+        onOpenSupport={() => setIsSupportOpen(true)}
+        onCloseSupport={() => setIsSupportOpen(false)}
+        isFooterVisible={!isInActiveSession}
+      />
 
       {/* Floating Utilities */}
       <ScrollToTopButton />

@@ -76,22 +76,22 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
         isFadingOut ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
       }`}
     >
-      <div className="pointer-events-auto max-w-2xl w-full bg-[#232323]/85 backdrop-blur-md border border-[#ffffff]/20 rounded-2xl p-3 sm:p-3.5 shadow-2xl text-[#ffffff] flex flex-col gap-1.5 transition-all">
+      <div className="pointer-events-auto max-w-2xl w-full bg-slate-900/90 dark:bg-[#1C1C1E]/90 backdrop-blur-md border border-orange-500/30 rounded-2xl p-3 sm:p-3.5 shadow-2xl text-white flex flex-col gap-1.5 transition-all">
         
         {/* Caption Header: Speaker & Language Translation Flow */}
-        <div className="flex items-center justify-between gap-2 text-[11px] pb-1 border-b border-[#ffffff]">
-          <div className="flex items-center gap-1.5 font-semibold text-[#bb3131]">
-            <span className="w-2 h-2 rounded-full bg-[#bb3131] animate-pulse" />
-            <Volume2 className="w-3.5 h-3.5 text-[#232323]" />
-            <span className="text-[#ffffff] font-bold">{currentDisplay.speakerName || 'Stranger'}</span>
+        <div className="flex items-center justify-between gap-2 text-[11px] pb-1 border-b border-white/10">
+          <div className="flex items-center gap-1.5 font-semibold text-[#EC5E27]">
+            <span className="w-2 h-2 rounded-full bg-[#EC5E27] animate-pulse" />
+            <Volume2 className="w-3.5 h-3.5 text-[#EC5E27]" />
+            <span className="text-white font-bold">{currentDisplay.speakerName || 'Stranger'}</span>
             
             {/* Language Flow Badge */}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ffffff]/10 text-[10px] text-[#232323] font-medium border border-[#ffffff] ml-1">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-[10px] text-white font-medium border border-white/10 ml-1">
               <span>{srcLang.englishName}</span>
               {isCrossLanguage && targetLang && (
                 <>
-                  <span className="text-[#bb3131]">→</span>
-                  <span className="text-[#232323] font-bold">{targetLang.englishName}</span>
+                  <span className="text-[#EC5E27]">→</span>
+                  <span className="text-white font-bold">{targetLang.englishName}</span>
                 </>
               )}
             </span>
@@ -99,7 +99,7 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
 
           <div className="flex items-center gap-1.5">
             {isCrossLanguage && (
-              <span className="flex items-center gap-1 text-[10px] text-[#232323] font-medium bg-[#bb3131]/40 px-1.5 py-0.5 rounded border border-[#bb3131]/50">
+              <span className="flex items-center gap-1 text-[10px] text-amber-200 font-medium bg-[#EC5E27]/30 px-1.5 py-0.5 rounded border border-[#EC5E27]/50">
                 <Sparkles className="w-2.5 h-2.5" />
                 <span>AI Translated</span>
               </span>
@@ -107,7 +107,7 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
             {onDismiss && (
               <button
                 onClick={onDismiss}
-                className="p-1 rounded text-[#ffffff]/50 hover:text-[#ffffff] hover:bg-[#ffffff]/10 transition-colors"
+                className="p-1 rounded text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title="Hide caption"
               >
                 <X className="w-3 h-3" />
@@ -127,7 +127,7 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
                   <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#ffffff] animate-pulse align-middle" />
                 )}
               </p>
-              <p className="text-xs text-[#232323] italic leading-tight">
+              <p className="text-xs text-neutral-300 dark:text-neutral-400 italic leading-tight">
                 "{currentDisplay.text}"
               </p>
             </>

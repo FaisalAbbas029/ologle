@@ -132,6 +132,12 @@ export interface Active1on1Room {
   partnerVisitorId?: string;
   scoreBreakdown?: ScoreBreakdown;
   breakdown?: ScoreBreakdown;
+  isInitiator?: boolean;
+  isAI?: boolean;
+  aiPartnerId?: string;
+  aiAvatar?: string;
+  aiBio?: string;
+  partnerName?: string;
 }
 
 export interface ActiveCommunityRoom {
@@ -239,6 +245,7 @@ export type ServerMessage =
       partnerVisitorId?: string;
       scoreBreakdown?: ScoreBreakdown;
       breakdown?: ScoreBreakdown;
+      isInitiator?: boolean;
     }
   | { type: 'PARTNER_LEFT'; reason: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' }
   | { type: 'WEBRTC_SIGNAL'; signal: any }

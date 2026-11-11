@@ -458,6 +458,7 @@ export class MatchmakerQueue {
     for (const [candidateId, candidateSession] of this.queue.entries()) {
       if (candidateId === currentSession.sessionId) continue;
       if (
+        !(currentSession.isLoopback && candidateSession.isLoopback) &&
         currentSession.visitorId &&
         currentSession.visitorId === candidateSession.visitorId
       ) {

@@ -23,6 +23,62 @@ function getAi(): GoogleGenAI {
   return aiInstance;
 }
 
+export async function generateAIPracticeReply(input: {
+  partnerId: string;
+  profession: string;
+  interests: string[];
+  messages: Array<{ role: 'user' | 'assistant'; text: string }>;
+}): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
+    throw new Error('AI practice is not configured. Add GEMINI_API_KEY to the server environment.');
+  }
+
+  const { AI_PRACTICE_PARTNERS } = await import('../client/src/data/aiPracticePartners.ts');
+  const partner = AI_PRACTICE_PARTNERS.find((p) => p.id === input.partnerId) || AI_PRACTICE_PARTNERS[0];
+
+  const history = input.messages
+    .slice(-10)
+    .map(({ role, text }) => `${role === 'assistant' ? partner.name : 'User'}: ${text}`)
+    .join('\n');
+
+  const prompt = `You are ${partner.name}, an AI practice partner on Hayloo. You are transparently an AI peer, never misrepresenting yourself as a real human.
+Partner profession: ${partner.profession}
+Partner bio: ${partner.bio}
+Partner conversation style: ${partner.style}
+User's profession: ${input.profession || 'Not specified'}
+User's interests: ${input.interests.join(', ') || 'General topics'}
+
+Respond naturally, thoughtfully, and concisely (1-3 sentences) to the user's latest message. Be warm, curious, and end with an engaging relevant follow-up question.
+
+Conversation history:
+${history}
+
+Reply as ${partner.name}:`;
+
+  const ai = getAi();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: { temperature: 0.75, maxOutputTokens: 200 },
+    });
+    const text = response.text?.trim();
+    if (text) return text;
+  } catch (err) {
+    console.warn('Gemini 3.8 flash call failed, falling back to 3.1 flash lite:', err);
+    const fallbackResponse = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: prompt,
+      config: { temperature: 0.75, maxOutputTokens: 200 },
+    });
+    const text = fallbackResponse.text?.trim();
+    if (text) return text;
+  }
+
+  throw new Error('Empty AI response.');
+}
+
 /**
  * Transcribe pre-recorded or microphone audio using gemini-3.5-transcribe
  */

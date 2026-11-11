@@ -8,6 +8,7 @@ import {
   translateTextWithGemini,
   autoDetectAndTranslateWithGemini,
   generateIcebreakerWithGemini,
+  generateAIPracticeReply,
 } from './geminiService.ts';
 
 const app = express();
@@ -118,6 +119,36 @@ app.post('/api/suggest-icebreaker', async (req, res) => {
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to suggest conversation topic' });
+  }
+});
+
+// API: AI Practice Conversation Reply
+app.post('/api/ai-practice/reply', async (req, res) => {
+  try {
+    const { partnerId, profession, interests, messages } = req.body || {};
+    const safePartnerId = sanitizeText(partnerId, 80);
+    const safeProf = sanitizeText(profession, 100);
+    const safeInterests = Array.isArray(interests)
+      ? interests.slice(0, 6).map((i) => sanitizeText(i, 50))
+      : [];
+    const safeMessages: Array<{ role: 'user' | 'assistant'; text: string }> = Array.isArray(messages)
+      ? messages.slice(-10).map((m: any) => ({
+          role: (m?.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+          text: sanitizeText(m?.text, 1000),
+        }))
+      : [];
+
+    const reply = await generateAIPracticeReply({
+      partnerId: safePartnerId,
+      profession: safeProf,
+      interests: safeInterests,
+      messages: safeMessages,
+    });
+
+    res.json({ reply });
+  } catch (err: any) {
+    console.warn('AI practice endpoint error:', err.message);
+    res.status(500).json({ error: err.message || 'AI practice reply failed.' });
   }
 });
 

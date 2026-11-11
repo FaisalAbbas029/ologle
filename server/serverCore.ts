@@ -150,6 +150,7 @@ export type ServerMessage =
       partnerCountry?: string;
       partnerVisitorId?: string;
       scoreBreakdown?: ScoreBreakdown;
+      isInitiator?: boolean;
     }
   | { type: 'PARTNER_LEFT'; reason: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' }
   | { type: 'WEBRTC_SIGNAL'; signal: any }
@@ -799,6 +800,7 @@ export class HaylooEngine {
       partnerCountry: sessionB.country || 'GLOBAL',
       partnerVisitorId: sessionB.visitorId,
       scoreBreakdown,
+      isInitiator: true,
     };
 
     const payloadB: ServerMessage = {
@@ -811,6 +813,7 @@ export class HaylooEngine {
       partnerCountry: sessionA.country || 'GLOBAL',
       partnerVisitorId: sessionA.visitorId,
       scoreBreakdown,
+      isInitiator: false,
     };
 
     if (sessionA.ws) this.send(sessionA.ws, payloadA);

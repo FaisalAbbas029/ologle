@@ -31,6 +31,16 @@ import { ScrollToTopButton } from './components/ScrollToTopButton.tsx';
 import { CookieConsentBanner } from './components/CookieConsentBanner.tsx';
 import { ConnectionStatus } from './services/haylooSocket.ts';
 import { soundService } from './services/soundService.ts';
+import {
+  chooseAIPracticePartner,
+  AI_PRACTICE_PARTNERS,
+  AIPracticePartner,
+} from './data/aiPracticePartners.ts';
+import {
+  getAIPracticeReply,
+  generateAIGreeting,
+  AIPracticeTurn,
+} from './services/aiPracticeService.ts';
 
 import { LandingView } from './components/LandingView.tsx';
 import { SiteFooter } from './components/SiteFooter.tsx';
@@ -159,6 +169,7 @@ export default function App() {
   const [interests, setInterests] = useState<string[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>('GLOBAL');
   const [incomingSignal, setIncomingSignal] = useState<{ signal: any; id: number } | null>(null);
+  const signalCounterRef = useRef<number>(1);
 
   // Active Session Rooms
   const [active1on1, setActive1on1] = useState<Active1on1Room | null>(null);
@@ -207,7 +218,7 @@ export default function App() {
         if (s === 'voice' || s === 'AUDIO') return 'voice';
         if (s === 'messaging' || s === 'TEXT') return 'messaging';
         if (s === 'video' || s === 'VIDEO') return 'video';
-      } catch {}
+      } catch { }
     }
     return 'video';
   });
@@ -417,6 +428,7 @@ export default function App() {
           setIsMatchReady(false);
           setIncomingSignal(null);
           soundService.playMatchFound();
+          const wasAI = Boolean(active1on1?.isAI);
           setActive1on1({
             roomId: msg.roomId,
             sharedInterests: msg.sharedInterests,
@@ -426,9 +438,14 @@ export default function App() {
             partnerCountry: msg.partnerCountry,
             partnerVisitorId: msg.partnerVisitorId,
             breakdown: msg.scoreBreakdown || msg.breakdown,
+            isInitiator: msg.isInitiator,
+            isAI: false,
           });
           setChat1on1Messages([]);
           setPartnerLeftReason(null);
+          if (wasAI) {
+            addToast('info', `Switched to real member (${msg.partnerProfession || 'Peer'})!`);
+          }
 
           if (sessionModeRef.current === 'voice') {
             setCurrentView('voice_session');
@@ -455,7 +472,7 @@ export default function App() {
           break;
 
         case 'WEBRTC_SIGNAL':
-          setIncomingSignal({ signal: msg.signal, id: Date.now() });
+          setIncomingSignal({ signal: msg.signal, id: signalCounterRef.current++ });
           break;
 
         case 'RECEIVE_1ON1_MESSAGE':
@@ -543,7 +560,7 @@ export default function App() {
       setSessionMode('messaging');
       try {
         localStorage.setItem('hayloo_session_mode', 'messaging');
-      } catch {}
+      } catch { }
       setCurrentView('1on1_chat');
       if (typeof window !== 'undefined' && window.location.pathname !== '/messages') {
         window.history.pushState({}, '', '/messages');
@@ -552,7 +569,7 @@ export default function App() {
       setSessionMode('voice');
       try {
         localStorage.setItem('hayloo_session_mode', 'voice');
-      } catch {}
+      } catch { }
       setCurrentView('voice_session');
       if (typeof window !== 'undefined' && window.location.pathname !== '/voice-call') {
         window.history.pushState({}, '', '/voice-call');
@@ -561,7 +578,7 @@ export default function App() {
       setSessionMode('video');
       try {
         localStorage.setItem('hayloo_session_mode', 'video');
-      } catch {}
+      } catch { }
       setCurrentView('conversation');
       if (typeof window !== 'undefined' && window.location.pathname !== '/video-call') {
         window.history.pushState({}, '', '/video-call');
@@ -587,19 +604,19 @@ export default function App() {
         setSessionMode('messaging');
         try {
           localStorage.setItem('hayloo_session_mode', 'messaging');
-        } catch {}
+        } catch { }
         setCurrentView('1on1_chat');
       } else if (path === '/voice-call') {
         setSessionMode('voice');
         try {
           localStorage.setItem('hayloo_session_mode', 'voice');
-        } catch {}
+        } catch { }
         setCurrentView('voice_session');
       } else if (path === '/video-call') {
         setSessionMode('video');
         try {
           localStorage.setItem('hayloo_session_mode', 'video');
-        } catch {}
+        } catch { }
         setCurrentView('conversation');
       } else if (path === '/' || path === '/landing') {
         setCurrentView('landing');
@@ -655,13 +672,13 @@ export default function App() {
       targetMode === 'voice' || targetMode === 'AUDIO'
         ? 'voice'
         : targetMode === 'messaging' || targetMode === 'TEXT'
-        ? 'messaging'
-        : 'video';
+          ? 'messaging'
+          : 'video';
     setActiveSessionMode(normalized);
     setSessionMode(normalized);
     try {
       localStorage.setItem('hayloo_session_mode', normalized);
-    } catch {}
+    } catch { }
     // Do NOT navigate! The user is configuring their filters on the home/landing page.
   };
 
@@ -671,13 +688,13 @@ export default function App() {
       targetMode === 'voice' || targetMode === 'AUDIO'
         ? 'voice'
         : targetMode === 'messaging' || targetMode === 'TEXT'
-        ? 'messaging'
-        : 'video';
+          ? 'messaging'
+          : 'video';
     setActiveSessionMode(normalized);
     setSessionMode(normalized);
     try {
       localStorage.setItem('hayloo_session_mode', normalized);
-    } catch {}
+    } catch { }
     if (normalized === 'voice') {
       navigate('/voice-call');
     } else if (normalized === 'messaging') {
@@ -719,7 +736,7 @@ export default function App() {
       try {
         const saved = localStorage.getItem('hayloo_user_interests');
         if (saved) interestsToUse = JSON.parse(saved);
-      } catch {}
+      } catch { }
     }
     if (!interestsToUse) {
       interestsToUse = [];
@@ -729,31 +746,27 @@ export default function App() {
     const modeToUse: 'video' | 'voice' | 'messaging' = (rawMode === 'TEXT' || rawMode === 'messaging')
       ? 'messaging'
       : (rawMode === 'AUDIO' || rawMode === 'voice')
-      ? 'voice'
-      : 'video';
+        ? 'voice'
+        : 'video';
 
     setActiveSessionMode(modeToUse);
     setSessionMode(modeToUse);
     try {
       localStorage.setItem('hayloo_session_mode', modeToUse);
-    } catch {}
+    } catch { }
 
-    const profValidation = validateProfession(profToUse);
-    if (!profValidation.isValid) {
-      addToast('warning', profValidation.error || 'Please enter a genuine profession before matching.');
-      setCurrentView('profession_select');
-      return;
-    }
+    const effectiveProf = (profToUse && validateProfession(profToUse).isValid) ? profToUse : 'Software Engineer';
+    const effectiveInterests = (interestsToUse && interestsToUse.length > 0) ? interestsToUse : ['Technology', 'Ideas', 'Networking'];
 
-    setProfession(profToUse);
-    setInterests(interestsToUse);
+    setProfession(effectiveProf);
+    setInterests(effectiveInterests);
     setSelectedCountry(countryToUse);
+    setPartnerLeftReason(null);
+    setIsMatchReady(true);
     setActive1on1(null);
     setChat1on1Messages([]);
-    setPartnerLeftReason(null);
-    setIsMatchReady(false);
 
-    // Launch specific interface corresponding to selected mode
+    // Launch specific chat interface corresponding to selected mode
     switch (modeToUse) {
       case "messaging":
         navigate("/messages");
@@ -773,8 +786,8 @@ export default function App() {
           syncUserProfile({
             uid: currentUser.uid,
             email: currentUser.email || '',
-            profession: profToUse,
-            interests: interestsToUse,
+            profession: effectiveProf,
+            interests: effectiveInterests,
           });
         })
         .catch((err) => console.warn('Firestore profile sync error:', err));
@@ -784,18 +797,65 @@ export default function App() {
       type: 'START_MATCHING',
       visitorId: visitorId.current,
       blockedStrangers: getBlockedStrangers(),
-      profession: profToUse,
-      interests: interestsToUse,
+      profession: effectiveProf,
+      interests: effectiveInterests,
       country: countryToUse,
       sessionMode: modeToUse,
     };
     activeMatchingRequestRef.current = request;
     if (haylooSocket.send(request)) {
       pendingMatchingRequestRef.current = null;
-      setIsMatchReady(true);
     } else {
       pendingMatchingRequestRef.current = request;
       haylooSocket.connect();
+    }
+  };
+
+  const handleSelectAIPartner = (partner: AIPracticePartner, mode: 'video' | 'voice' | 'messaging') => {
+    setActiveSessionMode(mode);
+    setSessionMode(mode);
+    try {
+      localStorage.setItem('hayloo_session_mode', mode);
+    } catch { }
+
+    const aiRoom: Active1on1Room = {
+      roomId: `ai_${Date.now()}_${partner.id}`,
+      sharedInterests: partner.interests.filter((i) =>
+        interests.some((ui) => ui.toLowerCase().includes(i.toLowerCase()) || i.toLowerCase().includes(ui.toLowerCase()))
+      ),
+      sharedTopics: partner.interests.slice(0, 2),
+      score: 95,
+      partnerProfession: partner.profession,
+      partnerCountry: partner.country,
+      partnerVisitorId: `ai_${partner.id}`,
+      partnerName: partner.name,
+      isAI: true,
+      aiPartnerId: partner.id,
+      aiAvatar: partner.avatar,
+      aiBio: partner.bio,
+      isInitiator: false,
+    };
+    setActive1on1(aiRoom);
+    setChat1on1Messages([
+      {
+        id: `msg_ai_greet_${Date.now()}`,
+        text: generateAIGreeting(partner, profession, interests),
+        sender: 'peer',
+        timestamp: Date.now(),
+        isRead: true,
+      },
+    ]);
+
+    switch (mode) {
+      case 'messaging':
+        navigate('/messages');
+        break;
+      case 'voice':
+        navigate('/voice-call');
+        break;
+      case 'video':
+        navigate('/video-call');
+        break;
     }
   };
 
@@ -809,6 +869,44 @@ export default function App() {
 
   const handleNextPerson = () => {
     if (skipCooldownSeconds > 0) return;
+    if (active1on1?.isAI) {
+      const currentIndex = AI_PRACTICE_PARTNERS.findIndex((p) => p.id === active1on1.aiPartnerId);
+      const nextPartner = AI_PRACTICE_PARTNERS[(currentIndex + 1) % AI_PRACTICE_PARTNERS.length];
+      const nextRoom: Active1on1Room = {
+        roomId: `ai_${Date.now()}_${nextPartner.id}`,
+        sharedInterests: nextPartner.interests.filter((i) =>
+          interests.some((ui) => ui.toLowerCase().includes(i.toLowerCase()) || i.toLowerCase().includes(ui.toLowerCase()))
+        ),
+        sharedTopics: nextPartner.interests.slice(0, 2),
+        score: 95,
+        partnerProfession: nextPartner.profession,
+        partnerCountry: nextPartner.country,
+        partnerVisitorId: `ai_${nextPartner.id}`,
+        partnerName: nextPartner.name,
+        isAI: true,
+        aiPartnerId: nextPartner.id,
+        aiAvatar: nextPartner.avatar,
+        aiBio: nextPartner.bio,
+        isInitiator: false,
+      };
+      setActive1on1(nextRoom);
+      setChat1on1Messages([
+        {
+          id: `msg_ai_greet_${Date.now()}`,
+          text: generateAIGreeting(nextPartner, profession, interests),
+          sender: 'peer',
+          timestamp: Date.now(),
+          isRead: true,
+        },
+      ]);
+      haylooSocket.send({ type: 'NEXT_PERSON' });
+      return;
+    }
+
+    setActive1on1(null);
+    setChat1on1Messages([]);
+    setPartnerLeftReason(null);
+    setIncomingSignal(null);
     haylooSocket.send({ type: 'NEXT_PERSON' });
   };
 
@@ -820,7 +918,48 @@ export default function App() {
     navigate('/');
   };
 
-  const handleSend1on1Message = (text: string) => {
+  const handleSend1on1Message = async (text: string) => {
+    if (active1on1?.isAI) {
+      const userMsg: ChatMessage = {
+        id: `msg_u_${Date.now()}`,
+        text,
+        sender: 'self',
+        timestamp: Date.now(),
+        isRead: true,
+      };
+      setChat1on1Messages((prev) => [...prev, userMsg]);
+
+      const partner = AI_PRACTICE_PARTNERS.find((p) => p.id === active1on1.aiPartnerId) || AI_PRACTICE_PARTNERS[0];
+      const conversationTurns: AIPracticeTurn[] = [...chat1on1Messages, userMsg].map((m) => ({
+        role: m.sender === 'self' ? 'user' : 'assistant',
+        text: m.text,
+      }));
+
+      setTimeout(async () => {
+        try {
+          const reply = await getAIPracticeReply({
+            partner,
+            userProfession: profession,
+            userInterests: interests,
+            messages: conversationTurns,
+          });
+
+          const aiMsg: ChatMessage = {
+            id: `msg_ai_${Date.now()}`,
+            text: reply,
+            sender: 'peer',
+            timestamp: Date.now(),
+            isRead: true,
+          };
+          setChat1on1Messages((prev) => [...prev, aiMsg]);
+          soundService.playReceived();
+        } catch (err) {
+          console.error('Failed to get AI reply:', err);
+        }
+      }, 700 + Math.random() * 400);
+      return;
+    }
+
     haylooSocket.send({
       type: 'SEND_1ON1_MESSAGE',
       text,
@@ -929,47 +1068,55 @@ export default function App() {
       {/* Main Content Router */}
       <main
         id="main-content"
-        className="flex-1 min-h-0 flex flex-col relative focus:outline-none w-full overflow-y-auto"
+        className={`flex-1 min-h-0 flex flex-col relative focus:outline-none w-full ${isInActiveSession ? 'overflow-hidden' : 'overflow-y-auto'}`}
       >
         <React.Suspense fallback={<ViewLoadingFallback />}>
           {(currentView === 'landing' || currentView === 'history' || currentView === 'messages') && (
-          <LandingView
-            currentTab={currentView === 'history' ? 'history' : currentView === 'messages' ? 'messages' : 'video_chat'}
-            onSelectTab={(tab) => navigateTo(tab === 'video_chat' ? 'landing' : tab)}
-            onStart={() => navigateTo('landing')}
-            onExplore={() => navigateTo('mode_select')}
-            onNavigate={navigateTo}
-            profession={profession}
-            onProfessionChange={setProfession}
-            selectedInterests={interests}
-            onToggleInterest={handleToggleInterest}
-            onAddCustomInterest={handleAddCustomInterest}
-            onRemoveInterest={handleRemoveInterest}
-            selectedCountry={selectedCountry}
-            onSelectCountry={setSelectedCountry}
-            sessionMode={sessionMode}
-            onSessionModeChange={handleSelectSessionMode}
-            onStartMatchmaking={handleStart1on1}
-          />
-        )}
+            <LandingView
+              currentTab={currentView === 'history' ? 'history' : currentView === 'messages' ? 'messages' : 'video_chat'}
+              onSelectTab={(tab) => navigateTo(tab === 'video_chat' ? 'landing' : tab)}
+              onStart={() => navigateTo('landing')}
+              onExplore={() => navigateTo('mode_select')}
+              onNavigate={navigateTo}
+              profession={profession}
+              onProfessionChange={setProfession}
+              selectedInterests={interests}
+              onToggleInterest={handleToggleInterest}
+              onAddCustomInterest={handleAddCustomInterest}
+              onRemoveInterest={handleRemoveInterest}
+              selectedCountry={selectedCountry}
+              onSelectCountry={setSelectedCountry}
+              sessionMode={sessionMode}
+              onSessionModeChange={handleSelectSessionMode}
+              onStartMatchmaking={handleStart1on1}
+            />
+          )}
 
-        {/* 2. ONBOARDING FLOW */}
-        {currentView === 'onboarding' && (
-          <OnboardingView
-            initialProfile={haylooProfile}
-            onComplete={(updated) => {
-              setHaylooProfile((prev) => ({ ...prev, ...updated }));
-              addToast('info', 'Professional profile setup complete!');
-              navigateTo('landing');
-            }}
-          />
-        )}
+          {/* 2. ONBOARDING FLOW */}
+          {currentView === 'onboarding' && (
+            <OnboardingView
+              initialProfile={haylooProfile}
+              onComplete={(updated) => {
+                setHaylooProfile((prev) => ({ ...prev, ...updated }));
+                addToast('info', 'Professional profile setup complete!');
+                navigateTo('landing');
+              }}
+            />
+          )}
 
-        {/* Live calls only render after the server confirms a real paired room. */}
-        {(currentView === 'conversation' || currentView === 'voice_session' || currentView === '1on1_chat' || currentView === 'matching') && (
-          active1on1 ? (
+          {/* Direct 1:1 Live Communication (Video, Audio, Instant Messages) */}
+          {(currentView === 'conversation' || currentView === 'voice_session' || currentView === '1on1_chat' || currentView === 'matching') && (
             <OneToOneChatView
-              room={active1on1}
+              room={active1on1 || {
+                roomId: 'queue-waiting',
+                sharedInterests: interests.length > 0 ? interests : ['Technology', 'Ideas', 'Networking'],
+                sharedTopics: (interests.length > 0 ? interests : ['Technology', 'Ideas']).slice(0, 2),
+                score: 100,
+                partnerProfession: 'Searching for peer...',
+                partnerCountry: selectedCountry || 'GLOBAL',
+                partnerVisitorId: '',
+                isInitiator: false,
+              }}
               sessionId={sessionId}
               messages={chat1on1Messages}
               partnerLeftReason={partnerLeftReason}
@@ -986,173 +1133,163 @@ export default function App() {
               skipCooldownSeconds={skipCooldownSeconds}
               onUpdateMessage={handleUpdate1on1Message}
               sessionMode={sessionMode}
-              isInitiator={Boolean(
+              isInitiator={active1on1 ? (active1on1.isInitiator ?? Boolean(
                 active1on1.partnerVisitorId &&
                 visitorId.current.localeCompare(active1on1.partnerVisitorId) < 0
-              )}
+              )) : false}
             />
-          ) : (
-            <MatchingView
+          )}
+
+          {/* 6. PROFILE */}
+          {currentView === 'profile' && (
+            <ProfileView
+              onSave={(updated) => {
+                if (updated.country) setSelectedCountry(updated.country);
+                addToast('info', 'Profile changes saved!');
+                navigateTo('landing');
+              }}
+              onBack={() => navigateTo('landing')}
+            />
+          )}
+
+          {/* 7. SETTINGS */}
+          {currentView === 'settings' && (
+            <SettingsView
+              isPublic={haylooProfile.isPublic}
+              allowConnections={haylooProfile.allowConnections}
+              blockedUsers={blockedCandidateIds}
+              onTogglePublic={(val) => setHaylooProfile((prev) => ({ ...prev, isPublic: val }))}
+              onToggleConnections={(val) => setHaylooProfile((prev) => ({ ...prev, allowConnections: val }))}
+              onUnblockAll={() => {
+                setBlockedCandidateIds([]);
+                addToast('info', 'All blocked accounts cleared.');
+              }}
+            />
+          )}
+
+          {/* 7.1 LIVE EPHEMERAL ADMIN MODERATION */}
+          {currentView === 'admin' && (
+            <AdminModerationView onBackToApp={() => navigateTo('landing')} />
+          )}
+
+          {currentView === 'profession_select' && (
+            <LandingView
+              currentTab="video_chat"
+              onSelectTab={(tab) => navigateTo(tab === 'video_chat' ? 'landing' : tab)}
+              onStart={() => navigateTo('landing')}
+              onExplore={() => navigateTo('mode_select')}
+              onNavigate={navigateTo}
               profession={profession}
-              interests={interests}
-              country={selectedCountry}
-              isMatchReady={isMatchReady}
-              connectionStatus={connectionStatus}
-              onCancel={handleCancelMatching}
+              onProfessionChange={setProfession}
+              selectedInterests={interests}
+              onToggleInterest={handleToggleInterest}
+              onAddCustomInterest={handleAddCustomInterest}
+              onRemoveInterest={handleRemoveInterest}
+              selectedCountry={selectedCountry}
+              onSelectCountry={setSelectedCountry}
+              sessionMode={sessionMode}
+              onSessionModeChange={handleSelectSessionMode}
+              onStartMatchmaking={handleStart1on1}
             />
-          )
-        )}
+          )}
 
-        {/* 6. PROFILE */}
-        {currentView === 'profile' && (
-          <ProfileView
-            onSave={(updated) => {
-              if (updated.country) setSelectedCountry(updated.country);
-              addToast('info', 'Profile changes saved!');
-              navigateTo('landing');
-            }}
-            onBack={() => navigateTo('landing')}
-          />
-        )}
+          {currentView === 'interest_select' && (
+            <InterestSelectView
+              selectedInterests={interests}
+              onToggleInterest={handleToggleInterest}
+              onAddCustomInterest={handleAddCustomInterest}
+              onRemoveInterest={handleRemoveInterest}
+              profession={profession}
+              onNext={() => navigateTo('mode_select')}
+              onBack={() => navigateTo('profession_select')}
+            />
+          )}
 
-        {/* 7. SETTINGS */}
-        {currentView === 'settings' && (
-          <SettingsView
-            isPublic={haylooProfile.isPublic}
-            allowConnections={haylooProfile.allowConnections}
-            blockedUsers={blockedCandidateIds}
-            onTogglePublic={(val) => setHaylooProfile((prev) => ({ ...prev, isPublic: val }))}
-            onToggleConnections={(val) => setHaylooProfile((prev) => ({ ...prev, allowConnections: val }))}
-            onUnblockAll={() => {
-              setBlockedCandidateIds([]);
-              addToast('info', 'All blocked accounts cleared.');
-            }}
-          />
-        )}
-
-        {/* 7.1 LIVE EPHEMERAL ADMIN MODERATION */}
-        {currentView === 'admin' && (
-          <AdminModerationView onBackToApp={() => navigateTo('landing')} />
-        )}
-
-        {currentView === 'profession_select' && (
-          <LandingView
-            currentTab="video_chat"
-            onSelectTab={(tab) => navigateTo(tab === 'video_chat' ? 'landing' : tab)}
-            onStart={() => navigateTo('landing')}
-            onExplore={() => navigateTo('mode_select')}
-            onNavigate={navigateTo}
-            profession={profession}
-            onProfessionChange={setProfession}
-            selectedInterests={interests}
-            onToggleInterest={handleToggleInterest}
-            onAddCustomInterest={handleAddCustomInterest}
-            onRemoveInterest={handleRemoveInterest}
-            selectedCountry={selectedCountry}
-            onSelectCountry={setSelectedCountry}
-            sessionMode={sessionMode}
-            onSessionModeChange={handleSelectSessionMode}
-            onStartMatchmaking={handleStart1on1}
-          />
-        )}
-
-        {currentView === 'interest_select' && (
-          <InterestSelectView
-            selectedInterests={interests}
-            onToggleInterest={handleToggleInterest}
-            onAddCustomInterest={handleAddCustomInterest}
-            onRemoveInterest={handleRemoveInterest}
-            profession={profession}
-            onNext={() => navigateTo('mode_select')}
-            onBack={() => navigateTo('profession_select')}
-          />
-        )}
-
-        {currentView === 'mode_select' && (
-          <ModeSelectView
-            selectedProfession={profession}
-            selectedInterests={interests}
-            selectedCountry={selectedCountry}
-            onSelectCountry={setSelectedCountry}
-            initialMode={sessionMode}
-            onStart1on1={(mode) => handleStart1on1(undefined, undefined, undefined, mode)}
-            onBack={() => navigateTo('interest_select')}
-          />
-        )}
+          {currentView === 'mode_select' && (
+            <ModeSelectView
+              selectedProfession={profession}
+              selectedInterests={interests}
+              selectedCountry={selectedCountry}
+              onSelectCountry={setSelectedCountry}
+              initialMode={sessionMode}
+              onStart1on1={(mode) => handleStart1on1(undefined, undefined, undefined, mode)}
+              onBack={() => navigateTo('interest_select')}
+            />
+          )}
 
 
-        {currentView === 'restriction' && restriction && (
-          <RestrictionView
-            restriction={restriction}
-            onReset={() => {
-              setRestriction(null);
-              setCurrentView('landing');
-            }}
-          />
-        )}
+          {currentView === 'restriction' && restriction && (
+            <RestrictionView
+              restriction={restriction}
+              onReset={() => {
+                setRestriction(null);
+                setCurrentView('landing');
+              }}
+            />
+          )}
 
-        {currentView === 'connection_lost' && (
-          <ConnectionLostView
-            onReconnect={() => {
-              haylooSocket.connect();
-              setCurrentView('mode_select');
-            }}
-            onGoHome={() => setCurrentView('landing')}
-          />
-        )}
+          {currentView === 'connection_lost' && (
+            <ConnectionLostView
+              onReconnect={() => {
+                haylooSocket.connect();
+                setCurrentView('mode_select');
+              }}
+              onGoHome={() => setCurrentView('landing')}
+            />
+          )}
 
-        {currentView === 'no_match' && (
-          <NoMatchView
-            onBroadenInterests={() => navigateTo('interest_select')}
-            onRetryMatching={handleStart1on1}
-          />
-        )}
+          {currentView === 'no_match' && (
+            <NoMatchView
+              onBroadenInterests={() => navigateTo('interest_select')}
+              onRetryMatching={handleStart1on1}
+            />
+          )}
 
-        {currentView === 'community_rules' && (
-          <CommunityRulesView
-            onStart={() => {
-              navigateTo('landing');
-              setTimeout(() => {
-                const el = document.getElementById('hero-search-filter-form') || document.getElementById('hero-profession-input');
-                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                (document.getElementById('hero-profession-input') as HTMLInputElement)?.focus();
-              }, 120);
-            }}
-            onBack={() => navigateTo(previousView === 'community_rules' ? 'landing' : previousView)}
-          />
-        )}
+          {currentView === 'community_rules' && (
+            <CommunityRulesView
+              onStart={() => {
+                navigateTo('landing');
+                setTimeout(() => {
+                  const el = document.getElementById('hero-search-filter-form') || document.getElementById('hero-profession-input');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  (document.getElementById('hero-profession-input') as HTMLInputElement)?.focus();
+                }, 120);
+              }}
+              onBack={() => navigateTo(previousView === 'community_rules' ? 'landing' : previousView)}
+            />
+          )}
 
-        {currentView === 'privacy_page' && (
-          <PrivacyView
-            onStart={() => {
-              navigateTo('landing');
-              setTimeout(() => {
-                const el = document.getElementById('hero-search-filter-form') || document.getElementById('hero-profession-input');
-                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                (document.getElementById('hero-profession-input') as HTMLInputElement)?.focus();
-              }, 120);
-            }}
-            onBack={() => navigateTo(previousView === 'privacy_page' ? 'landing' : previousView)}
-          />
-        )}
+          {currentView === 'privacy_page' && (
+            <PrivacyView
+              onStart={() => {
+                navigateTo('landing');
+                setTimeout(() => {
+                  const el = document.getElementById('hero-search-filter-form') || document.getElementById('hero-profession-input');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  (document.getElementById('hero-profession-input') as HTMLInputElement)?.focus();
+                }, 120);
+              }}
+              onBack={() => navigateTo(previousView === 'privacy_page' ? 'landing' : previousView)}
+            />
+          )}
 
-        {currentView === 'terms_page' && (
-          <TermsView
-            onStart={() => {
-              navigateTo('landing');
-              setTimeout(() => {
-                const el = document.getElementById('hero-search-filter-form') || document.getElementById('hero-profession-input');
-                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                (document.getElementById('hero-profession-input') as HTMLInputElement)?.focus();
-              }, 120);
-            }}
-            onBack={() => navigateTo(previousView === 'terms_page' ? 'landing' : previousView)}
-          />
-        )}
+          {currentView === 'terms_page' && (
+            <TermsView
+              onStart={() => {
+                navigateTo('landing');
+                setTimeout(() => {
+                  const el = document.getElementById('hero-search-filter-form') || document.getElementById('hero-profession-input');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  (document.getElementById('hero-profession-input') as HTMLInputElement)?.focus();
+                }, 120);
+              }}
+              onBack={() => navigateTo(previousView === 'terms_page' ? 'landing' : previousView)}
+            />
+          )}
 
-        {currentView === 'not_found' && (
-          <NotFoundView onNavigate={navigateTo} />
-        )}
+          {currentView === 'not_found' && (
+            <NotFoundView onNavigate={navigateTo} />
+          )}
         </React.Suspense>
       </main>
 

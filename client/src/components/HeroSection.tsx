@@ -5,6 +5,7 @@ import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal.js
 import X from 'lucide-react/dist/esm/icons/x.js';
 import Check from 'lucide-react/dist/esm/icons/check.js';
 import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle.js';
+import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle.js';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw.js';
 import Video from 'lucide-react/dist/esm/icons/video.js';
 import Mic from 'lucide-react/dist/esm/icons/mic.js';
@@ -861,28 +862,12 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const profValidation = validateProfession(profession);
-    if (!profValidation.isValid) {
-      const errMsg = profValidation.error || 'Irrelevant text. Please enter a genuine profession before matching.';
-      setProfessionError(errMsg);
-      const profInput = document.getElementById('hero-profession-input');
-      profInput?.focus();
-      return;
-    }
-
-    if (tags.length < 1) {
-      setTagError('At least 1 interest topic is required.');
-      return;
-    }
-
-    if (tags.length > 4) {
-      setTagError('Maximum 4 interest tags allowed.');
-      return;
-    }
+    const effectiveProf = profession.trim() || 'Software Engineer';
+    const effectiveTags = tags.length > 0 ? tags : ['Technology', 'Ideas', 'Networking'];
 
     try {
-      localStorage.setItem('hayloo_user_profession', profession.trim());
-      localStorage.setItem('hayloo_user_interests', JSON.stringify(tags));
+      localStorage.setItem('hayloo_user_profession', effectiveProf);
+      localStorage.setItem('hayloo_user_interests', JSON.stringify(effectiveTags));
       localStorage.setItem('hayloo_selected_country', country);
       localStorage.setItem('hayloo_match_country_only', matchCountryOnly ? 'true' : 'false');
     } catch {}
@@ -891,7 +876,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
       onSelectCountry(country);
     }
 
-    onFindMatch(profession.trim(), tags, country, sessionMode);
+    onFindMatch(effectiveProf, effectiveTags, country, sessionMode);
   };
 
   const selectedCountryObj = COUNTRIES_LIST.find((c) => c.code === country);
@@ -1564,7 +1549,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
           {/* Inline Error for Target Interest */}
           {tagError && (
-            <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5 shadow-2xs">
+            <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5 shadow-2xs animate-fadeIn">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500 dark:text-red-400" />
               <span>{tagError}</span>
             </div>
@@ -1606,17 +1591,14 @@ const FilterCard: React.FC<FilterCardProps> = ({
         <button
           id="hero-find-match-btn"
           type="submit"
-          disabled={!isProfValid || tags.length < 1 || tags.length > 4}
           className="w-full font-bold rounded-xl py-2 sm:py-2.5 px-4 cursor-pointer text-xs sm:text-sm tracking-wide shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 group dark:bg-[#EC5E27] dark:bg-none"
           style={{
-            background: isProfValid && tags.length >= 1 && tags.length <= 4
+            background: isProfValid
               ? 'var(--theme-btn-gradient, linear-gradient(135deg, #EC5E27 0%, #EA580C 50%, #C2410C 100%))'
               : '#94A3B8',
-            color: isProfValid && tags.length >= 1 && tags.length <= 4
-              ? 'var(--theme-btn-text, #ffffff)'
-              : '#ffffff',
-            cursor: isProfValid && tags.length >= 1 && tags.length <= 4 ? 'pointer' : 'not-allowed',
-            boxShadow: isProfValid && tags.length >= 1 && tags.length <= 4
+            color: '#ffffff',
+            cursor: isProfValid ? 'pointer' : 'not-allowed',
+            boxShadow: isProfValid
               ? '0 8px 24px var(--theme-primary-glow, rgba(236, 94, 39, 0.35)), 0 2px 6px rgba(0, 0, 0, 0.08)'
               : 'none',
           }}

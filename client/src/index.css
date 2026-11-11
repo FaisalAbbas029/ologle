@@ -24,7 +24,7 @@
   --accent-color: #EC5E27;
   --accent-hover: #D94E1A;
   --accent-glow: rgba(236, 94, 39, 0.40);
-  --card-bg: rgb(248, 250, 252);
+  --card-bg: rgba(255, 255, 255, 0.75);
   --card-bg-elevated: #FFFFFF;
   --card-shadow: 0 12px 40px rgba(236, 94, 39, 0.08), 0 2px 10px rgba(0, 0, 0, 0.02);
   --border-color: rgba(245, 208, 197, 0.75);

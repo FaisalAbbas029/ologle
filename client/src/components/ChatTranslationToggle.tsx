@@ -58,13 +58,13 @@ export const ChatTranslationToggle: React.FC<ChatTranslationToggleProps> = ({
         }
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer border ${
           isAutoTranslateEnabled
-            ? 'bg-[#ffffff] hover:bg-[#ffffff] border-[#232323] text-[#bb3131]'
-            : 'bg-[#ffffff] hover:bg-[#ffffff] border-[#232323] text-[#232323]'
+            ? 'bg-[#EC5E27]/10 hover:bg-[#EC5E27]/20 border-[#EC5E27]/40 text-[#EC5E27]'
+            : 'bg-white/80 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border-orange-200/80 dark:border-white/10 text-slate-700 dark:text-neutral-300'
         }`}
       >
         <Languages
           className={`w-3.5 h-3.5 transition-transform ${
-            isAutoTranslateEnabled ? 'text-[#bb3131]' : 'text-[#232323]'
+            isAutoTranslateEnabled ? 'text-[#EC5E27]' : 'text-slate-500 dark:text-neutral-400'
           }`}
         />
         {compact ? (
@@ -75,7 +75,7 @@ export const ChatTranslationToggle: React.FC<ChatTranslationToggleProps> = ({
           <span className="flex items-center gap-1">
             <span>{isAutoTranslateEnabled ? 'Translate: ON' : 'Translate: OFF'}</span>
             {isAutoTranslateEnabled && (
-              <Sparkles className="w-2.5 h-2.5 text-[#bb3131] animate-pulse" />
+              <Sparkles className="w-2.5 h-2.5 text-[#EC5E27] animate-pulse" />
             )}
           </span>
         )}
@@ -89,7 +89,7 @@ export const ChatTranslationToggle: React.FC<ChatTranslationToggleProps> = ({
             id={`${idPrefix}-lang-trigger`}
             onClick={() => setIsOpenDropdown(!isOpenDropdown)}
             title={`Select target language (currently ${currentLang.englishName})`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#ffffff] hover:bg-[#ffffff] border border-[#232323] text-xs font-medium text-[#232323] transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-orange-200/80 dark:border-white/10 text-xs font-medium text-slate-700 dark:text-neutral-200 transition-colors cursor-pointer shadow-2xs"
           >
             <span className="text-[11px] font-semibold hidden sm:inline">
               {currentLang.englishName}
@@ -97,16 +97,16 @@ export const ChatTranslationToggle: React.FC<ChatTranslationToggleProps> = ({
             <span className="text-[11px] font-semibold sm:hidden">
               {currentShort}
             </span>
-            <ChevronDown className="w-3 h-3 text-[#232323]" />
+            <ChevronDown className="w-3 h-3 text-slate-500 dark:text-neutral-400" />
           </button>
 
           {/* Dropdown Menu */}
           {isOpenDropdown && (
             <div
               id={`${idPrefix}-dropdown-menu`}
-              className="absolute right-0 top-full mt-1 w-52 rounded-xl bg-[#ffffff] border border-[#232323] shadow-xl py-1.5 z-50 max-h-60 overflow-y-auto"
+              className="absolute right-0 top-full mt-1 w-52 rounded-xl bg-white dark:bg-[#1C1C1E] border border-orange-200/80 dark:border-white/10 shadow-xl py-1.5 z-50 max-h-60 overflow-y-auto text-slate-900 dark:text-white"
             >
-              <div className="px-3 py-1 text-[10px] font-bold tracking-wider uppercase text-[#232323] border-b border-[#232323]">
+              <div className="px-3 py-1 text-[10px] font-bold tracking-wider uppercase text-slate-500 dark:text-neutral-400 border-b border-orange-100 dark:border-white/10">
                 Translate Messages Into
               </div>
               {SUPPORTED_LANGUAGES.map((lang) => {
@@ -123,17 +123,17 @@ export const ChatTranslationToggle: React.FC<ChatTranslationToggleProps> = ({
                       onSelectTargetLanguage(lang.code);
                       setIsOpenDropdown(false);
                     }}
-                    className={`w-full px-3 py-1.5 text-xs text-left flex items-center justify-between hover:bg-[#ffffff] transition-colors cursor-pointer ${
+                    className={`w-full px-3 py-1.5 text-xs text-left flex items-center justify-between hover:bg-orange-50 dark:hover:bg-white/10 transition-colors cursor-pointer ${
                       isSelected
-                        ? 'text-[#bb3131] font-bold bg-[#ffffff]'
-                        : 'text-[#232323]'
+                        ? 'text-[#EC5E27] font-bold bg-orange-50/60 dark:bg-white/10'
+                        : 'text-slate-700 dark:text-neutral-200'
                     }`}
                   >
                     <span className="flex items-center gap-1.5">
                       <span>{lang.englishName}</span>
-                      <span className="text-[10px] text-[#232323]">({lang.label})</span>
+                      <span className="text-[10px] text-slate-400 dark:text-neutral-500">({lang.label})</span>
                     </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#bb3131]" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#EC5E27]" />}
                   </button>
                 );
               })}

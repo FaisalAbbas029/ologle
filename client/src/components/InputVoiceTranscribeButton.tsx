@@ -167,25 +167,25 @@ export const InputVoiceTranscribeButton: React.FC<InputVoiceTranscribeButtonProp
     <div className="relative inline-flex items-center">
       {/* Recording indicator tooltip / pill */}
       {isRecording && (
-        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#232323] text-[#ffffff] text-[11px] font-semibold whitespace-nowrap shadow-lg border border-white/15 z-20 animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-[#bb3131] animate-ping shrink-0" />
+        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 dark:bg-[#1C1C1E] text-white text-[11px] font-semibold whitespace-nowrap shadow-lg border border-orange-500/30 z-20 animate-pulse">
+          <span className="w-2 h-2 rounded-full bg-[#EC5E27] animate-ping shrink-0" />
           <span>Recording: {formatDuration(duration)}</span>
-          <span className="text-[9px] text-[#ffffff]/60 ml-1">(Click to stop)</span>
+          <span className="text-[9px] text-white/60 ml-1">(Click to stop)</span>
         </div>
       )}
 
       {/* Transcribing state pill */}
       {isTranscribing && (
-        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#232323] border border-white/15 text-[#bb3131] text-[11px] font-semibold whitespace-nowrap shadow-md z-20">
-          <Loader2 className="w-3 h-3 animate-spin text-[#bb3131]" />
+        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 dark:bg-[#1C1C1E] border border-orange-500/30 text-[#EC5E27] text-[11px] font-semibold whitespace-nowrap shadow-md z-20">
+          <Loader2 className="w-3 h-3 animate-spin text-[#EC5E27]" />
           <span>Transcribing speech...</span>
         </div>
       )}
 
       {/* Error bubble */}
       {errorMessage && (
-        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#232323] border border-white/15 text-[#bb3131] text-[11px] font-medium whitespace-nowrap shadow-md z-20">
-          <AlertCircle className="w-3 h-3 text-[#bb3131] shrink-0" />
+        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-[#1C1C1E] border border-rose-500/40 text-rose-400 text-[11px] font-medium whitespace-nowrap shadow-md z-20">
+          <AlertCircle className="w-3 h-3 text-rose-400 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
@@ -205,10 +205,10 @@ export const InputVoiceTranscribeButton: React.FC<InputVoiceTranscribeButtonProp
         }
         className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
           isRecording
-            ? 'bg-[#bb3131] text-[#ffffff] border border-[#bb3131] ring-2 ring-[#bb3131]/40 animate-pulse'
+            ? 'bg-[#EC5E27] text-white border border-[#EC5E27] ring-2 ring-[#EC5E27]/40 animate-pulse'
             : isTranscribing
-            ? 'bg-[#232323] text-[#bb3131] cursor-wait border border-white/10'
-            : 'text-[#ffffff]/70 hover:text-[#ffffff] hover:bg-white/5'
+            ? 'bg-orange-500/10 text-[#EC5E27] cursor-wait border border-orange-500/30'
+            : 'text-slate-500 dark:text-neutral-400 hover:text-[#EC5E27] dark:hover:text-[#EC5E27] hover:bg-orange-500/10'
         }`}
         aria-label={
           isRecording
@@ -217,11 +217,11 @@ export const InputVoiceTranscribeButton: React.FC<InputVoiceTranscribeButtonProp
         }
       >
         {isTranscribing ? (
-          <Loader2 className="w-4 h-4 animate-spin text-[#bb3131]" />
+          <Loader2 className="w-4 h-4 animate-spin text-[#EC5E27]" />
         ) : isRecording ? (
-          <Square className="w-3.5 h-3.5 fill-[#ffffff] text-[#ffffff]" />
+          <Square className="w-3.5 h-3.5 fill-current text-white" />
         ) : (
-          <Mic className="w-4 h-4 text-[#bb3131]" />
+          <Mic className="w-4 h-4" />
         )}
       </button>
     </div>

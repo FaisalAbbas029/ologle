@@ -13,6 +13,25 @@ function haylooWebSocketPlugin(): Plugin {
 
       // API Middleware for Vite dev mode
       server.middlewares.use(async (req, res, next) => {
+        if (req.method === 'POST' && req.url === '/api/ai-practice/reply') {
+          let body = '';
+          req.on('data', (chunk) => { body += chunk; });
+          req.on('end', async () => {
+            try {
+              const { partnerId, profession, interests, messages } = JSON.parse(body);
+              const { generateAIPracticeReply } = await import('./server/geminiService.ts');
+              const reply = await generateAIPracticeReply({ partnerId, profession, interests, messages });
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ reply }));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: err.message || 'AI practice reply error' }));
+            }
+          });
+          return;
+        }
+
         if (req.method === 'POST' && req.url === '/api/transcribe-audio') {
           let body = '';
           req.on('data', (chunk) => { body += chunk; });

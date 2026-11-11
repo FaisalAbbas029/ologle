@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types/index.ts';
-import { Languages, Globe, Sparkles, Eye, EyeOff, Loader2, Check, CheckCheck, Clock, Copy, Code } from 'lucide-react';
+import { Languages, Globe, Sparkles, Eye, EyeOff, Loader2, Check, CheckCheck, Clock, Copy, Code, FileText } from 'lucide-react';
 import { getLanguageByCode } from '../data/languages.ts';
 
 const formatHHmm = (timestamp: number): string => {
@@ -77,6 +77,38 @@ const FormattedMessageBody: React.FC<{ text: string }> = ({ text }) => {
           }
           if (!part) return null;
           return <span key={idx} className="whitespace-pre-wrap">{part}</span>;
+        })}
+      </div>
+    );
+  }
+
+  // Render attachment if present: [📎 filename (size)]
+  if (text.includes('[📎 ') && text.includes(')]')) {
+    const parts = text.split(/(\[📎\s*[^)]+\)\])/g);
+    return (
+      <div className="space-y-1">
+        {parts.map((part, idx) => {
+          if (part.startsWith('[📎 ') && part.endsWith(')]')) {
+            const match = part.match(/\[📎\s*([^(]+)\s*\(([^)]+)\)\]/);
+            const fileName = match ? match[1].trim() : 'Attachment';
+            const fileSize = match ? match[2].trim() : '';
+            return (
+              <div
+                key={idx}
+                className="my-1.5 p-2 rounded-xl bg-black/15 dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center gap-2 max-w-xs text-left backdrop-blur-sm"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#EC5E27]/25 flex items-center justify-center text-[#EC5E27] shrink-0">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold truncate leading-tight">{fileName}</p>
+                  {fileSize && <p className="text-[10px] opacity-75">{fileSize}</p>}
+                </div>
+              </div>
+            );
+          }
+          if (!part.trim()) return null;
+          return <p key={idx} className="m-0 font-medium whitespace-pre-wrap break-words">{part}</p>;
         })}
       </div>
     );
@@ -229,7 +261,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
                 : 'opacity-0 scale-95 -translate-x-1'
             }`}
           >
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#141414] text-neutral-200 text-[10px] font-mono tracking-tight shadow-md border border-white/10 select-none">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white dark:bg-[#141414] text-slate-700 dark:text-neutral-200 text-[10px] font-mono tracking-tight shadow-md border border-orange-200/80 dark:border-white/10 select-none">
               <Clock className="w-2.5 h-2.5 text-[#EC5E27]" />
               <span>{formatHHmm(message.timestamp)}</span>
             </span>
@@ -241,15 +273,15 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           className={`w-full px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words transition-all ${
             isSelf
               ? 'bg-gradient-to-r from-orange-500 to-[#EC5E27] text-white rounded-br-xs shadow-md shadow-orange-950/20'
-              : 'bg-[#141414]/90 border border-white/10 text-white rounded-bl-xs shadow-xs'
+              : 'bg-white/95 dark:bg-[#141414]/90 border border-orange-200/80 dark:border-white/10 text-slate-800 dark:text-white rounded-bl-xs shadow-xs'
           }`}
         >
           <FormattedMessageBody text={displayedText} />
 
           {/* Translation Footer / Original Toggle */}
           {!isSelf && hasTranslation && (
-            <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-1 text-[10px] text-neutral-400">
-              <span className="flex items-center gap-1 font-medium text-neutral-300">
+            <div className="mt-2 pt-2 border-t border-orange-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-500 dark:text-neutral-400">
+              <span className="flex items-center gap-1 font-medium text-slate-600 dark:text-neutral-300">
                 <Languages className="w-3 h-3 text-[#EC5E27]" />
                 <span>
                   {showOriginal
@@ -261,7 +293,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
               <button
                 type="button"
                 onClick={() => setShowOriginal(!showOriginal)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#1A1A1A] hover:bg-[#262626] border border-white/10 text-neutral-200 font-semibold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-[#1A1A1A] hover:bg-orange-100 dark:hover:bg-[#262626] border border-orange-200/80 dark:border-white/10 text-slate-700 dark:text-neutral-200 font-semibold transition-colors cursor-pointer"
                 title={showOriginal ? 'Show translated text' : 'Show original source text'}
               >
                 {showOriginal ? (

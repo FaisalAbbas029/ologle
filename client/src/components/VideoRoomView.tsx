@@ -85,7 +85,7 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
           setUserProfileData(parsed);
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -242,14 +242,14 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
   return (
     <div id="video-room-view" className="flex-1 w-full bg-[#fdedd1] dark:bg-[#121316] py-4 sm:py-6 lg:py-8 px-3 sm:px-6 lg:px-8 flex items-center justify-center transition-colors">
       <div className="max-w-[1360px] w-full grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
-        
+
         {/* ================= LEFT CARD: LIVE RADAR SEARCH & VIDEO STAGE ================= */}
         <div className="lg:col-span-7 xl:col-span-7 relative rounded-[28px] overflow-hidden bg-[#0A0D14] shadow-xl border border-black/10 min-h-[460px] sm:min-h-[520px] lg:min-h-[580px] flex flex-col justify-between select-none">
-          
+
           {/* ──────── LIVE RADAR SEARCH STATE (SEARCHES RIGHT HERE) ──────── */}
           {isSearching ? (
             <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 text-center overflow-hidden bg-gradient-to-b from-[#0F1422] via-[#0A0D14] to-[#06080D]">
-              
+
               {/* Radar Rings & Rotating Sweep Animation */}
               <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center mb-6">
                 {/* Outer concentric rings */}
@@ -313,7 +313,7 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
           ) : (
             /* ──────── CONNECTED PEER VIDEO STAGE (NO STATIC STOCK PHOTO) ──────── */
             <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#111624] via-[#0D111A] to-[#07090E]">
-              
+
               {/* Audio-reactive pulsating frame around peer initials avatar */}
               <div className="relative flex items-center justify-center mb-5">
                 <div className="absolute -inset-6 rounded-full bg-[#FF5500]/10 animate-ping opacity-40" />
@@ -464,9 +464,8 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
                 type="button"
                 onClick={toggleCam}
                 title={camOn ? 'Disable camera' : 'Enable camera'}
-                className={`p-2.5 rounded-xl transition cursor-pointer ${
-                  camOn ? 'text-white hover:bg-white/15' : 'bg-red-600 text-white'
-                }`}
+                className={`p-2.5 rounded-xl transition cursor-pointer ${camOn ? 'text-white hover:bg-white/15' : 'bg-red-600 text-white'
+                  }`}
               >
                 {camOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
               </button>
@@ -476,9 +475,8 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
                 type="button"
                 onClick={toggleMic}
                 title={micOn ? 'Mute microphone' : 'Unmute microphone'}
-                className={`p-2.5 rounded-xl transition cursor-pointer ${
-                  micOn ? 'text-white hover:bg-white/15' : 'bg-red-600 text-white'
-                }`}
+                className={`p-2.5 rounded-xl transition cursor-pointer ${micOn ? 'text-white hover:bg-white/15' : 'bg-red-600 text-white'
+                  }`}
               >
                 {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
               </button>
@@ -488,9 +486,8 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
                 type="button"
                 onClick={() => setIsWandActive(!isWandActive)}
                 title="Toggle studio filter effect"
-                className={`p-2.5 rounded-xl transition cursor-pointer ${
-                  isWandActive ? 'bg-[#FF5500] text-white shadow-md' : 'text-white hover:bg-white/15'
-                }`}
+                className={`p-2.5 rounded-xl transition cursor-pointer ${isWandActive ? 'bg-[#FF5500] text-white shadow-md' : 'text-white hover:bg-white/15'
+                  }`}
               >
                 <Wand2 className="w-5 h-5" />
               </button>
@@ -534,7 +531,7 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
 
         {/* ================= RIGHT CARD: CHAT PANEL ================= */}
         <div className="lg:col-span-5 xl:col-span-5 rounded-[28px] bg-white dark:bg-[#18191E] border border-orange-100/80 dark:border-white/10 shadow-xl p-4 sm:p-6 flex flex-col justify-between min-h-[460px] sm:min-h-[520px] lg:min-h-[580px] relative transition-colors">
-          
+
           {/* Header Row (Connect button removed as requested) */}
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
@@ -611,18 +608,16 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
 
                     <div className="max-w-[85%]">
                       <div
-                        className={`p-3.5 rounded-2xl text-sm leading-relaxed shadow-xs ${
-                          isPartner
-                            ? 'bg-[#F6F5EE] dark:bg-[#23242A] text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-200/40 dark:border-white/5'
-                            : 'bg-[#FF5500] text-white rounded-tr-sm'
-                        }`}
+                        className={`p-3.5 rounded-2xl text-sm leading-relaxed shadow-xs ${isPartner
+                          ? 'bg-[#F6F5EE] dark:bg-[#23242A] text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-200/40 dark:border-white/5'
+                          : 'bg-[#FF5500] text-white rounded-tr-sm'
+                          }`}
                       >
                         {msg.text}
                       </div>
                       <span
-                        className={`text-[10px] text-slate-400 mt-1 block font-medium ${
-                          isPartner ? 'text-left pl-1' : 'text-right pr-1'
-                        }`}
+                        className={`text-[10px] text-slate-400 mt-1 block font-medium ${isPartner ? 'text-left pl-1' : 'text-right pr-1'
+                          }`}
                       >
                         {msg.time}
                       </span>

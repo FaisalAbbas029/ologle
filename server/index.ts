@@ -12,7 +12,7 @@ import {
 } from './geminiService.ts';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const server = createServer(app);
 
 // Security Headers Middleware
@@ -26,6 +26,10 @@ app.use((_req, res, next) => {
 
 // Enable JSON body parsing for payloads with safe size limit
 app.use(express.json({ limit: '25mb' }));
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // -------------------------------------------------------------
 // IN-MEMORY RESPONSE CACHE (TTL LRU for Gemini endpoints)
@@ -259,7 +263,7 @@ app.get('*', (req, res) => {
 
 server.on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please terminate existing instances or check active processes: 'lsof -i :${PORT}' / 'kill -9 <PID>'`);
+    console.error(`Port ${PORT} is already in use.`);
   } else {
     console.error('Server error:', err);
   }

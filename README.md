@@ -103,6 +103,14 @@ npm run build
 # Run production standalone server
 npm start
 ```
-For a separate frontend and signaling deployment, set `VITE_WEBSOCKET_URL` to the signaling server's full `/ws` URL before building.
+### Netlify Frontend + Render Signaling Server
+Netlify serves the frontend but cannot run the persistent WebSocket signaling server. This repository includes a Render Blueprint (`render.yaml`) for deploying that server separately.
+
+1. In Render, create a new Blueprint from this repository and deploy the `ologle-signaling` web service.
+2. Confirm the service is healthy at its `/health` endpoint.
+3. In the Netlify site settings, add the environment variable `VITE_WEBSOCKET_URL` with the value `wss://<your-render-service-host>/ws` (use the actual `.onrender.com` hostname shown in Render).
+4. Trigger a new Netlify deploy so the frontend is built with the signaling server URL.
+
+The Netlify site cannot connect users until the signaling service is deployed and this environment variable is set. The free Render plan may spin down while idle, so the first connection after inactivity can take longer.
 
 *Note: No persistent database (PostgreSQL, MongoDB, Redis) is required. All session state is ephemeral and in-memory by architectural mandate.*

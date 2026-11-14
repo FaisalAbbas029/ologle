@@ -488,20 +488,12 @@ export class MatchmakerQueue {
         }
       }
 
-      // 3. Secondary IP check: Compare IP addresses as a secondary check to prevent re-matching if localStorage is cleared
+      // 3. Respect explicit IP blocks, but do not treat a shared network as the same user.
       if (currentSession.ipAddress && candidateSession.ipAddress) {
         const ipPairKeyA = `${currentSession.ipAddress}:${candidateSession.ipAddress}`;
         const ipPairKeyB = `${candidateSession.ipAddress}:${currentSession.ipAddress}`;
 
         if (this.blockedIpPairsRef.has(ipPairKeyA) || this.blockedIpPairsRef.has(ipPairKeyB)) {
-          continue;
-        }
-
-        // Prevent self-matching on same IP in production (allow loopback for multi-tab local testing)
-        if (
-          currentSession.ipAddress === candidateSession.ipAddress &&
-          !(currentSession.isLoopback && candidateSession.isLoopback)
-        ) {
           continue;
         }
       }

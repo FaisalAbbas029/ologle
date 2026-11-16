@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, getLanguageByCode } from '../data/languages.ts';
+import { getBackendApiUrl } from '../services/apiConfig.ts';
 
 interface AudioTranscribeModalProps {
   isOpen: boolean;
@@ -176,7 +177,7 @@ export const AudioTranscribeModal: React.FC<AudioTranscribeModalProps> = ({
       const audioBase64 = await base64Promise;
       const targetLang = getLanguageByCode(selectedTargetLang).englishName;
 
-      const response = await fetch('/api/transcribe-audio', {
+      const response = await fetch(getBackendApiUrl('/api/transcribe-audio'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

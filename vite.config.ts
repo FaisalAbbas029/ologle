@@ -4,15 +4,29 @@ import path from 'path';
 import { defineConfig, Plugin } from 'vite';
 import { WebSocketServer } from 'ws';
 
-function haylooWebSocketPlugin(): Plugin {
+function ologleWebSocketPlugin(): Plugin {
   return {
-    name: 'hayloo-websocket-server',
+    name: 'ologle-websocket-server',
     apply: 'serve',
     configureServer(server) {
       if (!server.httpServer) return;
 
       // API Middleware for Vite dev mode
       server.middlewares.use(async (req, res, next) => {
+        if (req.method === 'GET' && req.url?.split('?')[0] === '/api/ice-servers') {
+          try {
+            const { createIceServerConfig } = await import('./server/iceServers.ts');
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'no-store');
+            res.end(JSON.stringify(createIceServerConfig()));
+          } catch (err: any) {
+            res.statusCode = 503;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: err.message || 'ICE server configuration error' }));
+          }
+          return;
+        }
+
         if (req.method === 'POST' && req.url === '/api/ai-practice/reply') {
           let body = '';
           req.on('data', (chunk) => { body += chunk; });
@@ -115,7 +129,7 @@ function haylooWebSocketPlugin(): Plugin {
 
       server.httpServer.on('upgrade', async (request, socket, head) => {
         if (request.url === '/ws' || request.url?.startsWith('/ws?')) {
-          const { haylooEngine } = await import('./server/serverCore.ts');
+          const { ologleEngine } = await import('./server/serverCore.ts');
           wss.handleUpgrade(request, socket, head, (ws) => {
             wss.emit('connection', ws, request);
           });
@@ -123,19 +137,19 @@ function haylooWebSocketPlugin(): Plugin {
       });
 
       wss.on('connection', async (ws) => {
-        const { haylooEngine } = await import('./server/serverCore.ts');
-        const session = haylooEngine.registerSession(ws as any);
+        const { ologleEngine } = await import('./server/serverCore.ts');
+        const session = ologleEngine.registerSession(ws as any);
 
         ws.on('message', (data) => {
-          haylooEngine.processMessage(session.sessionId, data.toString());
+          ologleEngine.processMessage(session.sessionId, data.toString());
         });
 
         ws.on('close', () => {
-          haylooEngine.handleDisconnect(session.sessionId);
+          ologleEngine.handleDisconnect(session.sessionId);
         });
 
         ws.on('error', () => {
-          haylooEngine.handleDisconnect(session.sessionId);
+          ologleEngine.handleDisconnect(session.sessionId);
         });
       });
     },
@@ -146,11 +160,15 @@ export default defineConfig(() => {
   return {
     root: path.resolve(__dirname, 'client'),
     envDir: __dirname,
-    plugins: [react(), tailwindcss(), haylooWebSocketPlugin()],
+    plugins: [react(), tailwindcss(), ologleWebSocketPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'client/src'),
       },
+    },
+    test: {
+      environment: 'node',
+      include: ['../server/**/*.test.ts', '**/*.{test,spec}.?(c|m)[jt]s?(x)'],
     },
     server: {
       port: 3000,

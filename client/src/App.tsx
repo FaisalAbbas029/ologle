@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { User } from 'firebase/auth';
 import type { UserProfile } from './services/userService.ts';
-import { haylooSocket } from './services/haylooSocket.ts';
+import { ologleSocket, ConnectionStatus } from './services/ologleSocket.ts';
 import { getVisitorId, getBlockedStrangers, addBlockedStranger } from './services/visitorService.ts';
 import {
   AppView,
@@ -29,7 +29,7 @@ import { ConnectionBanner } from './components/ConnectionBanner.tsx';
 import { ScrollProgressBar } from './components/ScrollProgressBar.tsx';
 import { ScrollToTopButton } from './components/ScrollToTopButton.tsx';
 import { CookieConsentBanner } from './components/CookieConsentBanner.tsx';
-import { ConnectionStatus } from './services/haylooSocket.ts';
+
 import { soundService } from './services/soundService.ts';
 import {
   chooseAIPracticePartner,
@@ -192,8 +192,8 @@ export default function App() {
   const [toasts, setToasts] = useState<SafetyToast[]>([]);
   const [restriction, setRestriction] = useState<RestrictionState | null>(null);
 
-  // Hayloo Full-Stack Preview State
-  const [haylooProfile, setHaylooProfile] = useState({
+  // OLOGLE Full-Stack Preview State
+  const [ologleProfile, setOlogleProfile] = useState({
     displayName: 'Alex Rivera',
     headline: 'Full-Stack & AI Systems Architect',
     professionId: 'software-development',
@@ -214,7 +214,7 @@ export default function App() {
       if (p === '/voice-call') return 'voice';
       if (p === '/video-call') return 'video';
       try {
-        const s = localStorage.getItem('hayloo_session_mode');
+        const s = (localStorage.getItem('ologle_session_mode') || localStorage.getItem('hayloo_session_mode'));
         if (s === 'voice' || s === 'AUDIO') return 'voice';
         if (s === 'messaging' || s === 'TEXT') return 'messaging';
         if (s === 'video' || s === 'VIDEO') return 'video';
@@ -245,7 +245,7 @@ export default function App() {
         return;
       }
     }
-    const s = localStorage.getItem('hayloo_session_mode');
+    const s = (localStorage.getItem('ologle_session_mode') || localStorage.getItem('hayloo_session_mode'));
     if (s === 'voice' || s === 'AUDIO') {
       setSessionMode('voice');
     } else if (s === 'messaging' || s === 'TEXT') {
@@ -364,7 +364,7 @@ export default function App() {
     const startSocket = () => {
       if (socketStarted) return;
       socketStarted = true;
-      haylooSocket.connect();
+      ologleSocket.connect();
     };
 
     const handleInteraction = () => {
@@ -379,7 +379,7 @@ export default function App() {
     // Start socket after 3.5s if no user interaction
     const socketTimer = setTimeout(startSocket, 3500);
 
-    const unsubscribeStatus = haylooSocket.subscribeStatus((status, secs) => {
+    const unsubscribeStatus = ologleSocket.subscribeStatus((status, secs) => {
       setConnectionStatus(status);
       setRetrySecondsLeft(secs);
       if (status !== 'connected' && activeMatchingRequestRef.current) {
@@ -388,19 +388,19 @@ export default function App() {
       }
     });
 
-    const unsubscribe = haylooSocket.subscribe((msg: ServerMessage) => {
+    const unsubscribe = ologleSocket.subscribe((msg: ServerMessage) => {
       switch (msg.type) {
         case 'SESSION_REGISTERED':
           setSessionId(msg.sessionId);
-          haylooSocket.send({
+          ologleSocket.send({
             type: 'REGISTER_SESSION',
             visitorId: visitorId.current,
             blockedStrangers: getBlockedStrangers(),
             profession: profession.trim(),
             interests,
           });
-          haylooSocket.send({ type: 'GET_EXPLORE_DATA' });
-          if (pendingMatchingRequestRef.current && haylooSocket.send(pendingMatchingRequestRef.current)) {
+          ologleSocket.send({ type: 'GET_EXPLORE_DATA' });
+          if (pendingMatchingRequestRef.current && ologleSocket.send(pendingMatchingRequestRef.current)) {
             pendingMatchingRequestRef.current = null;
             setIsMatchReady(true);
           }
@@ -559,7 +559,7 @@ export default function App() {
     if (path === '/messages') {
       setSessionMode('messaging');
       try {
-        localStorage.setItem('hayloo_session_mode', 'messaging');
+        localStorage.setItem('ologle_session_mode', 'messaging');
       } catch { }
       setCurrentView('1on1_chat');
       if (typeof window !== 'undefined' && window.location.pathname !== '/messages') {
@@ -568,7 +568,7 @@ export default function App() {
     } else if (path === '/voice-call') {
       setSessionMode('voice');
       try {
-        localStorage.setItem('hayloo_session_mode', 'voice');
+        localStorage.setItem('ologle_session_mode', 'voice');
       } catch { }
       setCurrentView('voice_session');
       if (typeof window !== 'undefined' && window.location.pathname !== '/voice-call') {
@@ -577,7 +577,7 @@ export default function App() {
     } else if (path === '/video-call') {
       setSessionMode('video');
       try {
-        localStorage.setItem('hayloo_session_mode', 'video');
+        localStorage.setItem('ologle_session_mode', 'video');
       } catch { }
       setCurrentView('conversation');
       if (typeof window !== 'undefined' && window.location.pathname !== '/video-call') {
@@ -603,19 +603,19 @@ export default function App() {
       if (path === '/messages') {
         setSessionMode('messaging');
         try {
-          localStorage.setItem('hayloo_session_mode', 'messaging');
+          localStorage.setItem('ologle_session_mode', 'messaging');
         } catch { }
         setCurrentView('1on1_chat');
       } else if (path === '/voice-call') {
         setSessionMode('voice');
         try {
-          localStorage.setItem('hayloo_session_mode', 'voice');
+          localStorage.setItem('ologle_session_mode', 'voice');
         } catch { }
         setCurrentView('voice_session');
       } else if (path === '/video-call') {
         setSessionMode('video');
         try {
-          localStorage.setItem('hayloo_session_mode', 'video');
+          localStorage.setItem('ologle_session_mode', 'video');
         } catch { }
         setCurrentView('conversation');
       } else if (path === '/' || path === '/landing') {
@@ -677,7 +677,7 @@ export default function App() {
     setActiveSessionMode(normalized);
     setSessionMode(normalized);
     try {
-      localStorage.setItem('hayloo_session_mode', normalized);
+      localStorage.setItem('ologle_session_mode', normalized);
     } catch { }
     // Do NOT navigate! The user is configuring their filters on the home/landing page.
   };
@@ -693,7 +693,7 @@ export default function App() {
     setActiveSessionMode(normalized);
     setSessionMode(normalized);
     try {
-      localStorage.setItem('hayloo_session_mode', normalized);
+      localStorage.setItem('ologle_session_mode', normalized);
     } catch { }
     if (normalized === 'voice') {
       navigate('/voice-call');
@@ -730,19 +730,19 @@ export default function App() {
     customCountry?: string,
     customMode?: string
   ) => {
-    const profToUse = (customProf || profession || localStorage.getItem('hayloo_user_profession') || '').trim();
+    const profToUse = (customProf || profession || (localStorage.getItem('ologle_user_profession') || localStorage.getItem('hayloo_user_profession')) || '').trim();
     let interestsToUse = customInterests || interests;
     if (!interestsToUse || interestsToUse.length === 0) {
       try {
-        const saved = localStorage.getItem('hayloo_user_interests');
+        const saved = (localStorage.getItem('ologle_user_interests') || localStorage.getItem('hayloo_user_interests'));
         if (saved) interestsToUse = JSON.parse(saved);
       } catch { }
     }
     if (!interestsToUse) {
       interestsToUse = [];
     }
-    const countryToUse = customCountry || selectedCountry || localStorage.getItem('hayloo_selected_country') || 'GLOBAL';
-    const rawMode = customMode || sessionMode || localStorage.getItem('hayloo_session_mode') || 'video';
+    const countryToUse = customCountry || selectedCountry || (localStorage.getItem('ologle_selected_country') || localStorage.getItem('hayloo_selected_country')) || 'GLOBAL';
+    const rawMode = customMode || sessionMode || (localStorage.getItem('ologle_session_mode') || localStorage.getItem('hayloo_session_mode')) || 'video';
     const modeToUse: 'video' | 'voice' | 'messaging' = (rawMode === 'TEXT' || rawMode === 'messaging')
       ? 'messaging'
       : (rawMode === 'AUDIO' || rawMode === 'voice')
@@ -752,7 +752,7 @@ export default function App() {
     setActiveSessionMode(modeToUse);
     setSessionMode(modeToUse);
     try {
-      localStorage.setItem('hayloo_session_mode', modeToUse);
+      localStorage.setItem('ologle_session_mode', modeToUse);
     } catch { }
 
     const effectiveProf = (profToUse && validateProfession(profToUse).isValid) ? profToUse : 'Software Engineer';
@@ -803,11 +803,11 @@ export default function App() {
       sessionMode: modeToUse,
     };
     activeMatchingRequestRef.current = request;
-    if (haylooSocket.send(request)) {
+    if (ologleSocket.send(request)) {
       pendingMatchingRequestRef.current = null;
     } else {
       pendingMatchingRequestRef.current = request;
-      haylooSocket.connect();
+      ologleSocket.connect();
     }
   };
 
@@ -815,7 +815,7 @@ export default function App() {
     setActiveSessionMode(mode);
     setSessionMode(mode);
     try {
-      localStorage.setItem('hayloo_session_mode', mode);
+      localStorage.setItem('ologle_session_mode', mode);
     } catch { }
 
     const aiRoom: Active1on1Room = {
@@ -863,7 +863,7 @@ export default function App() {
     pendingMatchingRequestRef.current = null;
     activeMatchingRequestRef.current = null;
     setIsMatchReady(false);
-    haylooSocket.send({ type: 'CANCEL_MATCHING' });
+    ologleSocket.send({ type: 'CANCEL_MATCHING' });
     setCurrentView('landing');
   };
 
@@ -899,7 +899,7 @@ export default function App() {
           isRead: true,
         },
       ]);
-      haylooSocket.send({ type: 'NEXT_PERSON' });
+      ologleSocket.send({ type: 'NEXT_PERSON' });
       return;
     }
 
@@ -907,11 +907,11 @@ export default function App() {
     setChat1on1Messages([]);
     setPartnerLeftReason(null);
     setIncomingSignal(null);
-    haylooSocket.send({ type: 'NEXT_PERSON' });
+    ologleSocket.send({ type: 'NEXT_PERSON' });
   };
 
   const handleEndConversation = () => {
-    haylooSocket.send({ type: 'END_CONVERSATION' });
+    ologleSocket.send({ type: 'END_CONVERSATION' });
     setActive1on1(null);
     setChat1on1Messages([]);
     setPartnerLeftReason(null);
@@ -960,7 +960,7 @@ export default function App() {
       return;
     }
 
-    haylooSocket.send({
+    ologleSocket.send({
       type: 'SEND_1ON1_MESSAGE',
       text,
     });
@@ -969,6 +969,12 @@ export default function App() {
   const handleUpdate1on1Message = useCallback((id: string, updates: Partial<ChatMessage>) => {
     setChat1on1Messages((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
   }, []);
+
+  const handleSendWebRTCSignal = useCallback((signal: any) => {
+    const roomId = active1on1?.roomId;
+    if (!roomId || active1on1?.isAI) return false;
+    return ologleSocket.send({ type: 'WEBRTC_SIGNAL', roomId, signal });
+  }, [active1on1?.isAI, active1on1?.roomId]);
 
 
   // Safety actions & Anonymous Block/Report handler
@@ -981,7 +987,7 @@ export default function App() {
     }
 
     // 2. Send WebSocket event (block_partner) to backend with { blockerId, blockedId, reason }
-    haylooSocket.send({
+    ologleSocket.send({
       type: 'block_partner',
       blockerId: visitorId.current,
       blockedId: partnerVisitorId,
@@ -1039,7 +1045,7 @@ export default function App() {
       <ConnectionBanner
         status={connectionStatus}
         retrySecondsLeft={retrySecondsLeft}
-        onReconnectNow={() => haylooSocket.reconnectNow()}
+        onReconnectNow={() => ologleSocket.reconnectNow()}
       />
 
       {/* Universal Top Bar Header */}
@@ -1095,9 +1101,9 @@ export default function App() {
           {/* 2. ONBOARDING FLOW */}
           {currentView === 'onboarding' && (
             <OnboardingView
-              initialProfile={haylooProfile}
+              initialProfile={ologleProfile}
               onComplete={(updated) => {
-                setHaylooProfile((prev) => ({ ...prev, ...updated }));
+                setOlogleProfile((prev) => ({ ...prev, ...updated }));
                 addToast('info', 'Professional profile setup complete!');
                 navigateTo('landing');
               }}
@@ -1121,7 +1127,7 @@ export default function App() {
               messages={chat1on1Messages}
               partnerLeftReason={partnerLeftReason}
               incomingSignal={incomingSignal}
-              onSendSignal={(signal) => haylooSocket.send({ type: 'WEBRTC_SIGNAL', signal })}
+              onSendSignal={handleSendWebRTCSignal}
               onSendMessage={handleSend1on1Message}
               onNextPerson={handleNextPerson}
               onEndConversation={handleEndConversation}
@@ -1155,11 +1161,11 @@ export default function App() {
           {/* 7. SETTINGS */}
           {currentView === 'settings' && (
             <SettingsView
-              isPublic={haylooProfile.isPublic}
-              allowConnections={haylooProfile.allowConnections}
+              isPublic={ologleProfile.isPublic}
+              allowConnections={ologleProfile.allowConnections}
               blockedUsers={blockedCandidateIds}
-              onTogglePublic={(val) => setHaylooProfile((prev) => ({ ...prev, isPublic: val }))}
-              onToggleConnections={(val) => setHaylooProfile((prev) => ({ ...prev, allowConnections: val }))}
+              onTogglePublic={(val) => setOlogleProfile((prev) => ({ ...prev, isPublic: val }))}
+              onToggleConnections={(val) => setOlogleProfile((prev) => ({ ...prev, allowConnections: val }))}
               onUnblockAll={() => {
                 setBlockedCandidateIds([]);
                 addToast('info', 'All blocked accounts cleared.');
@@ -1231,7 +1237,7 @@ export default function App() {
           {currentView === 'connection_lost' && (
             <ConnectionLostView
               onReconnect={() => {
-                haylooSocket.connect();
+                ologleSocket.connect();
                 setCurrentView('mode_select');
               }}
               onGoHome={() => setCurrentView('landing')}

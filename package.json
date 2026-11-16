@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build && node -e \"require('esbuild').buildSync({entryPoints:['server/index.ts'],bundle:true,platform:'node',format:'cjs',packages:'external',sourcemap:true,outfile:'dist/server.cjs'})\"",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "node -e \"require('esbuild').buildSync({entryPoints:['server/index.ts'],bundle:true,platform:'node',format:'cjs',packages:'external',sourcemap:true,outfile:'dist/server.cjs'})\"",
     "preview": "vite preview",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
-    "lint": "node ./node_modules/typescript/bin/tsc --noEmit"
+    "lint": "node ./node_modules/typescript/bin/tsc --noEmit",
+    "test": "vitest run",
+    "verify": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -34,6 +38,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vitest": "^2.1.9"
   }
 }

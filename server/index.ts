@@ -2,7 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import path from 'path';
-import { haylooEngine } from './serverCore.ts';
+import { ologleEngine } from './serverCore.ts';
+import { createIceServerConfig } from './iceServers.ts';
 import {
   transcribeAudioWithGemini,
   translateTextWithGemini,
@@ -15,6 +16,29 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const server = createServer(app);
 
+const allowedOrigins = new Set([
+  'https://ologle.network',
+  'https://www.ologle.network',
+  ...(process.env.ALLOWED_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean),
+]);
+
+// Helper: check if an origin is explicitly allowed or matches a trusted wildcard pattern
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true; // non-browser requests (health checks, curl, backend monitors)
+  if (allowedOrigins.has(origin)) return true;
+
+  // Allow Vercel production and preview deployments (e.g. your-app.vercel.app, your-app-git-branch-team.vercel.app)
+  if (/^https:\/\/[a-zA-Z0-9._-]+\.vercel\.app$/.test(origin)) return true;
+
+  // Allow local development origins (localhost or 127.0.0.1 on any port)
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+
+  // Allow self-ping and preview services on hosting providers (e.g. *.onrender.com)
+  if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin)) return true;
+
+  return false;
+}
+
 // Security Headers Middleware
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -26,6 +50,26 @@ app.use((_req, res, next) => {
 
 // Enable JSON body parsing for payloads with safe size limit
 app.use(express.json({ limit: '25mb' }));
+
+app.use('/api', (req, res, next) => {
+  const origin = req.get('origin');
+  if (origin) {
+    if (!isOriginAllowed(origin)) {
+      return res.status(403).json({ error: 'Origin not allowed.' });
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
+  }
+
+  next();
+});
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -94,6 +138,16 @@ app.use('/api', (req, res, next) => {
     });
   }
   next();
+});
+
+app.get('/api/ice-servers', (_req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(createIceServerConfig());
+  } catch (error) {
+    console.error('ICE server configuration error:', error);
+    res.status(503).json({ error: 'ICE server configuration is unavailable.' });
+  }
 });
 
 // Helper for string sanitization
@@ -231,23 +285,29 @@ app.post('/api/translate-autodetect', async (req, res) => {
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', (ws, req) => {
+  const origin = req.headers.origin;
+  if (origin && !isOriginAllowed(origin)) {
+    ws.close(1008, 'Origin not allowed');
+    return;
+  }
+
   const forwarded = req.headers['x-forwarded-for'];
   const ip = typeof forwarded === 'string'
     ? forwarded.split(',')[0].trim()
     : req.socket.remoteAddress || '127.0.0.1';
 
-  const session = haylooEngine.registerSession(ws as any, undefined, ip);
+  const session = ologleEngine.registerSession(ws as any, undefined, ip);
 
   ws.on('message', (data) => {
-    haylooEngine.processMessage(session.sessionId, data.toString());
+    ologleEngine.processMessage(session.sessionId, data.toString());
   });
 
   ws.on('close', () => {
-    haylooEngine.handleDisconnect(session.sessionId);
+    ologleEngine.handleDisconnect(session.sessionId);
   });
 
   ws.on('error', () => {
-    haylooEngine.handleDisconnect(session.sessionId);
+    ologleEngine.handleDisconnect(session.sessionId);
   });
 });
 
@@ -270,5 +330,25 @@ server.on('error', (err: any) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Hayloo production server running on http://0.0.0.0:${PORT}`);
+  console.log(`OLOGLE production server running on http://0.0.0.0:${PORT}`);
+
+  // Self-ping every 10 minutes to prevent Render free tier from sleeping.
+  // Only active in production (Render injects RENDER=true).
+  if (process.env.RENDER === 'true' || process.env.NODE_ENV === 'production') {
+    const selfUrl = process.env.RENDER_EXTERNAL_URL
+      ? `${process.env.RENDER_EXTERNAL_URL}/health`
+      : `http://localhost:${PORT}/health`;
+
+    const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+    setInterval(() => {
+      import('http').then(({ default: http }) => {
+        const req = http.get(selfUrl, (res) => {
+          res.resume(); // consume response body to avoid memory leak
+          console.log(`[keep-alive] Self-ping → ${res.statusCode}`);
+        });
+        req.on('error', (err) => console.warn('[keep-alive] Self-ping failed:', err.message));
+        req.end();
+      }).catch(() => {});
+    }, PING_INTERVAL_MS);
+  }
 });

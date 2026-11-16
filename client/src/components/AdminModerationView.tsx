@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EphemeralLiveTicket } from '../types/index.ts';
-import { haylooSocket } from '../services/haylooSocket.ts';
+import { ologleSocket } from '../services/ologleSocket.ts';
 import Shield from 'lucide-react/dist/esm/icons/shield.js';
 import ShieldAlert from 'lucide-react/dist/esm/icons/shield-alert.js';
 import Radio from 'lucide-react/dist/esm/icons/radio.js';
@@ -25,9 +25,9 @@ export const AdminModerationView: React.FC<AdminModerationViewProps> = ({
   // Subscribe to Live Ephemeral Queue via WebSocket stream
   useEffect(() => {
     // Send subscription command
-    haylooSocket.send({ type: 'MOD_SUBSCRIBE' });
+    ologleSocket.send({ type: 'MOD_SUBSCRIBE' });
 
-    const unsubscribe = haylooSocket.subscribe((msg: any) => {
+    const unsubscribe = ologleSocket.subscribe((msg: any) => {
       if (msg.type === 'MOD_QUEUE_UPDATE') {
         const tickets: EphemeralLiveTicket[] = msg.tickets || [];
         setLiveTickets(tickets);
@@ -41,7 +41,7 @@ export const AdminModerationView: React.FC<AdminModerationViewProps> = ({
 
     // Refresh tickets every 5s
     const pollInterval = setInterval(() => {
-      haylooSocket.send({ type: 'MOD_SUBSCRIBE' });
+      ologleSocket.send({ type: 'MOD_SUBSCRIBE' });
     }, 5000);
 
     return () => {
@@ -51,7 +51,7 @@ export const AdminModerationView: React.FC<AdminModerationViewProps> = ({
   }, []);
 
   const handleTakeAction = (ticketId: string, action: 'KICK' | 'MUTE' | 'DISMISS') => {
-    haylooSocket.send({
+    ologleSocket.send({
       type: 'MOD_ACTION',
       ticketId,
       action,
@@ -107,7 +107,7 @@ export const AdminModerationView: React.FC<AdminModerationViewProps> = ({
           )}
           <button
             type="button"
-            onClick={() => haylooSocket.send({ type: 'MOD_SUBSCRIBE' })}
+            onClick={() => ologleSocket.send({ type: 'MOD_SUBSCRIBE' })}
             className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-colors cursor-pointer"
             title="Refresh Live Queue"
           >

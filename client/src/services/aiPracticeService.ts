@@ -1,4 +1,5 @@
 import { AIPracticePartner } from '../data/aiPracticePartners.ts';
+import { getBackendApiUrl } from './apiConfig.ts';
 
 export interface AIPracticeTurn {
   role: 'user' | 'assistant';
@@ -6,11 +7,10 @@ export interface AIPracticeTurn {
 }
 
 function getApiBaseUrl(): string {
-  const metaEnv = import.meta.env as Record<string, string | undefined>;
-  const configuredApiUrl = metaEnv.VITE_API_URL?.trim();
+  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
   if (configuredApiUrl) return configuredApiUrl.replace(/\/+$/, '');
 
-  const websocketUrl = metaEnv.VITE_WEBSOCKET_URL?.trim();
+  const websocketUrl = import.meta.env.VITE_WEBSOCKET_URL?.trim();
   if (websocketUrl) {
     try {
       const url = new URL(websocketUrl);
@@ -60,7 +60,7 @@ export async function getAIPracticeReply(input: {
   messages: AIPracticeTurn[];
 }): Promise<string> {
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/ai-practice/reply`, {
+    const response = await fetch(getBackendApiUrl('/api/ai-practice/reply'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

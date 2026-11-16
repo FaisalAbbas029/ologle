@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { fetchIceServerConfig, getFallbackIceServers } from '../services/iceServerConfig.ts';
 
 interface UseWebRTCOptions {
   roomId: string;
   isInitiator?: boolean;
   mediaMode?: 'video' | 'voice' | 'messaging';
-  onSendSignal: (signal: any) => void;
+  onSendSignal: (signal: any) => boolean | void;
   incomingSignal: { signal: any; id: number } | null;
   autoStart?: boolean;
 }
@@ -19,14 +20,9 @@ export type WebRTCConnectionState =
   | 'failed'
   | 'permission_denied';
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-  ],
-};
+function logWebRTC(event: string, details: Record<string, string | number | boolean | null>): void {
+  console.info('[webrtc]', { event, ...details });
+}
 
 // Creates a lightweight, high-performance virtual MediaStream with an animated canvas video track and silent audio track
 const createVirtualMediaStream = (label = 'You'): MediaStream => {
@@ -145,6 +141,15 @@ export const useWebRTC = ({
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
+  const peerConnectionPromiseRef = useRef<Promise<RTCPeerConnection | null> | null>(null);
+  const peerConnectionGenerationRef = useRef(0);
+  const signalProcessingRef = useRef<Promise<void>>(Promise.resolve());
+  const makingOfferRef = useRef(false);
+  const settingRemoteAnswerRef = useRef(false);
+  const ignoreOfferRef = useRef(false);
+  const iceRestartInProgressRef = useRef(false);
+  const disconnectTimerRef = useRef<number | null>(null);
+  const connectionTimeoutRef = useRef<number | null>(null);
   const processedSignalIdRef = useRef<number | null>(null);
   const mediaPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
   const hasInitializedPcRef = useRef<boolean>(false);
@@ -324,124 +329,256 @@ export const useWebRTC = ({
   }, [mediaMode]);
 
   // Initialize WebRTC PeerConnection
-  const initPeerConnection = useCallback((stream: MediaStream) => {
-    if (pcRef.current) {
+  const initPeerConnection = useCallback(async (stream: MediaStream): Promise<RTCPeerConnection | null> => {
+    if (pcRef.current) return pcRef.current;
+    if (peerConnectionPromiseRef.current) return peerConnectionPromiseRef.current;
+
+    const generation = peerConnectionGenerationRef.current;
+    const initialization = (async () => {
+      let iceServers: RTCIceServer[];
       try {
-        pcRef.current.close();
-      } catch { }
-      pcRef.current = null;
-    }
+        const config = await fetchIceServerConfig();
+        iceServers = config.iceServers;
+        if (!config.relayAvailable) {
+          console.warn('[webrtc]', {
+            event: 'turn.unavailable',
+            message: 'TURN is not configured; calls may fail on restrictive networks.',
+          });
+        }
+      } catch (error) {
+        console.error('[webrtc]', { event: 'ice-config.failed', error });
+        iceServers = getFallbackIceServers();
+      }
 
-    hasInitializedPcRef.current = true;
-    const pc = new RTCPeerConnection(ICE_SERVERS);
-    pcRef.current = pc;
-    iceCandidatesQueue.current = [];
+      if (generation !== peerConnectionGenerationRef.current) return null;
 
-    // Create remote media stream
-    const remoteStream = new MediaStream();
-    remoteStreamRef.current = remoteStream;
+      const pc = new RTCPeerConnection({ iceServers });
+      pcRef.current = pc;
+      hasInitializedPcRef.current = true;
+      iceCandidatesQueue.current = [];
+      setConnectionState('connecting');
+      logWebRTC('peer.created', { roomId, role: isInitiator ? 'initiator' : 'responder' });
 
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(() => { });
-    }
+      const remoteStream = new MediaStream();
+      remoteStreamRef.current = remoteStream;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.play().catch(() => { });
+      }
 
-    // Add local tracks to peer connection
-    stream.getTracks().forEach((track) => {
-      pc.addTrack(track, stream);
-    });
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-    // Handle incoming remote tracks
-    pc.ontrack = (event) => {
-      const activeRemote = remoteStreamRef.current || new MediaStream();
-      remoteStreamRef.current = activeRemote;
-
-      if (event.streams && event.streams[0]) {
-        event.streams[0].getTracks().forEach((track) => {
-          if (!activeRemote.getTracks().includes(track)) {
-            activeRemote.addTrack(track);
+      let candidatePairLogged = false;
+      const logSelectedCandidatePair = async () => {
+        if (candidatePairLogged) return;
+        try {
+          const stats = await pc.getStats();
+          const transport = Array.from(stats.values()).find(
+            (report) => report.type === 'transport' && 'selectedCandidatePairId' in report
+          );
+          const pairId = transport && 'selectedCandidatePairId' in transport
+            ? transport.selectedCandidatePairId
+            : undefined;
+          const pair = pairId ? stats.get(pairId) : undefined;
+          if (!pair || pair.type !== 'candidate-pair' || !('localCandidateId' in pair) || !('remoteCandidateId' in pair)) {
+            logWebRTC('ice.candidate-pair.unavailable', { roomId });
+            return;
           }
+
+          candidatePairLogged = true;
+          const localCandidate = stats.get(pair.localCandidateId);
+          const remoteCandidate = stats.get(pair.remoteCandidateId);
+          const localType = localCandidate && 'candidateType' in localCandidate
+            ? localCandidate.candidateType
+            : 'unknown';
+          const remoteType = remoteCandidate && 'candidateType' in remoteCandidate
+            ? remoteCandidate.candidateType
+            : 'unknown';
+          logWebRTC('ice.candidate-pair.selected', {
+            roomId,
+            localType,
+            remoteType,
+            protocol: 'protocol' in pair ? pair.protocol || 'unknown' : 'unknown',
+          });
+        } catch (error) {
+          console.warn('[webrtc]', { event: 'ice.stats.failed', roomId, error });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        const activeRemote = remoteStreamRef.current || new MediaStream();
+        remoteStreamRef.current = activeRemote;
+
+        const tracks = event.streams?.[0]?.getTracks() || (event.track ? [event.track] : []);
+        tracks.forEach((track) => {
+          if (!activeRemote.getTracks().includes(track)) activeRemote.addTrack(track);
         });
-      } else if (event.track) {
-        if (!activeRemote.getTracks().includes(event.track)) {
-          activeRemote.addTrack(event.track);
+
+        logWebRTC('track.received', { roomId, audio: event.track?.kind === 'audio', video: event.track?.kind === 'video' });
+        setIsRemoteVideoActive(activeRemote.getVideoTracks().some((track) => track.enabled && track.readyState === 'live'));
+        setIsRemoteAudioActive(activeRemote.getAudioTracks().some((track) => track.enabled && track.readyState === 'live'));
+
+        activeRemote.getTracks().forEach((track) => {
+          track.onunmute = () => {
+            if (track.kind === 'video') setIsRemoteVideoActive(true);
+            if (track.kind === 'audio') setIsRemoteAudioActive(true);
+          };
+          track.onmute = () => {
+            if (track.kind === 'video') setIsRemoteVideoActive(false);
+            if (track.kind === 'audio') setIsRemoteAudioActive(false);
+          };
+          track.onended = () => {
+            if (track.kind === 'video') setIsRemoteVideoActive(false);
+            if (track.kind === 'audio') setIsRemoteAudioActive(false);
+          };
+        });
+
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = activeRemote;
+          remoteVideoRef.current.play().catch(() => { });
+        }
+      };
+
+      pc.onicecandidate = (event) => {
+        if (!event.candidate) return;
+        const sent = onSendSignal({
+          type: 'candidate',
+          candidate: event.candidate.toJSON(),
+        });
+        logWebRTC('ice.candidate.sent', {
+          roomId,
+          candidateType: event.candidate.type || 'unknown',
+          sent: sent !== false,
+        });
+      };
+
+      pc.onicecandidateerror = (event) => {
+        logWebRTC('ice.candidate.error', { roomId, code: event.errorCode, url: event.url || '' });
+      };
+
+      pc.onicegatheringstatechange = () => {
+        logWebRTC('ice.gathering.state', { roomId, state: pc.iceGatheringState });
+      };
+
+      const clearConnectionTimers = () => {
+        if (connectionTimeoutRef.current !== null) {
+          window.clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        if (disconnectTimerRef.current !== null) {
+          window.clearTimeout(disconnectTimerRef.current);
+          disconnectTimerRef.current = null;
+        }
+      };
+
+      const startConnectionTimeout = () => {
+        if (connectionTimeoutRef.current !== null) {
+          window.clearTimeout(connectionTimeoutRef.current);
+        }
+        connectionTimeoutRef.current = window.setTimeout(() => {
+          if (pcRef.current === pc && pc.connectionState !== 'connected') {
+            logWebRTC('peer.connection.timeout', { roomId, state: pc.connectionState });
+            setConnectionState('failed');
+          }
+        }, 30_000);
+      };
+
+      const restartIce = async () => {
+        if (
+          !isInitiator ||
+          pcRef.current !== pc ||
+          pc.signalingState !== 'stable' ||
+          iceRestartInProgressRef.current
+        ) return;
+
+        iceRestartInProgressRef.current = true;
+        makingOfferRef.current = true;
+        candidatePairLogged = false;
+        setConnectionState('connecting');
+        startConnectionTimeout();
+        try {
+          const offer = await pc.createOffer({ iceRestart: true });
+          await pc.setLocalDescription(offer);
+          const sent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
+          logWebRTC('ice.restart.sent', { roomId, sent: sent !== false });
+        } catch (error) {
+          console.error('[webrtc]', { event: 'ice.restart.failed', roomId, error });
+        } finally {
+          makingOfferRef.current = false;
+          iceRestartInProgressRef.current = false;
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        logWebRTC('peer.connection.state', { roomId, state });
+        if (state === 'connected') {
+          clearConnectionTimers();
+          setConnectionState('connected');
+          void logSelectedCandidatePair();
+        } else if (state === 'connecting') {
+          setConnectionState('connecting');
+        } else if (state === 'disconnected') {
+          setConnectionState('disconnected');
+        } else if (state === 'failed') {
+          setConnectionState('failed');
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        logWebRTC('ice.connection.state', { roomId, state });
+        if (state === 'connected' || state === 'completed') {
+          clearConnectionTimers();
+          setConnectionState('connected');
+          void logSelectedCandidatePair();
+        } else if (state === 'checking') {
+          setConnectionState('connecting');
+        } else if (state === 'disconnected') {
+          setConnectionState('disconnected');
+          if (disconnectTimerRef.current === null) {
+            disconnectTimerRef.current = window.setTimeout(() => {
+              disconnectTimerRef.current = null;
+              if (pc.iceConnectionState === 'disconnected') void restartIce();
+            }, 4000);
+          }
+        } else if (state === 'failed') {
+          clearConnectionTimers();
+          setConnectionState('failed');
+          void restartIce();
+        }
+      };
+
+      startConnectionTimeout();
+
+      if (isInitiator) {
+        makingOfferRef.current = true;
+        try {
+          const offer = await pc.createOffer();
+          if (pcRef.current !== pc || generation !== peerConnectionGenerationRef.current) return null;
+          await pc.setLocalDescription(offer);
+          const sent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
+          logWebRTC('sdp.offer.sent', { roomId, sent: sent !== false });
+        } catch (error) {
+          console.error('[webrtc]', { event: 'sdp.offer.failed', roomId, error });
+          setConnectionState('failed');
+        } finally {
+          makingOfferRef.current = false;
         }
       }
 
-      const hasVideo = activeRemote.getVideoTracks().some((t) => t.enabled && t.readyState === 'live');
-      const hasAudio = activeRemote.getAudioTracks().some((t) => t.enabled && t.readyState === 'live');
-      setIsRemoteVideoActive(hasVideo);
-      setIsRemoteAudioActive(hasAudio);
+      return pc;
+    })();
 
-      activeRemote.getTracks().forEach((track) => {
-        track.onunmute = () => {
-          if (track.kind === 'video') setIsRemoteVideoActive(true);
-          if (track.kind === 'audio') setIsRemoteAudioActive(true);
-        };
-        track.onmute = () => {
-          if (track.kind === 'video') setIsRemoteVideoActive(false);
-          if (track.kind === 'audio') setIsRemoteAudioActive(false);
-        };
-        track.onended = () => {
-          if (track.kind === 'video') setIsRemoteVideoActive(false);
-          if (track.kind === 'audio') setIsRemoteAudioActive(false);
-        };
-      });
-
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = activeRemote;
-        remoteVideoRef.current.play().catch(() => { });
+    peerConnectionPromiseRef.current = initialization;
+    try {
+      return await initialization;
+    } finally {
+      if (peerConnectionPromiseRef.current === initialization) {
+        peerConnectionPromiseRef.current = null;
       }
-    };
-
-    // Send local ICE candidates to remote partner
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        onSendSignal({
-          type: 'candidate',
-          candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate,
-        });
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      const state = pc.connectionState;
-      if (state === 'connected') {
-        setConnectionState('connected');
-      } else if (state === 'connecting') {
-        setConnectionState('connecting');
-      } else if (state === 'disconnected') {
-        setConnectionState('disconnected');
-      } else if (state === 'failed') {
-        setConnectionState('failed');
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        setConnectionState('connected');
-      }
-    };
-
-    // If initiator, send initial offer
-    if (isInitiator) {
-      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
-        .then((offer) => pc.setLocalDescription(offer))
-        .then(() => {
-          if (pc.localDescription) {
-            onSendSignal({
-              type: 'offer',
-              sdp: pc.localDescription,
-            });
-          }
-        })
-        .catch((err) => {
-          console.warn('Error creating WebRTC offer:', err);
-        });
     }
-
-    return pc;
-  }, [isInitiator, onSendSignal]);
+  }, [isInitiator, onSendSignal, roomId]);
 
   // Keep video refs synced with streams whenever re-rendered
   useEffect(() => {
@@ -468,82 +605,129 @@ export const useWebRTC = ({
 
     processedSignalIdRef.current = incomingSignal.id;
     const signal = incomingSignal.signal;
+    const generation = peerConnectionGenerationRef.current;
+    logWebRTC('signal.received', { roomId, type: signal.type || 'unknown' });
 
-    const handleSignal = async () => {
+    const handleSignal = async (): Promise<void> => {
       try {
-        if (signal.type === 'offer') {
-          let currentPc = pcRef.current;
-          if (!currentPc) {
-            let stream = localStreamRef.current;
-            if (!stream) {
-              stream = await startLocalMedia(isFacingUserRef.current);
-            }
-            if (stream) {
-              currentPc = initPeerConnection(stream);
-            }
-          }
+        if (generation !== peerConnectionGenerationRef.current) return;
 
-          if (!currentPc) return;
-
-          const rtcDesc = signal.sdp?.type ? signal.sdp : (signal.type ? signal : signal.sdp);
-          await currentPc.setRemoteDescription(new RTCSessionDescription(rtcDesc));
-
-          // Process queued ICE candidates
-          while (iceCandidatesQueue.current.length > 0) {
-            const cand = iceCandidatesQueue.current.shift();
-            if (cand) {
-              try {
-                await currentPc.addIceCandidate(new RTCIceCandidate(cand));
-              } catch (e) {
-                console.warn('Queued ICE candidate application failed:', e);
-              }
-            }
-          }
-
-          const answer = await currentPc.createAnswer();
-          await currentPc.setLocalDescription(answer);
-
-          onSendSignal({
-            type: 'answer',
-            sdp: currentPc.localDescription,
-          });
-        } else if (signal.type === 'answer') {
+        if (signal.type === 'candidate' && signal.candidate) {
           const currentPc = pcRef.current;
-          if (currentPc && currentPc.signalingState !== 'stable') {
-            const rtcDesc = signal.sdp?.type ? signal.sdp : (signal.type ? signal : signal.sdp);
-            await currentPc.setRemoteDescription(new RTCSessionDescription(rtcDesc));
-
-            // Process queued ICE candidates
-            while (iceCandidatesQueue.current.length > 0) {
-              const cand = iceCandidatesQueue.current.shift();
-              if (cand) {
-                try {
-                  await currentPc.addIceCandidate(new RTCIceCandidate(cand));
-                } catch (e) {
-                  console.warn('Queued ICE candidate application failed:', e);
-                }
-              }
-            }
-          }
-        } else if (signal.type === 'candidate' && signal.candidate) {
-          const currentPc = pcRef.current;
-          if (currentPc && currentPc.remoteDescription && currentPc.remoteDescription.type) {
-            try {
-              await currentPc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-            } catch (candErr) {
-              console.warn('Error adding ICE candidate:', candErr);
-            }
-          } else {
+          if (ignoreOfferRef.current) return;
+          if (!currentPc?.remoteDescription) {
             iceCandidatesQueue.current.push(signal.candidate);
+            return;
+          }
+
+          const candidate = new RTCIceCandidate(signal.candidate);
+          await currentPc.addIceCandidate(candidate);
+          logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
+          return;
+        }
+
+        if (signal.type !== 'offer' && signal.type !== 'answer') return;
+
+        let currentPc = pcRef.current;
+        if (!currentPc) {
+          let stream = localStreamRef.current;
+          if (!stream) stream = await startLocalMedia(isFacingUserRef.current);
+          if (generation !== peerConnectionGenerationRef.current) return;
+          if (stream) {
+            const initializedPc = await initPeerConnection(stream);
+            if (initializedPc) currentPc = initializedPc;
           }
         }
+        if (!currentPc || generation !== peerConnectionGenerationRef.current) return;
+
+        const description = signal.sdp?.type
+          ? signal.sdp as RTCSessionDescriptionInit
+          : { type: signal.type, sdp: signal.sdp } as RTCSessionDescriptionInit;
+
+        if (signal.type === 'offer') {
+          if (
+            currentPc.remoteDescription?.type === 'offer' &&
+            currentPc.remoteDescription.sdp === description.sdp
+          ) {
+            if (currentPc.localDescription?.type === 'answer') {
+              const sent = onSendSignal({ type: 'answer', sdp: currentPc.localDescription });
+              logWebRTC('sdp.answer.resent', { roomId, sent: sent !== false });
+            }
+            return;
+          }
+
+          const readyForOffer = !makingOfferRef.current &&
+            (currentPc.signalingState === 'stable' || settingRemoteAnswerRef.current);
+          const offerCollision = !readyForOffer;
+          const isPolite = !isInitiator;
+          ignoreOfferRef.current = !isPolite && offerCollision;
+          if (ignoreOfferRef.current) {
+            logWebRTC('sdp.offer.ignored', { roomId, reason: 'offer-collision' });
+            return;
+          }
+          if (offerCollision) {
+            await currentPc.setLocalDescription({ type: 'rollback' });
+          }
+
+          await currentPc.setRemoteDescription(description);
+          if (generation !== peerConnectionGenerationRef.current) return;
+          ignoreOfferRef.current = false;
+          logWebRTC('sdp.offer.received', { roomId });
+        } else {
+          if (
+            currentPc.remoteDescription?.type === 'answer' &&
+            currentPc.remoteDescription.sdp === description.sdp
+          ) {
+            logWebRTC('sdp.answer.duplicate', { roomId });
+            return;
+          }
+          if (currentPc.signalingState !== 'have-local-offer') {
+            logWebRTC('sdp.answer.ignored', { roomId, state: currentPc.signalingState });
+            return;
+          }
+
+          settingRemoteAnswerRef.current = true;
+          try {
+            await currentPc.setRemoteDescription(description);
+          } finally {
+            settingRemoteAnswerRef.current = false;
+          }
+          if (generation !== peerConnectionGenerationRef.current) return;
+          ignoreOfferRef.current = false;
+          logWebRTC('sdp.answer.received', { roomId });
+        }
+
+        const queuedCandidates = iceCandidatesQueue.current.splice(0);
+        for (const candidateInit of queuedCandidates) {
+          try {
+            const candidate = new RTCIceCandidate(candidateInit);
+            await currentPc.addIceCandidate(candidate);
+            logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
+          } catch (error) {
+            if (!ignoreOfferRef.current) {
+              console.warn('[webrtc]', { event: 'ice.candidate.add-failed', roomId, error });
+            }
+          }
+        }
+
+        if (signal.type === 'offer') {
+          const answer = await currentPc.createAnswer();
+          if (generation !== peerConnectionGenerationRef.current) return;
+          await currentPc.setLocalDescription(answer);
+          const sent = onSendSignal({ type: 'answer', sdp: currentPc.localDescription });
+          logWebRTC('sdp.answer.sent', { roomId, sent: sent !== false });
+        }
       } catch (err) {
-        console.warn('Error handling incoming WebRTC signal:', err);
+        console.error('[webrtc]', { event: 'signal.processing.failed', roomId, type: signal.type || 'unknown', error: err });
       }
     };
 
-    handleSignal();
-  }, [incomingSignal, initPeerConnection, onSendSignal, startLocalMedia]);
+    signalProcessingRef.current = signalProcessingRef.current
+      .then(handleSignal)
+      .catch((error) => {
+        console.error('[webrtc]', { event: 'signal.queue.failed', roomId, error });
+      });
+  }, [incomingSignal, initPeerConnection, isInitiator, onSendSignal, roomId, startLocalMedia]);
 
   // Setup on mount and teardown on unmount / room change
   useEffect(() => {
@@ -563,16 +747,33 @@ export const useWebRTC = ({
 
         // Only initialize peer connection if there is an active paired room (not just in waiting queue)
         if (stream && isMounted && roomId && roomId !== 'queue-waiting' && !hasInitializedPcRef.current) {
-          initPeerConnection(stream);
+          await initPeerConnection(stream);
         }
       }
     };
 
-    setup();
+    setup().catch((error) => {
+      console.error('[webrtc]', { event: 'media.setup.failed', roomId, error });
+      setConnectionState('failed');
+    });
 
     return () => {
       isMounted = false;
+      peerConnectionGenerationRef.current++;
+      peerConnectionPromiseRef.current = null;
       hasInitializedPcRef.current = false;
+      makingOfferRef.current = false;
+      settingRemoteAnswerRef.current = false;
+      ignoreOfferRef.current = false;
+      iceRestartInProgressRef.current = false;
+      if (connectionTimeoutRef.current !== null) {
+        window.clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      if (disconnectTimerRef.current !== null) {
+        window.clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
       if (pcRef.current) {
         try {
           pcRef.current.close();
@@ -583,6 +784,7 @@ export const useWebRTC = ({
         remoteStreamRef.current.getTracks().forEach((track) => track.stop());
         remoteStreamRef.current = null;
       }
+      iceCandidatesQueue.current = [];
     };
   }, [roomId, autoStart, mediaMode, isInitiator, initPeerConnection, startLocalMedia]);
 

@@ -1,21 +1,21 @@
-# Hayloo — Privacy-First Accountless Text Conversation Platform
+# OLOGLE — Privacy-First Accountless Text Conversation Platform
 
-Hayloo is a lightweight, zero-footprint web application for interest-based text conversations. Users specify their profession and interests to get matched with compatible strangers in 1:1 sessions or join interest-based Communities (max 30) and Classrooms.
+OLOGLE is a lightweight, zero-footprint web application for interest-based text conversations. Users specify their profession and interests to get matched with compatible strangers in 1:1 sessions or join interest-based Communities (max 30) and Classrooms.
 
 ---
 
 ## 1. Technical & Safety Limitations (Phase 2 & 11 Review)
 
 ### Matchmaking & Coordination
-- **Infrastructure Requirement**: Peer discovery requires a centralized WebSocket signaling service. Two standalone browsers cannot discover or exchange peer state without an intermediary signaling coordinator. Hayloo uses an in-memory Node.js WebSocket engine for this purpose.
-- **Production Hosting**: The standalone Node.js server serves both the app and `/ws`. Static hosting providers such as Netlify cannot run that persistent WebSocket engine; host the Node server separately and set `VITE_WEBSOCKET_URL` to its full secure endpoint (for example, `wss://signals.example.com/ws`) in the frontend build environment.
+- **Infrastructure Requirement**: Peer discovery requires a centralized WebSocket signaling service. Two standalone browsers cannot discover or exchange peer state without an intermediary signaling coordinator. OLOGLE uses an in-memory Node.js WebSocket engine for this purpose.
+- **Production Hosting**: The standalone Node.js server serves both the app and `/ws`. Serverless static hosting providers such as Vercel serve the frontend assets but cannot run persistent WebSocket engines; host the Node server separately and set `VITE_WEBSOCKET_URL` to its full secure endpoint (for example, `wss://your-backend.example.com/ws`) in the Vercel frontend build environment.
 
 ### Content Moderation Boundaries
 - **Imperfect Detection**: Automated rule-based and machine-learning text classification reduces harmful behavior (threats, harassment, sexual solicitation, spam), but cannot reliably detect sarcasm, contextual nuance, adversarial character substitutions (l33tspeak), or evolving coded language.
 - **Fail-Safe Policy**: If classifier certainty is low or evaluation encounters transient delays, the system fails toward delivery rather than false-positive censorship, while escalating repeated user reports to server-side session separation.
 
 ### Accountless Moderation & Cooldowns
-- **Session-Scoped Enforcement**: Because there are no accounts, phone numbers, or passwords, user blocks and cooldown restrictions are bound to the active ephemeral session and connection state. A determined adversary can bypass a session mute by reconnecting with a clean browser session. Hayloo states this limitation plainly rather than making false claims of permanent hardware bans.
+- **Session-Scoped Enforcement**: Because there are no accounts, phone numbers, or passwords, user blocks and cooldown restrictions are bound to the active ephemeral session and connection state. A determined adversary can bypass a session mute by reconnecting with a clean browser session. OLOGLE states this limitation plainly rather than making false claims of permanent hardware bans.
 
 ---
 
@@ -30,7 +30,7 @@ Hayloo is a lightweight, zero-footprint web application for interest-based text 
 └──────────────────────────▲──────────────────────────────┘
                            │ Native WebSocket (/ws)
 ┌──────────────────────────▼──────────────────────────────┐
-│                  Hayloo Real-Time Engine                │
+│                  OLOGLE Real-Time Engine                │
 │   Node.js + ws (Integrated Vite Dev Server & Express)   │
 │                                                         │
 │  ┌──────────────────────┐    ┌──────────────────────┐   │
@@ -103,14 +103,16 @@ npm run build
 # Run production standalone server
 npm start
 ```
-### Netlify Frontend + Render Signaling Server
-Netlify serves the frontend but cannot run the persistent WebSocket signaling server. This repository includes a Render Blueprint (`render.yaml`) for deploying that server separately.
+### Vercel Frontend + Render/Node Signaling Server
+Vercel serves the static frontend but does not host the persistent WebSocket signaling server. This repository includes a Render Blueprint (`render.yaml`) for deploying the backend separately.
 
-1. In Render, create a new Blueprint from this repository and deploy the `ologle-signaling` web service.
-2. Confirm the service is healthy at its `/health` endpoint.
-3. In the Netlify site settings, add the environment variable `VITE_WEBSOCKET_URL` with the value `wss://<your-render-service-host>/ws` (use the actual `.onrender.com` hostname shown in Render).
-4. Trigger a new Netlify deploy so the frontend is built with the signaling server URL.
+1. In Render, create a Blueprint from this repository and deploy the `ologle-signaling` web service. The Vercel site cannot match users until this persistent service is running.
+2. Set `ALLOWED_ORIGINS` on Render to the exact production Vercel/custom-domain origins, comma-separated. The Blueprint includes `ologle.network` and `www.ologle.network`; add the Vercel production domain if users access it directly.
+3. Use a TURN provider that supports Coturn's shared-secret REST authentication. Set `TURN_URLS` to its UDP/TCP/TLS URLs and `TURN_SHARED_SECRET` to the provider's server-side secret in Render only. The API issues credentials valid for 10 minutes by default. Never put the shared secret in Vercel or a `VITE_` variable. Without TURN, the app uses STUN only and calls can fail on restrictive NATs/firewalls.
+4. Confirm `https://<your-render-service-host>/health` returns `{"status":"ok"}`. The ICE configuration endpoint is `/api/ice-servers`; it should return `relayAvailable: true` once TURN is configured.
+5. In Vercel Production, set `VITE_WEBSOCKET_URL` to `wss://<your-render-service-host>/ws`, then redeploy the frontend. The default assumes `ologle-signaling.onrender.com`; use Render's actual hostname if it differs.
+6. Test with two real browser sessions, then inspect each browser's WebRTC `getStats()` selected candidate pair. A `relay` candidate confirms TURN use; a connected WebSocket alone does not prove that media works.
 
-The Netlify site cannot connect users until the signaling service is deployed and this environment variable is set. The free Render plan may spin down while idle, so the first connection after inactivity can take longer.
+Render's free plan may spin down while idle, delaying the first connection. A Render `no-server` 404 means the service/hostname is not deployed or does not match; it is not an indication of the user's internet speed.
 
 *Note: No persistent database (PostgreSQL, MongoDB, Redis) is required. All session state is ephemeral and in-memory by architectural mandate.*

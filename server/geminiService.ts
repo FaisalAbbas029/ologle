@@ -42,7 +42,7 @@ export async function generateAIPracticeReply(input: {
     .map(({ role, text }) => `${role === 'assistant' ? partner.name : 'User'}: ${text}`)
     .join('\n');
 
-  const prompt = `You are ${partner.name}, an AI practice partner on Hayloo. You are transparently an AI peer, never misrepresenting yourself as a real human.
+  const prompt = `You are ${partner.name}, an AI practice partner on OLOGLE. You are transparently an AI peer, never misrepresenting yourself as a real human.
 Partner profession: ${partner.profession}
 Partner bio: ${partner.bio}
 Partner conversation style: ${partner.style}
@@ -284,7 +284,7 @@ export async function generateIcebreakerWithGemini(
   const interestsList = interests.filter(Boolean).join(', ') || 'technology, creative ideas';
   const profInfo = [professionA, professionB].filter(Boolean).join(' and ');
 
-  const prompt = `You are an expert conversational catalyst for "Hayloo", a privacy-focused intellectual chat platform.
+  const prompt = `You are an expert conversational catalyst for "OLOGLE", a privacy-focused intellectual chat platform.
 Generate 3 distinct, thought-provoking, friendly conversation starter questions for two strangers connecting via shared interests.
 Shared Interests: ${interestsList}
 Professions involved: ${profInfo || 'Knowledge workers / enthusiasts'}

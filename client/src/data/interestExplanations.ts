@@ -1,6 +1,6 @@
 /**
  * Interest Match Explanations & Conversation Starters
- * Provides why specific interests are matched in Hayloo's matchmaking engine.
+ * Provides why specific interests are matched in OLOGLE's matchmaking engine.
  */
 
 export interface InterestExplanation {

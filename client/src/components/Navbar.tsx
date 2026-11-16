@@ -56,15 +56,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     const loadProfile = () => {
       try {
-        const saved = localStorage.getItem('hayloo_user_profile');
+        const saved = (localStorage.getItem('ologle_user_profile') || localStorage.getItem('hayloo_user_profile'));
         if (saved) {
           setProfileData(JSON.parse(saved));
         }
       } catch {}
     };
     loadProfile();
-    window.addEventListener('hayloo_profile_updated', loadProfile);
-    return () => window.removeEventListener('hayloo_profile_updated', loadProfile);
+    window.addEventListener('ologle_profile_updated', loadProfile);
+    return () => window.removeEventListener('ologle_profile_updated', loadProfile);
   }, []);
 
   // Close on Escape key

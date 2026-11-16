@@ -1,10 +1,11 @@
 /**
- * Hayloo Visitor Identification & Anonymous Client Fingerprint Service
+ * OLOGLE Visitor Identification & Anonymous Client Fingerprint Service
  * Generates and persists a high-entropy, unique visitorId in localStorage.
  * Manages blocked stranger IDs without requiring an account or login.
  */
 
-const VISITOR_ID_STORAGE_KEY = 'hayloo_visitor_id';
+const VISITOR_ID_STORAGE_KEY = 'ologle_visitor_id';
+const LEGACY_VISITOR_ID_STORAGE_KEY = 'hayloo_visitor_id';
 const BLOCKED_STRANGERS_STORAGE_KEY = 'blocked_strangers';
 
 /**
@@ -73,8 +74,9 @@ function generateUUID(): string {
  */
 export function getVisitorId(): string {
   try {
-    const existing = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
+    const existing = localStorage.getItem(VISITOR_ID_STORAGE_KEY) || localStorage.getItem(LEGACY_VISITOR_ID_STORAGE_KEY);
     if (existing && existing.trim().length > 6) {
+      localStorage.setItem(VISITOR_ID_STORAGE_KEY, existing.trim());
       return existing.trim();
     }
   } catch {

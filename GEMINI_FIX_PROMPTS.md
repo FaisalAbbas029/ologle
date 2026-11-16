@@ -1,6 +1,6 @@
-# GEMINI_FIX_PROMPTS.md — Hayloo Gemini Prompt Library
+# GEMINI_FIX_PROMPTS.md — OLOGLE Gemini Prompt Library
 
-Standalone extract of the Gemini prompt library from the document "Hayloo Audit Report and Gemini Repair Prompts" (audit date 20 Oct 2026). The original document was not modified. Section numbers below match the original document so you can cross-reference.
+Standalone extract of the Gemini prompt library from the document "OLOGLE Audit Report and Gemini Repair Prompts" (audit date 20 Oct 2026). The original document was not modified. Section numbers below match the original document so you can cross-reference.
 
 **Contents:** 22 prompts (SAFE-00, BLD-01, VER-01, SEC-01, SEC-02, SEC-03, PRV-01, ARCH-01, REL-01, PROD-02, PROD-03, A11Y-01, UX-02, PROD-01, UI-01, SEO-01, SEO-02, GROW-01, ANL-01, PERF-01, QA-01, REL-02), the global rules, the closing block, the index, the coverage map, the execution-order rules, the manual-task list, and the master checklist.
 
@@ -50,7 +50,7 @@ Then follow these rules:
 ## Section 15: Exact Global Rules (paste FIRST)
 
 ```
-You are working inside the existing Hayloo project. Inspect the real files before editing. Do not create a replacement application, invent file paths, or overwrite the project with a template.
+You are working inside the existing OLOGLE project. Inspect the real files before editing. Do not create a replacement application, invent file paths, or overwrite the project with a template.
 
 Preserve the existing architecture, working functionality, API contracts, authentication, matching behavior, and established red, black, and white design system unless a specific, justified change is required.
 
@@ -97,11 +97,11 @@ Priority: P0 do first, P1 before launch, P2 important, P3 polish. "Independent" 
 | BLD-01 | BLD-A, BLD-B, SEC-I | P0 | SAFE-00 | `package.json`, `tsconfig.json`, `server.ts`, `src/App.tsx` | No (shares `server.ts`) | Clean install, lint, build, start |
 | VER-01 | SEC-F, SEC-H, A11Y img alt, SEO-C double h1, matching (not verified) | P0 | BLD-01 | read-only | Yes | Verification report, no edits |
 | SEC-01 | SEC-A, SEC-B, SEC-D | P0 | BLD-01 | `server.ts`, `server/geminiService.ts`, `vite.config.ts` | No | Safe limits, headers, compression |
-| SEC-02 | SEC-E, SEC-F, SEC-G, SEC-H | P0 | BLD-01, VER-01 | `server.ts`, `server/serverCore.ts`, `haylooSocket.ts` | No (after SEC-01) | Validated, bounded WebSocket engine |
+| SEC-02 | SEC-E, SEC-F, SEC-G, SEC-H | P0 | BLD-01, VER-01 | `server.ts`, `server/serverCore.ts`, `OLOGLESocket.ts` | No (after SEC-01) | Validated, bounded WebSocket engine |
 | SEC-03 | SEC-C | P0 | BLD-01 | `firestore.rules`, `userService.ts`, `botFirewall.ts` | Yes | Locked trust fields and metrics (manual deploy) |
 | PRV-01 | PRV-A, PRV-B | P1 | SEC-01 | privacy views, `visitorService.ts`, `index.html` | Partly (`index.html`) | Honest privacy story, fewer trackers |
 | ARCH-01 | ARCH-A, ARCH-B | P1 | SEC-01, SEC-02 | `vite.config.ts`, `serverCore.ts`, `App.tsx`, `OneToOneChatView.tsx` | No | Shared API, smaller modules |
-| REL-01 | REL-A | P1 | SEC-02, ARCH-01 | `server.ts`, `useWebRTC.ts`, `haylooSocket.ts` | No | Health checks, shutdown, TURN config |
+| REL-01 | REL-A | P1 | SEC-02, ARCH-01 | `server.ts`, `useWebRTC.ts`, `OLOGLESocket.ts` | No | Health checks, shutdown, TURN config |
 | PROD-02 | matching reliability | P1 | VER-01, ARCH-01, REL-01 | `matchmaker.ts`, `serverCore.ts`, `MatchingView.tsx` | No | Reliable queue, skip, reconnect |
 | PROD-03 | moderation and abuse | P1 | SEC-02, PRV-01 | `safetyAgent.ts`, block/report modals, `visitorService.ts` | No | Server-enforced block/report |
 | A11Y-01 | A11Y-A | P2 | ARCH-01 | modals, `index.css`, `Navbar.tsx` | No | WCAG 2.2 AA fixes |
@@ -155,7 +155,7 @@ PROMPT BLD-01: Fix the build, types and dependencies
 
 - Add `@types/react` and `@types/react-dom` matching React 19 as devDependencies. Re-run `npm run lint` and fix remaining errors properly (real types, not `any` casts or `@ts-ignore`).
 - Fix the `serverCore.ts` line-494 type error with a proper guard.
-- Move `@rollup/rollup-win32-x64-msvc` out of `dependencies` (remove it, or make it an `optionalDependencies` entry) and confirm a clean install works on Linux. Remove the duplicate `vite` entry. Rename the package to `hayloo`.
+- Move `@rollup/rollup-win32-x64-msvc` out of `dependencies` (remove it, or make it an `optionalDependencies` entry) and confirm a clean install works on Linux. Remove the duplicate `vite` entry. Rename the package to `OLOGLE`.
 - Make the server use `process.env.PORT || 3000`.
 - Confirm `.env` is git-ignored and `.env.example` contains only placeholders.
 - Add a `typecheck` script if it helps, but keep `lint` working.
@@ -206,7 +206,7 @@ PROMPT SEC-01: Harden the Express server (limits, proxy trust, headers, compress
 
 ### SEC-02
 
-**Run notes:** Findings SEC-E, SEC-F, SEC-G, SEC-H · Priority P0 · Prerequisites: BLD-01, VER-01 · Files: `server.ts`, `server/serverCore.ts`, `haylooSocket.ts` · Independent: No (run after SEC-01) · Expected result: validated, bounded WebSocket engine. SEC-F and SEC-H are suspected: verify them (VER-01) before changing.
+**Run notes:** Findings SEC-E, SEC-F, SEC-G, SEC-H · Priority P0 · Prerequisites: BLD-01, VER-01 · Files: `server.ts`, `server/serverCore.ts`, `OLOGLESocket.ts` · Independent: No (run after SEC-01) · Expected result: validated, bounded WebSocket engine. SEC-F and SEC-H are suspected: verify them (VER-01) before changing.
 
 ````
 PROMPT SEC-02: Validate WebSocket input and harden session identity
@@ -215,7 +215,7 @@ PROMPT SEC-02: Validate WebSocket input and harden session identity
 
 **Context:** `server.ts` creates `new WebSocketServer({ server, path: '/ws' })` with no `maxPayload` (the `ws` default is 100 MiB) and no Origin check. `server/serverCore.ts` `processMessage` (about line 357) does `JSON.parse` then switches on `msg.type` with no schema validation. Several handlers call `.trim()` on client fields without a type check (about lines 1098, 1237, 1321, 1342). `handleWebRTCSignal` (about line 896) forwards `signal: any` to the paired partner with no size or shape check. Session and visitor IDs come from `Math.random()` (about lines 284 and 291). The client also contains an `AdminModerationView` while no admin concept exists in `serverCore.ts`.
 
-**Files to inspect:** `server.ts`, `server/serverCore.ts` (all message handlers, `registerSession`, `processMessage`), `server/safetyAgent.ts`, `server/matchmaker.ts`, `src/services/haylooSocket.ts`, `src/App.tsx` (where the admin view is reachable), `src/components/AdminModerationView.tsx`.
+**Files to inspect:** `server.ts`, `server/serverCore.ts` (all message handlers, `registerSession`, `processMessage`), `server/safetyAgent.ts`, `server/matchmaker.ts`, `src/services/OLOGLESocket.ts`, `src/App.tsx` (where the admin view is reachable), `src/components/AdminModerationView.tsx`.
 
 **Instructions:**
 
@@ -269,7 +269,7 @@ PROMPT PRV-01: Make privacy claims match reality
 
 **Objective:** Remove the contradiction between "accountless, zero logs, zero localStorage" and what the code does, and reduce third-party tracking.
 
-**Context:** README and `index.html` meta describe an accountless, zero-logs platform. The code uses `localStorage` in `OneToOneChatView.tsx`, `useChatTranslation.ts`, `useTheme.ts`, `soundService.ts`, `CookieConsentBanner.tsx` and `visitorService.ts` (which also builds a persistent canvas/hardware fingerprint and a persistent `hayloo_visitor_id`). Firebase Google sign-in stores email in Firestore. `index.html` loads Google Translate through a protocol-relative URL (`//translate.google.com/...`); Lighthouse flagged 3 insecure requests, 26 third-party cookies and an untitled iframe.
+**Context:** README and `index.html` meta describe an accountless, zero-logs platform. The code uses `localStorage` in `OneToOneChatView.tsx`, `useChatTranslation.ts`, `useTheme.ts`, `soundService.ts`, `CookieConsentBanner.tsx` and `visitorService.ts` (which also builds a persistent canvas/hardware fingerprint and a persistent `OLOGLE_visitor_id`). Firebase Google sign-in stores email in Firestore. `index.html` loads Google Translate through a protocol-relative URL (`//translate.google.com/...`); Lighthouse flagged 3 insecure requests, 26 third-party cookies and an untitled iframe.
 
 **Files to inspect:** `PRIVACY.md`, `README.md`, `src/components/PrivacyView.tsx`, `PrivacyInspectorModal.tsx`, `CookieConsentBanner.tsx`, `TermsView.tsx`, `src/services/visitorService.ts`, `src/services/firebase.ts`, `src/services/userService.ts`, `index.html`.
 
@@ -307,7 +307,7 @@ PROMPT ARCH-01: Remove dev/prod API duplication and split the largest files
 **Instructions:**
 
 - Extract the API routes into a shared module (for example `server/api.ts` exporting an Express router) used by both `server.ts` and the Vite dev plugin (use `server.middlewares.use(router)`), so dev equals prod. Do this after SEC-01 so the hardened version is the one shared.
-- Split `serverCore.ts` by responsibility (session registry, 1:1 matching handlers, communities, classrooms, moderation/reporting, WebRTC relay) behind the same public `haylooEngine` interface.
+- Split `serverCore.ts` by responsibility (session registry, 1:1 matching handlers, communities, classrooms, moderation/reporting, WebRTC relay) behind the same public `OLOGLEEngine` interface.
 - Split `App.tsx`: move view routing, socket wiring and per-feature state into hooks/context providers. Split `OneToOneChatView.tsx` into message list, composer, translation/subtitle controls and call controls.
 - Move shared message types so client and server import the same definitions (check how `src/types/index.ts` and the server types differ).
 - Do it in small commits: one extraction at a time, running lint, build and a smoke test after each.
@@ -323,7 +323,7 @@ PROMPT ARCH-01: Remove dev/prod API duplication and split the largest files
 
 ### REL-01
 
-**Run notes:** Finding REL-A · Priority P1 · Prerequisites: SEC-02, ARCH-01 · Files: `server.ts`, `useWebRTC.ts`, `haylooSocket.ts` · Independent: No · Expected result: health checks, shutdown, TURN config. Manual tasks: TURN credentials, host-level HTTPS, uptime monitoring account.
+**Run notes:** Finding REL-A · Priority P1 · Prerequisites: SEC-02, ARCH-01 · Files: `server.ts`, `useWebRTC.ts`, `OLOGLESocket.ts` · Independent: No · Expected result: health checks, shutdown, TURN config. Manual tasks: TURN credentials, host-level HTTPS, uptime monitoring account.
 
 ````
 PROMPT REL-01: Production reliability and deployment
@@ -332,7 +332,7 @@ PROMPT REL-01: Production reliability and deployment
 
 **Context:** All sessions, queues and rooms live in process memory, so a restart drops every conversation. There is no health endpoint, no graceful shutdown, no structured logging. WebRTC uses only public Google STUN servers (`src/hooks/useWebRTC.ts` lines ~22-26), so calls will fail for users behind symmetric NATs or strict corporate/mobile networks.
 
-**Files to inspect:** `server.ts`, `server/serverCore.ts` (session TTL logic around lines 270-280), `src/hooks/useWebRTC.ts`, `src/components/ConnectionLostView.tsx`, `ConnectionBanner.tsx`, `src/services/haylooSocket.ts`.
+**Files to inspect:** `server.ts`, `server/serverCore.ts` (session TTL logic around lines 270-280), `src/hooks/useWebRTC.ts`, `src/components/ConnectionLostView.tsx`, `ConnectionBanner.tsx`, `src/services/OLOGLESocket.ts`.
 
 **Instructions:**
 
@@ -414,7 +414,7 @@ PROMPT SEO-01: robots.txt, sitemap, metadata, social cards, structured data
 
 **Objective:** Fix the Lighthouse SEO failure and add the missing basics.
 
-**Context:** There is no `public/` directory. `server.ts` ends with `app.get('*', ... sendFile(index.html))`, so `/robots.txt` returns HTML (Lighthouse: "robots.txt is not valid, 64 errors"). `index.html` has title, description, keywords, `robots: index, follow`, basic Open Graph (type, site_name, title, description, url `https://heyloo.network`) but **no** `og:image`, Twitter card, canonical, or JSON-LD. The brand is spelled both Hayloo and Heyloo (zip name, favicon comment, domain).
+**Context:** There is no `public/` directory. `server.ts` ends with `app.get('*', ... sendFile(index.html))`, so `/robots.txt` returns HTML (Lighthouse: "robots.txt is not valid, 64 errors"). `index.html` has title, description, keywords, `robots: index, follow`, basic Open Graph (type, site_name, title, description, url `https://heyloo.network`) but **no** `og:image`, Twitter card, canonical, or JSON-LD. The brand is spelled both OLOGLE and Heyloo (zip name, favicon comment, domain).
 
 **Files to inspect:** `index.html`, `server.ts`, `vite.config.ts`, `src/App.tsx` (title handling around line 101), `README.md`, `metadata.json`.
 
@@ -624,7 +624,7 @@ PROMPT PROD-02: Matching, queue, skip and reconnection reliability
 
 **Objective:** Make pairing correct and the waiting experience honest and recoverable.
 
-**Audit evidence:** Pairing happens in `serverCore.ts` (`pairSessions`, about line 608, which re-enqueues a session if its candidate vanished). `server.ts` calls `haylooEngine.registerSession(ws, undefined, ip)`, so the server never receives an `existingId`, which suggests a reconnecting client gets a new session (confirm; README describes a 5-minute session TTL). Skip and message cooldowns exist. UI states: `MatchingView.tsx`, `NoMatchView.tsx`, `ConnectionLostView.tsx`, `ConnectionBanner.tsx`. Depends on VER-01 findings.
+**Audit evidence:** Pairing happens in `serverCore.ts` (`pairSessions`, about line 608, which re-enqueues a session if its candidate vanished). `server.ts` calls `OLOGLEEngine.registerSession(ws, undefined, ip)`, so the server never receives an `existingId`, which suggests a reconnecting client gets a new session (confirm; README describes a 5-minute session TTL). Skip and message cooldowns exist. UI states: `MatchingView.tsx`, `NoMatchView.tsx`, `ConnectionLostView.tsx`, `ConnectionBanner.tsx`. Depends on VER-01 findings.
 
 **Steps:**
 
@@ -650,7 +650,7 @@ PROMPT PROD-03: Blocking, reporting and abuse prevention
 
 **Objective:** Make safety controls enforceable on the server and honest to users.
 
-**Audit evidence:** README states blocks and cooldowns are session-scoped and can be bypassed by reconnecting. `visitorService.ts` stores `blocked_strangers` in localStorage and a persistent `hayloo_visitor_id`. Server tracks `blockedSessionIds`, `blockedVisitorIds`, `violationCount`, `isMutedUntil`, `isRestrictedUntil`, a 10-minute report rolling window. UI: `BlockAndReportModal.tsx`, `BlockModal.tsx`, `ReportModal.tsx`, `SafetyWarningBanner.tsx`, `RestrictionView.tsx`.
+**Audit evidence:** README states blocks and cooldowns are session-scoped and can be bypassed by reconnecting. `visitorService.ts` stores `blocked_strangers` in localStorage and a persistent `OLOGLE_visitor_id`. Server tracks `blockedSessionIds`, `blockedVisitorIds`, `violationCount`, `isMutedUntil`, `isRestrictedUntil`, a 10-minute report rolling window. UI: `BlockAndReportModal.tsx`, `BlockModal.tsx`, `ReportModal.tsx`, `SafetyWarningBanner.tsx`, `RestrictionView.tsx`.
 
 **Steps:**
 

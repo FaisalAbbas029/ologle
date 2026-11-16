@@ -7,7 +7,7 @@ export const CookieConsentBanner: React.FC = () => {
 
   useEffect(() => {
     try {
-      const consent = localStorage.getItem('hayloo_cookie_consent');
+      const consent = localStorage.getItem('ologle_cookie_consent') || localStorage.getItem('hayloo_cookie_consent');
       if (!consent) {
         const timer = setTimeout(() => setIsVisible(true), 1200);
         return () => clearTimeout(timer);
@@ -17,7 +17,7 @@ export const CookieConsentBanner: React.FC = () => {
 
   const handleConfirm = () => {
     try {
-      localStorage.setItem('hayloo_cookie_consent', 'confirmed');
+      localStorage.setItem('ologle_cookie_consent', 'confirmed');
     } catch {}
     setIsVisible(false);
   };

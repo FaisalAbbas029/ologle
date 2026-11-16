@@ -19,7 +19,7 @@ interface ProfileViewProps {
   onBack?: () => void;
 }
 
-const STORAGE_KEY = 'hayloo_user_profile';
+const STORAGE_KEY = 'ologle_user_profile';
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ onSave, onBack }) => {
   const { t } = useLanguage();
@@ -84,7 +84,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSave, onBack }) => {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('hayloo_profile_updated', { detail: updated }));
+      window.dispatchEvent(new CustomEvent('ologle_profile_updated', { detail: updated }));
     } catch {}
 
     setSavedSuccess(true);

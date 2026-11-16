@@ -200,15 +200,15 @@ export const LandingView: React.FC<LandingViewProps> = ({
           sessionMode={sessionMode}
           onSessionModeChange={onSessionModeChange}
           onFindMatch={(prof, tags, cCode, sMode) => {
-            const savedCountry = cCode || localStorage.getItem('hayloo_selected_country') || selectedCountry || 'GLOBAL';
+            const savedCountry = cCode || (localStorage.getItem('ologle_selected_country') || localStorage.getItem('hayloo_selected_country')) || selectedCountry || 'GLOBAL';
             if (onSelectCountry) {
               onSelectCountry(savedCountry);
             }
-            const savedProf = prof || localStorage.getItem('hayloo_user_profession') || profession || '';
+            const savedProf = prof || (localStorage.getItem('ologle_user_profession') || localStorage.getItem('hayloo_user_profession')) || profession || '';
             if (onProfessionChange) {
               onProfessionChange(savedProf);
             }
-            const rawMode = sMode || sessionMode || localStorage.getItem('hayloo_session_mode') || 'video';
+            const rawMode = sMode || sessionMode || (localStorage.getItem('ologle_session_mode') || localStorage.getItem('hayloo_session_mode')) || 'video';
             const normalizedMode: 'video' | 'voice' | 'messaging' =
               rawMode === 'voice' || rawMode === 'AUDIO'
                 ? 'voice'
@@ -224,7 +224,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             }
           }}
           onStartExploring={() => {
-            const rawMode = sessionMode || localStorage.getItem('hayloo_session_mode') || 'video';
+            const rawMode = sessionMode || (localStorage.getItem('ologle_session_mode') || localStorage.getItem('hayloo_session_mode')) || 'video';
             const normalizedMode: 'video' | 'voice' | 'messaging' =
               rawMode === 'voice' || rawMode === 'AUDIO'
                 ? 'voice'

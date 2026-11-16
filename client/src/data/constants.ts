@@ -1,5 +1,5 @@
 /**
- * Hayloo Application Constants & Validation
+ * OLOGLE Application Constants & Validation
  */
 
 import { RECOGNIZED_PROFESSIONS, OCCUPATIONAL_STEMS, NON_PROFESSION_WORDS } from './professionsData.ts';
@@ -332,7 +332,7 @@ export const PRIVACY_HIGHLIGHTS = [
   },
 ];
 
-export const HAYLOO_PROFESSIONS = [
+export const OLOGLE_PROFESSIONS = [
   { id: 'software-development', slug: 'software-development', name: 'Software Development', desc: 'Full-stack, systems architecture, mobile, and distributed engineering.', tag: 'ENG' },
   { id: 'data-ai', slug: 'data-ai', name: 'Data & Artificial Intelligence', desc: 'Machine learning, computer vision, deep learning, and analytics.', tag: 'AI' },
   { id: 'design-creative', slug: 'design-creative', name: 'Design & Creative', desc: 'Product design, UX research, brand identity, and design systems.', tag: 'DES' },
@@ -346,9 +346,9 @@ export const HAYLOO_PROFESSIONS = [
   { id: 'engineering', slug: 'engineering', name: 'Engineering', desc: 'Electrical, mechanical, robotics, civil, and hardware systems.', tag: 'HW' },
   { id: 'students-early-career', slug: 'students-early-career', name: 'Students & Early-Career', desc: 'University projects, career transitions, internships, and mentorship.', tag: 'STU' },
 ];
-export const OLOGLE_PROFESSIONS = HAYLOO_PROFESSIONS;
+export const HAYLOO_PROFESSIONS = OLOGLE_PROFESSIONS;
 
-export const HAYLOO_PURPOSES = [
+export const OLOGLE_PURPOSES = [
   { id: 'EXCHANGE_IDEAS', value: 'EXCHANGE_IDEAS', label: 'Exchange Industry Ideas' },
   { id: 'MEET_PEER', value: 'MEET_PEER', label: 'Meet a Peer' },
   { id: 'FIND_MENTOR', value: 'FIND_MENTOR', label: 'Find a Mentor' },
@@ -365,7 +365,7 @@ export const HAYLOO_PURPOSES = [
   { id: 'LANGUAGE_EXCHANGE', value: 'LANGUAGE_EXCHANGE', label: 'Language & Culture Exchange' },
   { id: 'SPONTANEOUS', value: 'SPONTANEOUS', label: 'Surprise Me (Spontaneous)' },
 ];
-export const OLOGLE_PURPOSES = HAYLOO_PURPOSES;
+export const HAYLOO_PURPOSES = OLOGLE_PURPOSES;
 
 export const STARTER_PROMPTS = [
   "What are you currently building or working on?",

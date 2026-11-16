@@ -1,7 +1,7 @@
 import React from 'react';
 import WifiOff from 'lucide-react/dist/esm/icons/wifi-off.js';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
-import { ConnectionStatus } from '../services/haylooSocket.ts';
+import { ConnectionStatus } from '../services/ologleSocket.ts';
 
 interface ConnectionBannerProps {
   status: ConnectionStatus;
@@ -15,6 +15,15 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
   onReconnectNow,
 }) => {
   if (status === 'connected') return null;
+
+  const isReconnecting = status === 'reconnecting';
+  const headline = isReconnecting
+    ? 'Reconnecting to signaling server...'
+    : 'Connecting to signaling server...';
+
+  const subtext = retrySecondsLeft > 0
+    ? `Retrying in ${retrySecondsLeft}s — server may be waking up (first connect can take ~30s)`
+    : 'Waiting for the matching server...';
 
   return (
     <div
@@ -31,14 +40,10 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
         <div className="flex flex-col">
           <span className="font-semibold text-white flex items-center gap-1.5">
             <WifiOff className="w-3.5 h-3.5 text-amber-400" />
-            {status === 'reconnecting'
-              ? 'Reconnecting to privacy relay...'
-              : 'Connecting to secure relay...'}
+            {headline}
           </span>
           <span className="text-[11px] text-amber-300/80">
-            {retrySecondsLeft > 0
-              ? `Retrying in ${retrySecondsLeft}s`
-              : 'Negotiating zero-persistence socket...'}
+            {subtext}
           </span>
         </div>
       </div>

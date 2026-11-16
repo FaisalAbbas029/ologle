@@ -27,7 +27,7 @@ export interface ProfileModalProps {
   onSaved?: (profile: UserProfileData) => void;
 }
 
-export const STORAGE_KEY = 'hayloo_user_profile';
+export const STORAGE_KEY = 'ologle_user_profile';
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onSaved }) => {
   const { t } = useLanguage();
@@ -117,7 +117,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onS
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profileData));
-      window.dispatchEvent(new CustomEvent('hayloo_profile_updated', { detail: profileData }));
+      window.dispatchEvent(new CustomEvent('ologle_profile_updated', { detail: profileData }));
     } catch {}
 
     setSavedSuccess(true);

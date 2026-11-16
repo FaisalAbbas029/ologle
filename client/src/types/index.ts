@@ -24,21 +24,21 @@ export type AppView =
   | 'connection_lost'
   | 'restriction';
 
-export interface HaylooProfession {
+export interface OlogleProfession {
   id: string;
   slug: string;
   name: string;
   desc: string;
   tag: string;
 }
-export type OlogleProfession = HaylooProfession;
+export type HaylooProfession = OlogleProfession;
 
-export interface HaylooPurpose {
+export interface OloglePurpose {
   id: string;
   value: string;
   label: string;
 }
-export type OloglePurpose = HaylooPurpose;
+export type HaylooPurpose = OloglePurpose;
 
 export interface CandidatePeer {
   id: string;
@@ -209,7 +209,7 @@ export type ClientMessage =
   | { type: 'REPORT_USER'; category: string; details?: string }
   | { type: 'BLOCK_USER' }
   | { type: 'block_partner'; blockerId: string; blockedId: string; reason: string }
-  | { type: 'WEBRTC_SIGNAL'; signal: any }
+  | { type: 'WEBRTC_SIGNAL'; roomId?: string; signal: any }
   | { type: 'VOICE_TRANSCRIPT'; text: string; language: string; isFinal: boolean; id?: string; timestamp?: number }
   | { type: 'MESSAGE_READ'; messageId: string }
   | { type: 'GET_EXPLORE_DATA' }

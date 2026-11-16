@@ -11,8 +11,9 @@ import { InputVoiceTranscribeButton } from './InputVoiceTranscribeButton.tsx';
 import { CountryFlag } from './CountryFlag.tsx';
 import { soundService } from '../services/soundService.ts';
 import { useChatTranslation } from '../hooks/useChatTranslation.ts';
-import { haylooSocket } from '../services/haylooSocket.ts';
+import { ologleSocket } from '../services/ologleSocket.ts';
 import { translateCaption } from '../services/translationService.ts';
+import { getBackendApiUrl } from '../services/apiConfig.ts';
 import { analyzeInFlightText } from '../utils/zeroStorageModeration.ts';
 import { validateChatMessage } from '../utils/chatSafety.ts';
 import { LocalStreamModerator } from '../services/localStreamModeration.ts';
@@ -77,7 +78,7 @@ interface OneToOneChatViewProps {
   messages: ChatMessage[];
   partnerLeftReason: string | null;
   incomingSignal: { signal: any; id: number } | null;
-  onSendSignal: (signal: any) => void;
+  onSendSignal: (signal: any) => boolean | void;
   onSendMessage: (text: string) => void;
   onNextPerson: () => void;
   onEndConversation: () => void;
@@ -234,7 +235,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('hayloo_user_profile');
+      const saved = localStorage.getItem('ologle_user_profile') || localStorage.getItem('hayloo_user_profile');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.name || parsed.countryFlag || parsed.country || parsed.countryCode || parsed.age || parsed.professionLevel)) {
@@ -298,13 +299,14 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
   // Language Selection & Real-Time Voice Captioning States
   const [spokenLanguage, setSpokenLanguage] = useState<string>(() => {
-    return localStorage.getItem('hayloo_spoken_lang') || 'en-US';
+    return localStorage.getItem('ologle_spoken_lang') || localStorage.getItem('hayloo_spoken_lang') || 'en-US';
   });
   const [subtitleLanguage, setSubtitleLanguage] = useState<string>(() => {
-    return localStorage.getItem('hayloo_subtitle_lang') || 'en-US';
+    return localStorage.getItem('ologle_subtitle_lang') || localStorage.getItem('hayloo_subtitle_lang') || 'en-US';
   });
   const [isVoiceTranscribeEnabled, setIsVoiceTranscribeEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('hayloo_captions_on') !== 'false';
+    const saved = localStorage.getItem('ologle_captions_on') ?? localStorage.getItem('hayloo_captions_on');
+    return saved !== 'false';
   });
   const [isCaptionsVisible, setIsCaptionsVisible] = useState<boolean>(true);
   const [remoteSubtitle, setRemoteSubtitle] = useState<SubtitleData | null>(null);
@@ -315,7 +317,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
       if (next && !isVoiceTranscribeEnabled) {
         setIsVoiceTranscribeEnabled(true);
         try {
-          localStorage.setItem('hayloo_captions_on', 'true');
+          localStorage.setItem('ologle_captions_on', 'true');
         } catch {}
       }
       return next;
@@ -341,20 +343,21 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
   } = useChatTranslation({
     messages,
     onUpdateMessage: onUpdateMessage || (() => {}),
-    storagePrefix: 'hayloo_1on1',
+    storagePrefix: 'ologle_1on1',
     defaultTargetLanguage: subtitleLanguage || 'en-US',
   });
 
   const readMessagesReportedRef = useRef<Set<string>>(new Set());
 
   const [showTimeOnHover, setShowTimeOnHover] = useState<boolean>(() => {
-    return localStorage.getItem('hayloo_hover_time') !== 'false';
+    const saved = localStorage.getItem('ologle_hover_time') ?? localStorage.getItem('hayloo_hover_time');
+    return saved !== 'false';
   });
 
   const toggleShowTimeOnHover = () => {
     setShowTimeOnHover((prev) => {
       const next = !prev;
-      localStorage.setItem('hayloo_hover_time', next ? 'true' : 'false');
+      localStorage.setItem('ologle_hover_time', next ? 'true' : 'false');
       return next;
     });
   };
@@ -368,7 +371,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
       if (readMessagesReportedRef.current.has(messageId)) return;
       readMessagesReportedRef.current.add(messageId);
 
-      haylooSocket.send({
+      ologleSocket.send({
         type: 'MESSAGE_READ',
         messageId,
       });
@@ -436,7 +439,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
       if (event.isInappropriate) {
         setIsRemoteStreamBlurred(true);
         // Ephemerally notify server without recording any media
-        haylooSocket.send({
+        ologleSocket.send({
           type: 'FLAG_LIVE_STREAM',
           reason: event.reason === 'excessive_exposure' ? 'Excessive exposure detected by on-device model' : 'Harmful visual pattern detected by on-device model',
           confidence: event.confidence,
@@ -465,7 +468,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
           onSendMessage(text.trim());
         }
       } else {
-        haylooSocket.send({
+        ologleSocket.send({
           type: 'VOICE_TRANSCRIPT',
           text,
           language,
@@ -532,7 +535,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
   // Handle incoming voice transcripts, code pad updates, and typing indicators
   useEffect(() => {
-    const unsubscribe = haylooSocket.subscribe((msg: any) => {
+    const unsubscribe = ologleSocket.subscribe((msg: any) => {
       if (msg.type === 'VOICE_TRANSCRIPT') {
         setIsPartnerSpeaking(true);
         if (partnerSpeakingTimeoutRef.current) clearTimeout(partnerSpeakingTimeoutRef.current);
@@ -597,18 +600,18 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
   const handleSelectSpokenLanguage = (code: string) => {
     setSpokenLanguage(code);
-    localStorage.setItem('hayloo_spoken_lang', code);
+    localStorage.setItem('ologle_spoken_lang', code);
   };
 
   const handleSelectSubtitleLanguage = (code: string) => {
     setSubtitleLanguage(code);
-    localStorage.setItem('hayloo_subtitle_lang', code);
+    localStorage.setItem('ologle_subtitle_lang', code);
   };
 
   const handleToggleVoiceTranscribe = () => {
     setIsVoiceTranscribeEnabled((prev) => {
       const next = !prev;
-      localStorage.setItem('hayloo_captions_on', next ? 'true' : 'false');
+      localStorage.setItem('ologle_captions_on', next ? 'true' : 'false');
       return next;
     });
   };
@@ -706,7 +709,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
     setIsIcebreakerLoading(true);
     setShowIcebreakerDropdown(true);
     try {
-      const res = await fetch('/api/suggest-icebreaker', {
+      const res = await fetch(getBackendApiUrl('/api/suggest-icebreaker'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -741,13 +744,13 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
     // Emit typing indicator
     if (!typingTimeoutRef.current) {
-      haylooSocket.send({ type: 'TYPING_INDICATOR', isTyping: true });
+      ologleSocket.send({ type: 'TYPING_INDICATOR', isTyping: true });
     } else {
       clearTimeout(typingTimeoutRef.current);
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      haylooSocket.send({ type: 'TYPING_INDICATOR', isTyping: false });
+      ologleSocket.send({ type: 'TYPING_INDICATOR', isTyping: false });
       typingTimeoutRef.current = null;
     }, 2000);
   };
@@ -785,7 +788,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
-      haylooSocket.send({ type: 'TYPING_INDICATOR', isTyping: false });
+      ologleSocket.send({ type: 'TYPING_INDICATOR', isTyping: false });
     }
   };
 
@@ -865,6 +868,14 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
               <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-bold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 <span className="hidden sm:inline">{t('call.live', 'Live')}</span>
+              </span>
+            ) : connectionState === 'failed' ? (
+              <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-bold">
+                {t('call.connectionFailed', 'Connection failed')}
+              </span>
+            ) : connectionState === 'disconnected' ? (
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/40 text-[9px] font-bold">
+                {t('call.reconnecting', 'Reconnecting...')}
               </span>
             ) : !room.partnerVisitorId ? (
               <span className="px-1.5 py-0.5 rounded-md bg-[#EC5E27]/20 text-[#EC5E27] border border-[#EC5E27]/40 text-[9px] font-bold flex items-center gap-1">
@@ -972,6 +983,8 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
                   ? t('call.searchingPeer', 'Searching peer...')
                   : partnerLeftReason
                   ? t('call.partnerDisconnected', 'Partner disconnected')
+                  : connectionState === 'failed'
+                  ? t('call.connectionFailed', 'Connection failed')
                   : connectionState === 'connected'
                   ? t('call.partnerCameraOff', 'Partner camera off')
                   : t('call.establishingP2P', 'Connecting P2P...')}

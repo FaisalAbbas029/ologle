@@ -15,7 +15,7 @@ import Crown from 'lucide-react/dist/esm/icons/crown.js';
 import Globe from 'lucide-react/dist/esm/icons/globe.js';
 import Zap from 'lucide-react/dist/esm/icons/zap.js';
 import { CountryFlag } from './CountryFlag.tsx';
-import { searchProfessions, validateProfession, validateTargetInterest, HAYLOO_PROFESSIONS, HAYLOO_PURPOSES } from '../data/constants.ts';
+import { searchProfessions, validateProfession, validateTargetInterest, OLOGLE_PROFESSIONS, OLOGLE_PURPOSES } from '../data/constants.ts';
 import { COUNTRIES_LIST } from '../data/countriesData.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES } from '../data/languages.ts';
@@ -475,7 +475,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
 }) => {
   const { t, language, setLanguage, currentLanguageOption } = useLanguage();
   const [profession, setProfession] = useState<string>(() => {
-    return userProfession || localStorage.getItem('hayloo_user_profession') || '';
+    return userProfession || (localStorage.getItem('ologle_user_profession') || localStorage.getItem('hayloo_user_profession')) || '';
   });
   const [professionSuggestions, setProfessionSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
@@ -484,21 +484,21 @@ const FilterCard: React.FC<FilterCardProps> = ({
   // Real-time synchronization with User Profile updates
   useEffect(() => {
     const handleProfileSync = (event: Event) => {
-      if (event instanceof StorageEvent && event.key !== 'hayloo_user_profession') return;
+      if (event instanceof StorageEvent && event.key !== 'ologle_user_profession' && event.key !== 'hayloo_user_profession') return;
 
       const updatedProf =
         event instanceof StorageEvent
           ? event.newValue
-          : localStorage.getItem('hayloo_user_profession');
+          : (localStorage.getItem('ologle_user_profession') || localStorage.getItem('hayloo_user_profession'));
       if (typeof updatedProf === 'string') {
         setProfession(updatedProf);
         setProfessionError(null);
       }
     };
-    window.addEventListener('hayloo_profile_updated', handleProfileSync);
+    window.addEventListener('ologle_profile_updated', handleProfileSync);
     window.addEventListener('storage', handleProfileSync);
     return () => {
-      window.removeEventListener('hayloo_profile_updated', handleProfileSync);
+      window.removeEventListener('ologle_profile_updated', handleProfileSync);
       window.removeEventListener('storage', handleProfileSync);
     };
   }, []);
@@ -512,7 +512,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
   const [tags, setTags] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('hayloo_user_interests');
+      const saved = (localStorage.getItem('ologle_user_interests') || localStorage.getItem('hayloo_user_interests'));
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -523,10 +523,10 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
   // Country Selection & "Match in my country only" filter state
   const [country, setCountry] = useState<string>(() => {
-    return selectedCountry || localStorage.getItem('hayloo_selected_country') || 'GLOBAL';
+    return selectedCountry || (localStorage.getItem('ologle_selected_country') || localStorage.getItem('hayloo_selected_country')) || 'GLOBAL';
   });
   const [matchCountryOnly, setMatchCountryOnly] = useState<boolean>(() => {
-    return localStorage.getItem('hayloo_match_country_only') === 'true';
+    return (localStorage.getItem('ologle_match_country_only') || localStorage.getItem('hayloo_match_country_only')) === 'true';
   });
 
   // Searchable Country Dropdown state (Placed just below profession)
@@ -537,16 +537,16 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
   // Smart Match Configuration State (Configured via "Configure Your Match" popover)
   const [targetProfession, setTargetProfession] = useState<string>(() => {
-    return localStorage.getItem('hayloo_target_profession') || 'ANY';
+    return (localStorage.getItem('ologle_target_profession') || localStorage.getItem('hayloo_target_profession')) || 'ANY';
   });
   const [targetProfQuery, setTargetProfQuery] = useState<string>(() => {
-    const saved = localStorage.getItem('hayloo_target_profession') || 'ANY';
+    const saved = (localStorage.getItem('ologle_target_profession') || localStorage.getItem('hayloo_target_profession')) || 'ANY';
     return saved === 'ANY' ? '' : saved;
   });
   const [showTargetProfDropdown, setShowTargetProfDropdown] = useState<boolean>(false);
   const targetProfDropdownRef = useRef<HTMLDivElement>(null);
   const [matchPurpose, setMatchPurpose] = useState<string>(() => {
-    return localStorage.getItem('hayloo_match_purpose') || 'EXCHANGE_IDEAS';
+    return (localStorage.getItem('ologle_match_purpose') || localStorage.getItem('hayloo_match_purpose')) || 'EXCHANGE_IDEAS';
   });
   const [sessionMode, setSessionMode] = useState<'video' | 'voice' | 'messaging'>(() => {
     if (propSessionMode) {
@@ -555,7 +555,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
       if (p === 'messaging' || p === 'text') return 'messaging';
       return 'video';
     }
-    const saved = localStorage.getItem('hayloo_session_mode');
+    const saved = (localStorage.getItem('ologle_session_mode') || localStorage.getItem('hayloo_session_mode'));
     if (saved === 'voice' || saved === 'AUDIO') return 'voice';
     if (saved === 'messaging' || saved === 'TEXT') return 'messaging';
     return 'video';
@@ -580,14 +580,14 @@ const FilterCard: React.FC<FilterCardProps> = ({
         : 'video';
     setSessionMode(normalized);
     try {
-      localStorage.setItem('hayloo_session_mode', normalized);
+      localStorage.setItem('ologle_session_mode', normalized);
     } catch {}
     if (onSessionModeChange) {
       onSessionModeChange(normalized);
     }
   };
   const [primaryLanguage, setPrimaryLanguage] = useState<string>(() => {
-    return currentLanguageOption?.englishName || localStorage.getItem('hayloo_primary_language') || 'English';
+    return currentLanguageOption?.englishName || (localStorage.getItem('ologle_primary_language') || localStorage.getItem('hayloo_primary_language')) || 'English';
   });
 
   useEffect(() => {
@@ -604,10 +604,10 @@ const FilterCard: React.FC<FilterCardProps> = ({
 
   const handleSaveFilters = () => {
     try {
-      localStorage.setItem('hayloo_target_profession', targetProfession);
-      localStorage.setItem('hayloo_match_purpose', matchPurpose);
-      localStorage.setItem('hayloo_session_mode', sessionMode);
-      localStorage.setItem('hayloo_primary_language', primaryLanguage);
+      localStorage.setItem('ologle_target_profession', targetProfession);
+      localStorage.setItem('ologle_match_purpose', matchPurpose);
+      localStorage.setItem('ologle_session_mode', sessionMode);
+      localStorage.setItem('ologle_primary_language', primaryLanguage);
     } catch {}
     setLanguage(primaryLanguage);
     setShowFilterSettings(false);
@@ -709,7 +709,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
     setShowCountryDropdown(false);
     if (onSelectCountry) onSelectCountry(cCode);
     try {
-      localStorage.setItem('hayloo_selected_country', cCode);
+      localStorage.setItem('ologle_selected_country', cCode);
     } catch {}
   };
 
@@ -736,14 +736,14 @@ const FilterCard: React.FC<FilterCardProps> = ({
     setTagError(null);
     setShowFilterSettings(false);
     try {
-      localStorage.removeItem('hayloo_user_profession');
-      localStorage.removeItem('hayloo_user_interests');
-      localStorage.setItem('hayloo_selected_country', 'GLOBAL');
-      localStorage.setItem('hayloo_match_country_only', 'false');
-      localStorage.setItem('hayloo_target_profession', 'ANY');
-      localStorage.setItem('hayloo_match_purpose', 'EXCHANGE_IDEAS');
-      localStorage.setItem('hayloo_session_mode', sessionMode);
-      localStorage.setItem('hayloo_primary_language', 'English');
+      localStorage.removeItem('ologle_user_profession');
+      localStorage.removeItem('ologle_user_interests');
+      localStorage.setItem('ologle_selected_country', 'GLOBAL');
+      localStorage.setItem('ologle_match_country_only', 'false');
+      localStorage.setItem('ologle_target_profession', 'ANY');
+      localStorage.setItem('ologle_match_purpose', 'EXCHANGE_IDEAS');
+      localStorage.setItem('ologle_session_mode', sessionMode);
+      localStorage.setItem('ologle_primary_language', 'English');
     } catch {}
     if (onSelectCountry) onSelectCountry('GLOBAL');
   };
@@ -755,8 +755,8 @@ const FilterCard: React.FC<FilterCardProps> = ({
     setTagError(null);
     setShowFilterSettings(false);
     try {
-      localStorage.setItem('hayloo_user_profession', preset.profession);
-      localStorage.setItem('hayloo_user_interests', JSON.stringify(preset.tags));
+      localStorage.setItem('ologle_user_profession', preset.profession);
+      localStorage.setItem('ologle_user_interests', JSON.stringify(preset.tags));
     } catch {}
   };
 
@@ -866,10 +866,10 @@ const FilterCard: React.FC<FilterCardProps> = ({
     const effectiveTags = tags.length > 0 ? tags : ['Technology', 'Ideas', 'Networking'];
 
     try {
-      localStorage.setItem('hayloo_user_profession', effectiveProf);
-      localStorage.setItem('hayloo_user_interests', JSON.stringify(effectiveTags));
-      localStorage.setItem('hayloo_selected_country', country);
-      localStorage.setItem('hayloo_match_country_only', matchCountryOnly ? 'true' : 'false');
+      localStorage.setItem('ologle_user_profession', effectiveProf);
+      localStorage.setItem('ologle_user_interests', JSON.stringify(effectiveTags));
+      localStorage.setItem('ologle_selected_country', country);
+      localStorage.setItem('ologle_match_country_only', matchCountryOnly ? 'true' : 'false');
     } catch {}
 
     if (onSelectCountry) {
@@ -1000,7 +1000,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                         setTargetProfession('ANY');
                         setTargetProfQuery('');
                         try {
-                          localStorage.setItem('hayloo_target_profession', 'ANY');
+                          localStorage.setItem('ologle_target_profession', 'ANY');
                         } catch {}
                       }}
                       className="text-[10px] text-[#EC5E27] font-semibold hover:underline cursor-pointer"
@@ -1020,7 +1020,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                       const cleaned = val.trim();
                       setTargetProfession(cleaned || 'ANY');
                       try {
-                        localStorage.setItem('hayloo_target_profession', cleaned || 'ANY');
+                        localStorage.setItem('ologle_target_profession', cleaned || 'ANY');
                       } catch {}
                       setShowTargetProfDropdown(true);
                     }}
@@ -1035,7 +1035,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                         setTargetProfQuery('');
                         setTargetProfession('ANY');
                         try {
-                          localStorage.setItem('hayloo_target_profession', 'ANY');
+                          localStorage.setItem('ologle_target_profession', 'ANY');
                         } catch {}
                       }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
@@ -1060,7 +1060,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                         setTargetProfession('ANY');
                         setShowTargetProfDropdown(false);
                         try {
-                          localStorage.setItem('hayloo_target_profession', 'ANY');
+                          localStorage.setItem('ologle_target_profession', 'ANY');
                         } catch {}
                       }}
                       className={`w-full text-left px-3 py-1.5 flex items-center justify-between font-bold cursor-pointer transition-colors ${
@@ -1089,7 +1089,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                             setTargetProfession(p);
                             setShowTargetProfDropdown(false);
                             try {
-                              localStorage.setItem('hayloo_target_profession', p);
+                              localStorage.setItem('ologle_target_profession', p);
                             } catch {}
                           }}
                           className={`w-full text-left px-3 py-1.5 flex items-center justify-between font-semibold cursor-pointer transition-colors ${
@@ -1119,12 +1119,12 @@ const FilterCard: React.FC<FilterCardProps> = ({
                       const val = e.target.value;
                       setMatchPurpose(val);
                       try {
-                        localStorage.setItem('hayloo_match_purpose', val);
+                        localStorage.setItem('ologle_match_purpose', val);
                       } catch {}
                     }}
                     className="w-full appearance-none rounded-xl border border-slate-300 dark:border-white/10 bg-white/90 dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:border-[#EC5E27] focus:ring-2 focus:ring-[#EC5E27]/15 focus:outline-none transition-all cursor-pointer shadow-2xs"
                   >
-                    {HAYLOO_PURPOSES.map((p) => (
+                    {OLOGLE_PURPOSES.map((p) => (
                       <option key={p.id} value={p.id}>
                         {t(`purpose.${p.id}`, p.label)}
                       </option>
@@ -1156,7 +1156,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                       setPrimaryLanguage(val);
                       setLanguage(val);
                       try {
-                        localStorage.setItem('hayloo_primary_language', val);
+                        localStorage.setItem('ologle_primary_language', val);
                       } catch {}
                     }}
                     className="w-full appearance-none rounded-xl border border-slate-300 dark:border-white/10 bg-white/90 dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:border-[#EC5E27] focus:ring-2 focus:ring-[#EC5E27]/15 focus:outline-none transition-all cursor-pointer shadow-2xs"

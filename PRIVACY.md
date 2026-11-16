@@ -1,6 +1,6 @@
-# Hayloo Privacy Policy & Ephemeral Data Specification
+# OLOGLE Privacy Policy & Ephemeral Data Specification
 
-**Hayloo is an accountless, interest-based, text-only conversation platform designed around radical privacy and zero permanent storage.**
+**OLOGLE is an accountless, interest-based, text-only conversation platform designed around radical privacy and zero permanent storage.**
 
 ---
 
@@ -14,7 +14,7 @@
    - As soon as a message is moderated and delivered, it is not stored in any database, disk, log file, or external cloud storage.
    - When a conversation or room ends, message records cease to exist.
 3. **No Voice, Video, or Biometrics**:
-   - Hayloo is strictly text-based. No camera, microphone, or biometric data is ever accessed, requested, or processed.
+   - OLOGLE is strictly text-based. No camera, microphone, or biometric data is ever accessed, requested, or processed.
 4. **No Third-Party Trackers or Ad Networks**:
    - No tracking pixels, Google Analytics, advertising SDKs, or browser fingerprinting scripts.
 
@@ -36,12 +36,12 @@ The table below exhaustively details every piece of temporary data stored in ser
 
 ---
 
-## 3. What Hayloo Cannot Guarantee (Honest Limitations)
+## 3. What OLOGLE Cannot Guarantee (Honest Limitations)
 
 - **Session Continuity across Networks**: Because we do not store accounts, refreshing the page or switching networks generates a new ephemeral session.
 - **Client-Side Evasion**: Because bans and blocks are session-scoped and in-memory, a bad actor can obtain a fresh session ID by reopening their browser.
-- **Recipient Device Privacy**: Once a text message is received by another user, Hayloo cannot control whether that user copies, screenshots, or takes a photo of their own screen. Users should never share personally identifiable information (PII) in chat.
+- **Recipient Device Privacy**: Once a text message is received by another user, OLOGLE cannot control whether that user copies, screenshots, or takes a photo of their own screen. Users should never share personally identifiable information (PII) in chat.
 
 ---
 
-*Last Updated: August 2026 — Hayloo Engineering*
+*Last Updated: August 2026 — OLOGLE Engineering*

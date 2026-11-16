@@ -1,5 +1,5 @@
 /**
- * Hayloo Server Core & WebSocket Protocol Handler
+ * OLOGLE Server Core & WebSocket Protocol Handler
  * Manages in-memory ephemeral state: sessions, 1:1 rooms, communities, and classrooms.
  * No persistent storage or database.
  */
@@ -125,7 +125,7 @@ export type ClientMessage =
   | { type: 'REPORT_USER'; category: string; details?: string }
   | { type: 'BLOCK_USER' }
   | { type: 'block_partner'; blockerId: string; blockedId: string; reason: string }
-  | { type: 'WEBRTC_SIGNAL'; signal: any }
+  | { type: 'WEBRTC_SIGNAL'; roomId?: string; signal: any }
   | { type: 'VOICE_TRANSCRIPT'; text: string; language: string; isFinal: boolean; id?: string; timestamp?: number }
   | { type: 'PAD_UPDATE'; content: string; language?: string }
   | { type: 'TYPING_INDICATOR'; isTyping: boolean }
@@ -174,7 +174,7 @@ export type ServerMessage =
   | { type: 'STREAM_MUTED_BY_MODERATOR'; reason: string }
   | { type: 'ERROR'; message: string };
 
-export class HaylooEngine {
+export class OlogleEngine {
   private sessions: Map<string, EphemeralSession> = new Map();
   // In-memory persistent stores for anonymous blocking & safety
   private blockedPairs: Set<string> = new Set(); // "blockerVisitorId:blockedVisitorId"
@@ -602,7 +602,7 @@ export class HaylooEngine {
         break;
 
       case 'WEBRTC_SIGNAL':
-        this.handleWebRTCSignal(session, msg.signal);
+        this.handleWebRTCSignal(session, msg.roomId, msg.signal);
         break;
 
       case 'VOICE_TRANSCRIPT':
@@ -779,7 +779,7 @@ export class HaylooEngine {
     sessionB.pairedSessionId = sessionA.sessionId;
     sessionB.currentRoomId = roomId;
 
-    const professionBonus = Boolean(scoreResult.isSharedProfession);
+    const professionBonus = Boolean(scoreResult.isSharedProfession || scoreResult.isComplementaryProfession);
     const countryBonus = Boolean(sessionA.country && sessionA.country !== 'GLOBAL' && sessionA.country === sessionB.country);
 
     const scoreBreakdown = {
@@ -1103,18 +1103,32 @@ export class HaylooEngine {
     blockerSession.currentRoomId = null;
   }
 
-  private handleWebRTCSignal(session: EphemeralSession, signal: any): void {
-    if (session.currentMode !== '1on1' || !session.pairedSessionId) {
+  private handleWebRTCSignal(session: EphemeralSession, roomId: string | undefined, signal: any): void {
+    if (
+      session.currentMode !== '1on1' ||
+      !session.pairedSessionId ||
+      !session.currentRoomId ||
+      (roomId && roomId !== session.currentRoomId)
+    ) {
       return;
     }
 
     const partner = this.sessions.get(session.pairedSessionId);
-    if (partner && partner.ws) {
-      this.send(partner.ws, {
-        type: 'WEBRTC_SIGNAL',
-        signal,
-      });
+    if (
+      !partner ||
+      !partner.ws ||
+      partner.currentMode !== '1on1' ||
+      partner.pairedSessionId !== session.sessionId ||
+      partner.currentRoomId !== session.currentRoomId ||
+      !signal ||
+      typeof signal !== 'object' ||
+      !['offer', 'answer', 'candidate'].includes(signal.type) ||
+      JSON.stringify(signal).length > 128_000
+    ) {
+      return;
     }
+
+    this.send(partner.ws, { type: 'WEBRTC_SIGNAL', signal });
   }
 
   private handleVoiceTranscript(
@@ -1635,4 +1649,5 @@ export class HaylooEngine {
   }
 }
 
-export const haylooEngine = new HaylooEngine();
+export const ologleEngine = new OlogleEngine();
+export const haylooEngine = ologleEngine;

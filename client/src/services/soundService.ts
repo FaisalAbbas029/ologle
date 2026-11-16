@@ -1,15 +1,15 @@
 /**
- * Pure Web Audio Synthesizer for Hayloo UI sound feedback.
+ * Pure Web Audio Synthesizer for OLOGLE UI sound feedback.
  * Zero external audio files or MP3 downloads needed.
  */
 
-class HaylooSoundService {
+class OlogleSoundService {
   private ctx: AudioContext | null = null;
   private soundEnabled: boolean = true;
 
   constructor() {
     try {
-      const saved = localStorage.getItem('hayloo_sound_enabled');
+      const saved = localStorage.getItem('ologle_sound_enabled') ?? localStorage.getItem('hayloo_sound_enabled');
       if (saved !== null) {
         this.soundEnabled = saved === 'true';
       }
@@ -39,7 +39,7 @@ class HaylooSoundService {
   public setEnabled(enabled: boolean): void {
     this.soundEnabled = enabled;
     try {
-      localStorage.setItem('hayloo_sound_enabled', String(enabled));
+      localStorage.setItem('ologle_sound_enabled', String(enabled));
     } catch {}
   }
 
@@ -174,4 +174,4 @@ class HaylooSoundService {
   }
 }
 
-export const soundService = new HaylooSoundService();
+export const soundService = new OlogleSoundService();

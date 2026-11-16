@@ -7,3 +7,14 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://ologle.network,https://www.ologle.network
+      - key: TURN_URLS
+        sync: false
+      - key: TURN_SHARED_SECRET
+        sync: false
+      - key: TURN_CREDENTIAL_TTL_SECONDS
+        value: "600"
+      - key: NODE_ENV
+        value: production

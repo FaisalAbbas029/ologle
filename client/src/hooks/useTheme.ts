@@ -38,7 +38,6 @@ export function useTheme() {
     }
     try {
       localStorage.setItem('ologle_theme', theme);
-      localStorage.setItem('hayloo_theme', theme);
     } catch {}
   }, [theme]);
 

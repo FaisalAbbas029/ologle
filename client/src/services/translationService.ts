@@ -4,6 +4,8 @@
  * and fast conversational heuristics.
  */
 
+import { getBackendApiUrl } from './apiConfig.ts';
+
 const translationCache = new Map<string, string>();
 const autoDetectCache = new Map<string, AutoDetectResult>();
 
@@ -36,7 +38,7 @@ export async function autoDetectAndTranslateMessage(
   }
 
   try {
-    const res = await fetch('/api/translate-autodetect', {
+    const res = await fetch(getBackendApiUrl('/api/translate-autodetect'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -86,7 +88,7 @@ export async function translateCaption(
   }
 
   try {
-    const res = await fetch('/api/translate', {
+    const res = await fetch(getBackendApiUrl('/api/translate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -135,7 +137,7 @@ export async function transcribeAudioApi(
   reader.readAsDataURL(audioBlob);
   const audioBase64 = await base64Promise;
 
-  const res = await fetch('/api/transcribe-audio', {
+  const res = await fetch(getBackendApiUrl('/api/transcribe-audio'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Zap
 } from 'lucide-react';
-import { HAYLOO_PROFESSIONS, HAYLOO_PURPOSES, CANDIDATE_POOL } from '../data/constants.ts';
+import { OLOGLE_PROFESSIONS, OLOGLE_PURPOSES, CANDIDATE_POOL } from '../data/constants.ts';
 import { CandidatePeer } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES } from '../data/languages.ts';
@@ -39,7 +39,7 @@ export const StartTalkingModal: React.FC<StartTalkingModalProps> = ({
 }) => {
   const { t } = useLanguage();
   const [selectedMode, setSelectedMode] = useState<string>(() => {
-    const s = typeof window !== 'undefined' ? localStorage.getItem('hayloo_session_mode') : null;
+    const s = typeof window !== 'undefined' ? localStorage.getItem('ologle_session_mode') : null;
     if (s === 'voice' || s === 'AUDIO') return 'voice';
     if (s === 'video' || s === 'VIDEO') return 'video';
     return 'messaging';
@@ -239,7 +239,7 @@ export const StartTalkingModal: React.FC<StartTalkingModalProps> = ({
                   className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-[#141B26] text-white text-sm font-semibold focus:outline-none focus:border-[#EC5E27] transition-colors cursor-pointer"
                 >
                   <option value="ANY">{t('modal.anyProf', 'Any Profession (Instant & Open Discovery)')}</option>
-                  {HAYLOO_PROFESSIONS.map((p) => (
+                  {OLOGLE_PROFESSIONS.map((p) => (
                     <option key={p.id} value={p.id}>
                       {t(`prof.${p.id}.name`, p.name)} [{p.tag}]
                     </option>
@@ -259,7 +259,7 @@ export const StartTalkingModal: React.FC<StartTalkingModalProps> = ({
                     onChange={(e) => setSelectedPurpose(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] bg-[#141B26] text-white text-xs font-semibold focus:outline-none focus:border-[#EC5E27] transition-colors cursor-pointer"
                   >
-                    {HAYLOO_PURPOSES.map((pur) => (
+                    {OLOGLE_PURPOSES.map((pur) => (
                       <option key={pur.id} value={pur.id}>
                         {pur.label}
                       </option>

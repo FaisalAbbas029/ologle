@@ -10,7 +10,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import type { ConnectionStatus } from '../services/haylooSocket.ts';
+import type { ConnectionStatus } from '../services/ologleSocket.ts';
 import {
   AI_PRACTICE_PARTNERS,
   AIPracticePartner,

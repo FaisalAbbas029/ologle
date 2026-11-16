@@ -12,7 +12,7 @@ export interface UseChatTranslationOptions {
 export function useChatTranslation({
   messages,
   onUpdateMessage,
-  storagePrefix = 'hayloo_chat',
+  storagePrefix = 'ologle_chat',
   defaultTargetLanguage = 'en-US',
 }: UseChatTranslationOptions) {
   // Toggle state: true = automatically translate incoming peer messages
@@ -25,6 +25,7 @@ export function useChatTranslation({
   const [targetLanguage, setTargetLanguageState] = useState<string>(() => {
     return (
       localStorage.getItem(`${storagePrefix}_target_lang`) ||
+      localStorage.getItem('ologle_subtitle_lang') ||
       localStorage.getItem('hayloo_subtitle_lang') ||
       defaultTargetLanguage
     );

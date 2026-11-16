@@ -1,5 +1,5 @@
 /**
- * Hayloo Compatibility & Matchmaking Engine
+ * OLOGLE Compatibility & Matchmaking Engine
  * Interests are the PRIMARY matching factor with server-authoritative scoring.
  * Profession is secondary optional context only and never penalized if missing.
  */
@@ -23,14 +23,16 @@ export interface MatchScoreResult {
   sharedInterests: string[];
   sharedTopics: string[];
   isSharedProfession: boolean;
+  isComplementaryProfession: boolean;
 }
 
 // Actual Scoring Weights
-export const EXACT_MATCH_WEIGHT = 40;
+export const EXACT_MATCH_WEIGHT = 100;
 export const CUMULATIVE_INTEREST_BONUS_WEIGHT = 15; // Additional weight for multiple shared interests
 export const RELATED_MATCH_WEIGHT = 20;
-export const TOPIC_MATCH_WEIGHT = 10;
-export const PROFESSION_BONUS_WEIGHT = 5; // Small secondary bonus only — never required, never primary
+export const TOPIC_MATCH_WEIGHT = 40; // Category/topic affinity bonus
+export const PROFESSION_BONUS_WEIGHT = 15; // Shared profession bonus
+export const COMPLEMENTARY_PROFESSION_BONUS_WEIGHT = 10; // Complementary role bonus
 export const COUNTRY_MATCH_WEIGHT = 25; // Bonus when country-wise match requested and matches
 
 /**
@@ -352,9 +354,33 @@ export function getRelatedInterestMatches(
  * 2. Multiple shared interests (additional cumulative bonus: CUMULATIVE_INTEREST_BONUS_WEIGHT = 15)
  * 3. Related/semantically similar interests (medium weight: RELATED_MATCH_WEIGHT = 20)
  * 4. Shared topic, if applicable (additional weight: TOPIC_MATCH_WEIGHT = 10)
- * 5. Same profession (small secondary bonus: PROFESSION_BONUS_WEIGHT = 5 — never required, never primary)
+ * 5. Same profession (+15) or complementary role (+10), never required, never primary.
  * 6. Different or missing profession -> no penalty, no reduction in score.
  */
+export function isComplementaryProfessionPair(professionA?: string, professionB?: string): boolean {
+  const normProfA = normalizeProfession(professionA);
+  const normProfB = normalizeProfession(professionB);
+
+  if (!normProfA || !normProfB || normProfA === normProfB) {
+    return false;
+  }
+
+  const pairKeyA = `${normProfA}:${normProfB}`;
+  const pairKeyB = `${normProfB}:${normProfA}`;
+  const complementaryPairs = new Set([
+    'developer:designer',
+    'designer:developer',
+    'student:teacher',
+    'teacher:student',
+    'writer:researcher',
+    'researcher:writer',
+    'engineer:designer',
+    'designer:engineer',
+  ]);
+
+  return complementaryPairs.has(pairKeyA) || complementaryPairs.has(pairKeyB);
+}
+
 export function calculateCompatibility(
   sessionA: QueuedSession,
   sessionB: QueuedSession
@@ -390,14 +416,18 @@ export function calculateCompatibility(
   }
   score += sharedTopics.size * TOPIC_MATCH_WEIGHT;
 
-  // 5. Profession Match (Small secondary bonus only — never required, never primary)
+  // 5. Profession Match / Complementary bonus
   const normProfA = normalizeProfession(sessionA.profession);
   const normProfB = normalizeProfession(sessionB.profession);
   let isSharedProfession = false;
+  let isComplementaryProfession = false;
 
   if (normProfA && normProfB && normProfA === normProfB) {
     score += PROFESSION_BONUS_WEIGHT;
     isSharedProfession = true;
+  } else if (isComplementaryProfessionPair(normProfA, normProfB)) {
+    score += COMPLEMENTARY_PROFESSION_BONUS_WEIGHT;
+    isComplementaryProfession = true;
   }
   // No penalty branch for missing/mismatched profession — intentionally absent.
 
@@ -413,6 +443,7 @@ export function calculateCompatibility(
     sharedInterests: exactMatches,
     sharedTopics: Array.from(sharedTopics),
     isSharedProfession,
+    isComplementaryProfession,
   };
 }
 

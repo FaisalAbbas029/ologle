@@ -1,5 +1,5 @@
 /**
- * Hayloo Server-Side Pluggable Safety Agent Module
+ * OLOGLE Server-Side Pluggable Safety Agent Module
  * Evaluates messages before relay using confidence-tiered rule-based analysis.
  * Can be swapped with an ML / LLM classifier via the `SafetyClassifier` interface.
  */
@@ -205,12 +205,12 @@ export class RuleBasedSafetyAgent implements SafetyClassifier {
       severityTier = 'high';
       isSafe = false;
       senderFeedback =
-        "Your message was blocked because it violates Hayloo's community rules (harassment, explicit content, or threats).";
+        "Your message was blocked because it violates OLOGLE's community rules (harassment, explicit content, or threats).";
     } else if (highestConfidence >= 0.35) {
       severityTier = 'medium';
       isSafe = true; // Still delivered, but with a warning to sender
       senderFeedback =
-        "This message may be close to violating Hayloo's community rules. Please keep conversations respectful and focused on shared interests.";
+        "This message may be close to violating OLOGLE's community rules. Please keep conversations respectful and focused on shared interests.";
     } else if (highestConfidence > 0) {
       severityTier = 'low';
       isSafe = true;

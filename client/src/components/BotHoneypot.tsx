@@ -37,10 +37,10 @@ export const BotHoneypot: React.FC<BotHoneypotProps> = ({ onBotDetected }) => {
       }}
       aria-hidden="true"
     >
-      <label htmlFor="hayloo_hp_website_trap">Leave this empty</label>
+      <label htmlFor="ologle_hp_website_trap">Leave this empty</label>
       <input
-        id="hayloo_hp_website_trap"
-        name="hayloo_hp_website_trap"
+        id="ologle_hp_website_trap"
+        name="ologle_hp_website_trap"
         type="text"
         tabIndex={-1}
         autoComplete="off"

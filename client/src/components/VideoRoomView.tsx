@@ -78,7 +78,7 @@ export const VideoRoomView: React.FC<VideoRoomViewProps> = ({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('hayloo_user_profile');
+      const saved = (localStorage.getItem('ologle_user_profile') || localStorage.getItem('hayloo_user_profile'));
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.name || parsed.countryFlag || parsed.country || parsed.countryCode || parsed.age || parsed.professionLevel)) {

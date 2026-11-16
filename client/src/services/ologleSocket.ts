@@ -4,7 +4,56 @@ export type SocketListener = (msg: ServerMessage) => void;
 export type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
 export type StatusListener = (status: ConnectionStatus, retrySecondsLeft?: number) => void;
 
-class HaylooClientSocket {
+// Default fallback host if VITE_WEBSOCKET_URL is not set in Vercel environment variables.
+// Note: In production on Vercel, set VITE_WEBSOCKET_URL=wss://YOUR-ACTUAL-BACKEND-DOMAIN/ws
+// in your Vercel Project Settings -> Environment Variables.
+const DEFAULT_SIGNALING_HOST = 'ologle-signaling.onrender.com';
+
+export function resolveWebSocketUrl(
+  configuredUrl: string | undefined,
+  isProduction: boolean,
+  protocol: string,
+  host: string
+): string {
+  const configured = configuredUrl?.trim();
+  // When VITE_WEBSOCKET_URL is set in Vercel environment variables, use it.
+  if (configured) {
+    try {
+      const url = new URL(configured);
+      // Ensure the WebSocket path is /ws if not explicitly defined
+      if (!url.pathname || url.pathname === '/') {
+        url.pathname = '/ws';
+      }
+      return url.toString();
+    } catch {
+      return configured;
+    }
+  }
+
+  const websocketProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+
+  // Dev / Vite preview / local testing: connect to same host where dev server runs /ws
+  if (!isProduction || host.includes('localhost') || host.includes('127.0.0.1')) {
+    return `${websocketProtocol}//${host}/ws`;
+  }
+
+  // If the frontend is hosted directly on the Node backend (e.g. on Render or custom server)
+  if (host.endsWith('.onrender.com')) {
+    return `${websocketProtocol}//${host}/ws`;
+  }
+
+  // When deployed on Vercel without VITE_WEBSOCKET_URL set at build time:
+  if (isProduction && (host.endsWith('.vercel.app') || host.includes('vercel'))) {
+    console.warn(
+      '[OLOGLE] VITE_WEBSOCKET_URL is not defined in your Vercel Project Settings.\n' +
+      'Please add VITE_WEBSOCKET_URL=wss://YOUR-ACTUAL-BACKEND-DOMAIN/ws in Vercel -> Settings -> Environment Variables.'
+    );
+  }
+
+  return `wss://${DEFAULT_SIGNALING_HOST}/ws`;
+}
+
+class OlogleClientSocket {
   private socket: WebSocket | null = null;
   private listeners: Set<SocketListener> = new Set();
   private statusListeners: Set<StatusListener> = new Set();
@@ -24,14 +73,19 @@ class HaylooClientSocket {
 
     this.isExplicitlyClosed = false;
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL?.trim() || `${protocol}//${host}/ws`;
+    const wsUrl = resolveWebSocketUrl(
+      import.meta.env.VITE_WEBSOCKET_URL,
+      import.meta.env.PROD,
+      window.location.protocol,
+      window.location.host
+    );
 
     try {
-      this.socket = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl);
+      this.socket = socket;
 
-      this.socket.onopen = () => {
+      socket.onopen = () => {
+        if (this.socket !== socket) return;
         this.isConnected = true;
         this.attemptCount = 0;
         this.retrySecondsLeft = 0;
@@ -39,7 +93,8 @@ class HaylooClientSocket {
         this.setStatus('connected');
       };
 
-      this.socket.onmessage = (event) => {
+      socket.onmessage = (event) => {
+        if (this.socket !== socket) return;
         try {
           const data: ServerMessage = JSON.parse(event.data);
           if (data.type === 'SESSION_REGISTERED') {
@@ -51,7 +106,9 @@ class HaylooClientSocket {
         }
       };
 
-      this.socket.onclose = () => {
+      socket.onclose = () => {
+        if (this.socket !== socket) return;
+        this.socket = null;
         this.isConnected = false;
         if (!this.isExplicitlyClosed) {
           this.scheduleReconnect();
@@ -60,7 +117,8 @@ class HaylooClientSocket {
         }
       };
 
-      this.socket.onerror = () => {
+      socket.onerror = () => {
+        if (this.socket !== socket) return;
         this.isConnected = false;
       };
     } catch {
@@ -105,6 +163,13 @@ class HaylooClientSocket {
 
   public reconnectNow(): void {
     this.clearTimers();
+    const previousSocket = this.socket;
+    this.socket = null;
+    this.isConnected = false;
+    this.attemptCount = 0;
+    if (previousSocket && previousSocket.readyState !== WebSocket.CLOSED) {
+      previousSocket.close();
+    }
     this.connect();
   }
 
@@ -156,13 +221,15 @@ class HaylooClientSocket {
   public disconnect(): void {
     this.isExplicitlyClosed = true;
     this.clearTimers();
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
+    const socket = this.socket;
+    this.socket = null;
+    if (socket) {
+      socket.close();
     }
     this.isConnected = false;
     this.setStatus('disconnected');
   }
 }
 
-export const haylooSocket = new HaylooClientSocket();
+export const ologleSocket = new OlogleClientSocket();
+export const haylooSocket = ologleSocket;

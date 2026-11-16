@@ -417,7 +417,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       localStorage.setItem('heyloo_site_language', clean);
       if (option) {
-        localStorage.setItem('hayloo_primary_language', option.englishName);
+        localStorage.setItem('ologle_primary_language', option.englishName);
       }
     } catch {}
   };

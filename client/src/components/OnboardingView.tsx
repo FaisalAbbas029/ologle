@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HAYLOO_PROFESSIONS } from '../data/constants.ts';
+import { OLOGLE_PROFESSIONS } from '../data/constants.ts';
 
 interface OnboardingViewProps {
   initialProfile: {
@@ -70,7 +70,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 onChange={(e) => setFormData({ ...formData, professionId: e.target.value })}
                 className="mt-1 w-full rounded-xl border border-white/20 bg-black px-3.5 py-2 text-sm text-white focus:border-[#EC5E27] focus:outline-none transition-colors cursor-pointer"
               >
-                {HAYLOO_PROFESSIONS.map((p) => (
+                {OLOGLE_PROFESSIONS.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

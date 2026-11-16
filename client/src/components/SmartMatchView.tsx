@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
-import { HAYLOO_PROFESSIONS, HAYLOO_PURPOSES } from '../data/constants.ts';
+import { OLOGLE_PROFESSIONS, OLOGLE_PURPOSES } from '../data/constants.ts';
 
 interface SmartMatchViewProps {
   initialConfig?: {
@@ -88,7 +88,7 @@ export const SmartMatchView: React.FC<SmartMatchViewProps> = ({
               className="mt-2 w-full rounded-sm border border-white/20 bg-black px-3.5 py-2.5 text-sm font-medium text-white focus:border-[#EC5E27] focus:outline-none transition-colors cursor-pointer"
             >
               <option value="ANY">Any Profession (Open Discovery)</option>
-              {HAYLOO_PROFESSIONS.map((p) => (
+              {OLOGLE_PROFESSIONS.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.tag})
                 </option>
@@ -101,7 +101,7 @@ export const SmartMatchView: React.FC<SmartMatchViewProps> = ({
               2. Conversation Purpose
             </label>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {HAYLOO_PURPOSES.map((p) => {
+              {OLOGLE_PURPOSES.map((p) => {
                 const active = purpose === p.id;
                 return (
                   <button

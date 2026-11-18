@@ -1,4 +1,15 @@
+# OLOGLE Search Engine Crawler Directives
 User-agent: *
-Allow: /
+Allow: /$
+Allow: /privacy
+Allow: /terms
 
-Sitemap: https://ologle.network/sitemap.xml
+# Disallow active ephemeral chat rooms and private session endpoints
+Disallow: /chat
+Disallow: /messages
+Disallow: /video-call
+Disallow: /voice-call
+Disallow: /room/
+Disallow: /api/
+
+Sitemap: https://ologle.vercel.app/sitemap.xml

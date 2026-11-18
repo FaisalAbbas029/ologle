@@ -800,6 +800,10 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
   };
 
   const handleStopOrNextClick = () => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(15); } catch {}
+    }
+
     if (partnerLeftReason) {
       soundService.playSkip();
       onNextPerson();

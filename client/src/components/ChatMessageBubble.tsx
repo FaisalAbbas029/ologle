@@ -130,7 +130,7 @@ interface ChatMessageBubbleProps {
   showTimeOnHover?: boolean;
 }
 
-export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
+const ChatMessageBubbleComponent: React.FC<ChatMessageBubbleProps> = ({
   message,
   isSelf,
   preferredLanguage = 'en',
@@ -372,3 +372,5 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     </div>
   );
 };
+
+export const ChatMessageBubble = React.memo(ChatMessageBubbleComponent);

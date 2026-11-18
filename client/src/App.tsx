@@ -1027,7 +1027,7 @@ export default function App() {
 
   return (
     <div
-      className="w-full min-h-screen lg:h-screen lg:max-h-screen flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif] relative transition-colors duration-300 overflow-x-hidden lg:overflow-hidden"
+      className={`w-full ${isInActiveSession ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen lg:h-screen lg:max-h-screen overflow-x-hidden lg:overflow-hidden'} flex flex-col justify-between font-['Plus_Jakarta_Sans',sans-serif] relative transition-colors duration-300`}
       style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
     >
       {/* Scroll Progress Bar at very top */}

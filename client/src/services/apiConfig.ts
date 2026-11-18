@@ -17,7 +17,7 @@ export function getBackendApiUrl(endpoint: string): string {
   if (websocketUrl) {
     try {
       const url = new URL(websocketUrl);
-      url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+      url.protocol = url.protocol === 'wss:' || url.protocol === 'https:' ? 'https:' : 'http:';
       return `${url.origin}${cleanEndpoint}`;
     } catch {
       // Ignore URL parsing errors and fall back to relative

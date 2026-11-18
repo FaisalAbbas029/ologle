@@ -20,6 +20,10 @@ export function resolveWebSocketUrl(
   if (configured) {
     try {
       const url = new URL(configured);
+      // Accept http(s):// values (e.g. a pasted Vercel backend URL) and normalize to ws(s)://,
+      // since older browsers reject non-ws schemes in the WebSocket constructor.
+      if (url.protocol === 'https:') url.protocol = 'wss:';
+      else if (url.protocol === 'http:') url.protocol = 'ws:';
       // Ensure the WebSocket path is /ws if not explicitly defined
       if (!url.pathname || url.pathname === '/') {
         url.pathname = '/ws';

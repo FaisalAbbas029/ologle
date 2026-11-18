@@ -12,6 +12,16 @@ describe('resolveWebSocketUrl', () => {
       .toBe('wss://signal.example/ws');
   });
 
+  it('normalizes an https:// configured endpoint to wss://', () => {
+    expect(resolveWebSocketUrl('https://signal.example', true, 'https:', 'site.example'))
+      .toBe('wss://signal.example/ws');
+  });
+
+  it('normalizes an http:// configured endpoint to ws:// and keeps an explicit path', () => {
+    expect(resolveWebSocketUrl('http://localhost:4000/ws', false, 'http:', 'localhost:3000'))
+      .toBe('ws://localhost:4000/ws');
+  });
+
   it('uses the same-origin socket during development', () => {
     expect(resolveWebSocketUrl(undefined, false, 'http:', 'localhost:3000'))
       .toBe('ws://localhost:3000/ws');

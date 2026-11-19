@@ -215,7 +215,8 @@ export type ClientMessage =
   | { type: 'GET_EXPLORE_DATA' }
   | { type: 'MOD_SUBSCRIBE' }
   | { type: 'MOD_ACTION'; ticketId: string; action: 'KICK' | 'MUTE' | 'DISMISS' }
-  | { type: 'FLAG_LIVE_STREAM'; reason: string; confidence: number };
+  | { type: 'FLAG_LIVE_STREAM'; reason: string; confidence: number }
+  | { type: 'PING'; timestamp?: number };
 
 export interface EphemeralLiveTicket {
   ticketId: string;
@@ -247,7 +248,24 @@ export type ServerMessage =
       breakdown?: ScoreBreakdown;
       isInitiator?: boolean;
     }
+  | {
+      type: 'SESSION_RESTORED';
+      roomId: string;
+      sharedInterests: string[];
+      sharedTopics: string[];
+      score: number;
+      partnerProfession?: string;
+      partnerCountry?: string;
+      partnerVisitorId?: string;
+      partnerSessionId?: string;
+      scoreBreakdown?: ScoreBreakdown;
+      breakdown?: ScoreBreakdown;
+      isInitiator?: boolean;
+    }
+  | { type: 'PARTNER_RECONNECTING'; graceSeconds: number }
+  | { type: 'PARTNER_RECONNECTED'; roomId: string }
   | { type: 'PARTNER_LEFT'; reason: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' }
+  | { type: 'PONG'; timestamp: number }
   | { type: 'WEBRTC_SIGNAL'; signal: any }
   | { type: 'VOICE_TRANSCRIPT'; id: string; text: string; language: string; isFinal: boolean; senderSessionId: string; timestamp: number }
   | { type: 'RECEIVE_1ON1_MESSAGE'; id: string; text: string; sender: 'self' | 'peer'; timestamp: number }

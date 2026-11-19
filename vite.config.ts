@@ -136,21 +136,35 @@ function ologleWebSocketPlugin(): Plugin {
         }
       });
 
-      wss.on('connection', async (ws) => {
+      wss.on('connection', async (ws, request) => {
         const { ologleEngine } = await import('./server/serverCore.ts');
-        const session = ologleEngine.registerSession(ws as any);
+        let existingSessionId: string | undefined;
+        try {
+          const url = new URL(request?.url || '', 'http://localhost');
+          existingSessionId = url.searchParams.get('sessionId') || undefined;
+        } catch {}
+
+        const session = ologleEngine.registerSession(ws as any, existingSessionId);
+        (ws as any).isAlive = true;
+        ws.on('pong', () => {
+          (ws as any).isAlive = true;
+          session.lastActivity = Date.now();
+        });
 
         ws.on('message', (data) => {
+          (ws as any).isAlive = true;
           ologleEngine.processMessage(session.sessionId, data.toString());
         });
 
-        ws.on('close', () => {
-          ologleEngine.handleDisconnect(session.sessionId);
-        });
+        const onCleanup = () => {
+          ws.removeAllListeners();
+          if (session.ws === (ws as any)) {
+            ologleEngine.handleDisconnect(session.sessionId);
+          }
+        };
 
-        ws.on('error', () => {
-          ologleEngine.handleDisconnect(session.sessionId);
-        });
+        ws.on('close', onCleanup);
+        ws.on('error', onCleanup);
       });
     },
   };

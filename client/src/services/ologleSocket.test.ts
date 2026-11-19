@@ -36,4 +36,11 @@ describe('resolveWebSocketUrl', () => {
     expect(resolveWebSocketUrl(undefined, true, 'https:', 'ologle.vercel.app'))
       .toBe('wss://ologle-signaling.onrender.com/ws');
   });
+
+  it('appends ?sessionId= query parameter when reconnecting with an existing sessionId', () => {
+    expect(resolveWebSocketUrl('wss://signal.example/ws', true, 'https:', 'ologle-five.vercel.app', 'hl_abc_123'))
+      .toBe('wss://signal.example/ws?sessionId=hl_abc_123');
+    expect(resolveWebSocketUrl(undefined, false, 'http:', 'localhost:3000', 'hl_local_99'))
+      .toBe('ws://localhost:3000/ws?sessionId=hl_local_99');
+  });
 });

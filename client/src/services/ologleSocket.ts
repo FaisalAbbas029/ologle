@@ -13,8 +13,22 @@ export function resolveWebSocketUrl(
   configuredUrl: string | undefined,
   isProduction: boolean,
   protocol: string,
-  host: string
+  host: string,
+  existingSessionId?: string | null
 ): string {
+  const appendSessionId = (rawUrl: string): string => {
+    const cleanId = existingSessionId?.trim();
+    if (!cleanId) return rawUrl;
+    try {
+      const parsed = new URL(rawUrl);
+      parsed.searchParams.set('sessionId', cleanId);
+      return parsed.toString();
+    } catch {
+      const separator = rawUrl.includes('?') ? '&' : '?';
+      return `${rawUrl}${separator}sessionId=${encodeURIComponent(cleanId)}`;
+    }
+  };
+
   const configured = configuredUrl?.trim();
   // When VITE_WEBSOCKET_URL is set in Vercel environment variables, use it.
   if (configured) {
@@ -28,9 +42,9 @@ export function resolveWebSocketUrl(
       if (!url.pathname || url.pathname === '/') {
         url.pathname = '/ws';
       }
-      return url.toString();
+      return appendSessionId(url.toString());
     } catch {
-      return configured;
+      return appendSessionId(configured);
     }
   }
 
@@ -38,12 +52,12 @@ export function resolveWebSocketUrl(
 
   // Dev / Vite preview / local testing: connect to same host where dev server runs /ws
   if (!isProduction || host.includes('localhost') || host.includes('127.0.0.1')) {
-    return `${websocketProtocol}//${host}/ws`;
+    return appendSessionId(`${websocketProtocol}//${host}/ws`);
   }
 
   // If the frontend is hosted directly on the Node backend (e.g. on Render or custom server)
   if (host.endsWith('.onrender.com')) {
-    return `${websocketProtocol}//${host}/ws`;
+    return appendSessionId(`${websocketProtocol}//${host}/ws`);
   }
 
   // When deployed on Vercel without VITE_WEBSOCKET_URL set at build time:
@@ -54,7 +68,7 @@ export function resolveWebSocketUrl(
     );
   }
 
-  return `wss://${DEFAULT_SIGNALING_HOST}/ws`;
+  return appendSessionId(`wss://${DEFAULT_SIGNALING_HOST}/ws`);
 }
 
 class OlogleClientSocket {
@@ -63,12 +77,23 @@ class OlogleClientSocket {
   private statusListeners: Set<StatusListener> = new Set();
   private reconnectTimer: any = null;
   private countdownTimer: any = null;
+  private heartbeatTimer: any = null;
   private isExplicitlyClosed = false;
   private attemptCount = 0;
   private retrySecondsLeft = 0;
   public status: ConnectionStatus = 'disconnected';
   public sessionId: string | null = null;
   public isConnected = false;
+
+  constructor() {
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('online', () => {
+        if (!this.isExplicitlyClosed && !this.isConnected) {
+          this.reconnectNow();
+        }
+      });
+    }
+  }
 
   public connect(): void {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
@@ -81,7 +106,8 @@ class OlogleClientSocket {
       import.meta.env.VITE_WEBSOCKET_URL,
       import.meta.env.PROD,
       window.location.protocol,
-      window.location.host
+      window.location.host,
+      this.sessionId
     );
 
     try {
@@ -94,6 +120,7 @@ class OlogleClientSocket {
         this.attemptCount = 0;
         this.retrySecondsLeft = 0;
         this.clearTimers();
+        this.startHeartbeat();
         this.setStatus('connected');
       };
 
@@ -103,6 +130,9 @@ class OlogleClientSocket {
           const data: ServerMessage = JSON.parse(event.data);
           if (data.type === 'SESSION_REGISTERED') {
             this.sessionId = data.sessionId;
+          }
+          if (data.type === 'PONG') {
+            return;
           }
           this.notify(data);
         } catch {
@@ -114,6 +144,7 @@ class OlogleClientSocket {
         if (this.socket !== socket) return;
         this.socket = null;
         this.isConnected = false;
+        this.stopHeartbeat();
         if (!this.isExplicitlyClosed) {
           this.scheduleReconnect();
         } else {
@@ -131,6 +162,25 @@ class OlogleClientSocket {
     }
   }
 
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    // Send application-level PING every 20 seconds to keep proxies, load balancers, and NATs open indefinitely
+    this.heartbeatTimer = setInterval(() => {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        try {
+          this.socket.send(JSON.stringify({ type: 'PING', timestamp: Date.now() }));
+        } catch {}
+      }
+    }, 20000);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   private clearTimers(): void {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -140,6 +190,7 @@ class OlogleClientSocket {
       clearInterval(this.countdownTimer);
       this.countdownTimer = null;
     }
+    this.stopHeartbeat();
   }
 
   private scheduleReconnect(): void {

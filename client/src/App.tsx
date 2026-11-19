@@ -178,6 +178,8 @@ export default function App() {
 
   // Message streams
   const [chat1on1Messages, setChat1on1Messages] = useState<ChatMessage[]>([]);
+  const active1on1Ref = useRef<Active1on1Room | null>(null);
+  active1on1Ref.current = active1on1;
 
   // Partner status & rate limiting
   const [partnerLeftReason, setPartnerLeftReason] = useState<string | null>(null);
@@ -400,10 +402,52 @@ export default function App() {
             interests,
           });
           ologleSocket.send({ type: 'GET_EXPLORE_DATA' });
-          if (pendingMatchingRequestRef.current && ologleSocket.send(pendingMatchingRequestRef.current)) {
+          // Only re-send a pending matchmaking request if NOT currently in an active 1-on-1 conversation
+          if (
+            !active1on1Ref.current &&
+            pendingMatchingRequestRef.current &&
+            ologleSocket.send(pendingMatchingRequestRef.current)
+          ) {
             pendingMatchingRequestRef.current = null;
             setIsMatchReady(true);
           }
+          break;
+
+        case 'SESSION_RESTORED':
+          pendingMatchingRequestRef.current = null;
+          activeMatchingRequestRef.current = null;
+          setIsMatchReady(false);
+          setPartnerLeftReason(null);
+          setActive1on1((prev) =>
+            prev && prev.roomId === msg.roomId
+              ? prev
+              : {
+                  roomId: msg.roomId,
+                  sharedInterests: msg.sharedInterests,
+                  sharedTopics: msg.sharedTopics,
+                  score: msg.score,
+                  partnerProfession: msg.partnerProfession,
+                  partnerCountry: msg.partnerCountry,
+                  partnerVisitorId: msg.partnerVisitorId,
+                  breakdown: msg.scoreBreakdown || msg.breakdown,
+                  isInitiator: msg.isInitiator,
+                  isAI: false,
+                }
+          );
+          setIncomingSignal({ signal: { type: 'reconnect_check' }, id: signalCounterRef.current++ });
+          break;
+
+        case 'PARTNER_RECONNECTING':
+          addToast(
+            'info',
+            `Partner connection interrupted. Waiting up to ${msg.graceSeconds || 20}s for reconnection...`
+          );
+          break;
+
+        case 'PARTNER_RECONNECTED':
+          setPartnerLeftReason(null);
+          addToast('info', 'Partner reconnected!');
+          setIncomingSignal({ signal: { type: 'reconnect_check' }, id: signalCounterRef.current++ });
           break;
 
         case 'MATCHING_STARTED': {
@@ -540,6 +584,10 @@ export default function App() {
     });
 
     return () => {
+      clearTimeout(socketTimer);
+      window.removeEventListener('pointerdown', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+      unsubscribeStatus();
       unsubscribe();
     };
   }, [addToast, playChime, currentView]);

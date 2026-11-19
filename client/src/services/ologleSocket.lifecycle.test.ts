@@ -100,5 +100,35 @@ describe('ologleSocket Client Lifecycle & Signaling Simulation', () => {
     expect(receivedSignal).toEqual(mockOffer);
     unsubscribe();
   });
+
+  it('delivers SESSION_RESTORED, PARTNER_RECONNECTING, and PARTNER_RECONNECTED recovery events', () => {
+    const events: ServerMessage[] = [];
+    const unsubscribe = ologleSocket.subscribe((msg) => {
+      events.push(msg);
+    });
+
+    (ologleSocket as any).notify({
+      type: 'PARTNER_RECONNECTING',
+      graceSeconds: 20,
+    });
+    (ologleSocket as any).notify({
+      type: 'SESSION_RESTORED',
+      roomId: 'room_restored_1',
+      sharedInterests: ['WebRTC', 'AI'],
+      sharedTopics: ['Technology'],
+      score: 180,
+      isInitiator: true,
+    });
+    (ologleSocket as any).notify({
+      type: 'PARTNER_RECONNECTED',
+      roomId: 'room_restored_1',
+    });
+
+    expect(events).toHaveLength(3);
+    expect(events[0].type).toBe('PARTNER_RECONNECTING');
+    expect(events[1].type).toBe('SESSION_RESTORED');
+    expect(events[2].type).toBe('PARTNER_RECONNECTED');
+    unsubscribe();
+  });
 });
 

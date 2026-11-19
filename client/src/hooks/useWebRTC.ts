@@ -484,12 +484,22 @@ export const useWebRTC = ({
       };
 
       const restartIce = async () => {
-        if (
-          !isInitiator ||
-          pcRef.current !== pc ||
-          pc.signalingState !== 'stable' ||
-          iceRestartInProgressRef.current
-        ) return;
+        if (pcRef.current !== pc || iceRestartInProgressRef.current) return;
+
+        // If a local offer was already created while the signaling socket was reconnecting, re-send it
+        if (pc.signalingState === 'have-local-offer' && pc.localDescription) {
+          const resent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
+          logWebRTC('ice.restart.resent', { roomId, sent: resent !== false });
+          if (resent === false && disconnectTimerRef.current === null) {
+            disconnectTimerRef.current = window.setTimeout(() => {
+              disconnectTimerRef.current = null;
+              if (pcRef.current === pc && pc.connectionState !== 'connected') void restartIce();
+            }, 1500);
+          }
+          return;
+        }
+
+        if (pc.signalingState !== 'stable') return;
 
         iceRestartInProgressRef.current = true;
         makingOfferRef.current = true;
@@ -501,6 +511,12 @@ export const useWebRTC = ({
           await pc.setLocalDescription(offer);
           const sent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
           logWebRTC('ice.restart.sent', { roomId, sent: sent !== false });
+          if (sent === false && disconnectTimerRef.current === null) {
+            disconnectTimerRef.current = window.setTimeout(() => {
+              disconnectTimerRef.current = null;
+              if (pcRef.current === pc && pc.connectionState !== 'connected') void restartIce();
+            }, 1500);
+          }
         } catch (error) {
           console.error('[webrtc]', { event: 'ice.restart.failed', roomId, error });
         } finally {
@@ -537,10 +553,12 @@ export const useWebRTC = ({
         } else if (state === 'disconnected') {
           setConnectionState('disconnected');
           if (disconnectTimerRef.current === null) {
+            // Stagger responder ICE restart behind initiator; Perfect Negotiation resolves any offer collision
+            const restartDelayMs = isInitiator ? 4000 : 6000;
             disconnectTimerRef.current = window.setTimeout(() => {
               disconnectTimerRef.current = null;
               if (pc.iceConnectionState === 'disconnected') void restartIce();
-            }, 4000);
+            }, restartDelayMs);
           }
         } else if (state === 'failed') {
           clearConnectionTimers();
@@ -611,6 +629,35 @@ export const useWebRTC = ({
     const handleSignal = async (): Promise<void> => {
       try {
         if (generation !== peerConnectionGenerationRef.current) return;
+
+        if (signal.type === 'reconnect_check') {
+          const currentPc = pcRef.current;
+          if (!currentPc) return;
+          if (currentPc.signalingState === 'have-local-offer' && currentPc.localDescription) {
+            const resent = onSendSignal({ type: 'offer', sdp: currentPc.localDescription });
+            logWebRTC('ice.restart.resent-on-reconnect', { roomId, sent: resent !== false });
+            return;
+          }
+          const needsIceRecovery =
+            currentPc.iceConnectionState === 'disconnected' ||
+            currentPc.iceConnectionState === 'failed' ||
+            currentPc.connectionState === 'disconnected' ||
+            currentPc.connectionState === 'failed';
+          if (needsIceRecovery && isInitiator && currentPc.signalingState === 'stable' && !makingOfferRef.current) {
+            makingOfferRef.current = true;
+            try {
+              const offer = await currentPc.createOffer({ iceRestart: true });
+              await currentPc.setLocalDescription(offer);
+              const sent = onSendSignal({ type: 'offer', sdp: currentPc.localDescription });
+              logWebRTC('ice.restart.on-reconnect', { roomId, sent: sent !== false });
+            } catch (err) {
+              console.warn('[webrtc]', { event: 'ice.restart.on-reconnect.failed', roomId, error: err });
+            } finally {
+              makingOfferRef.current = false;
+            }
+          }
+          return;
+        }
 
         if (signal.type === 'candidate' && signal.candidate) {
           const currentPc = pcRef.current;

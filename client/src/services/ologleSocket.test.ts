@@ -39,9 +39,9 @@ describe('resolveWebSocketUrl', () => {
       .toBe('wss://ologle-signaling.onrender.com/ws');
   });
 
-  it('routes production frontends to the Render signaling service', () => {
-    expect(resolveWebSocketUrl(undefined, true, 'https:', 'ologle.vercel.app'))
-      .toBe('wss://ologle-signaling.onrender.com/ws');
+  it('routes production frontends to the deployed Vercel backend signaling service by default', () => {
+    expect(resolveWebSocketUrl(undefined, true, 'https:', 'ologle-five.vercel.app'))
+      .toBe('wss://ologle-backend.vercel.app/ws');
   });
 
   it('appends ?sessionId= query parameter when reconnecting with an existing sessionId', () => {

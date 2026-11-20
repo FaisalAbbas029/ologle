@@ -5,9 +5,9 @@ export type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'di
 export type StatusListener = (status: ConnectionStatus, retrySecondsLeft?: number) => void;
 
 // Default fallback host if VITE_WEBSOCKET_URL is not set in Vercel environment variables.
-// Note: In production on Vercel, set VITE_WEBSOCKET_URL=wss://YOUR-ACTUAL-BACKEND-DOMAIN/ws
+// Note: In production on Vercel, set VITE_WEBSOCKET_URL=wss://ologle-backend.vercel.app/ws
 // in your Vercel Project Settings -> Environment Variables.
-const DEFAULT_SIGNALING_HOST = 'ologle-signaling.onrender.com';
+const DEFAULT_SIGNALING_HOST = 'ologle-backend.vercel.app';
 
 export function resolveWebSocketUrl(
   configuredUrl: string | undefined,

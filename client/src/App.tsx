@@ -804,7 +804,13 @@ export default function App() {
     } catch { }
 
     const effectiveProf = (profToUse && validateProfession(profToUse).isValid) ? profToUse : 'Software Engineer';
-    const effectiveInterests = (interestsToUse && interestsToUse.length > 0) ? interestsToUse : ['Technology', 'Ideas', 'Networking'];
+    const fallbackInterests = ['Technology', 'Ideas', 'Networking'];
+    const cleanedInterests: string[] = Array.from(
+      new Set((interestsToUse || []).map((i: unknown) => String(i || '').trim()).filter(Boolean))
+    );
+    const effectiveInterests: string[] = cleanedInterests.length >= 3
+      ? cleanedInterests
+      : Array.from(new Set([...cleanedInterests, ...fallbackInterests])).slice(0, 3);
 
     setProfession(effectiveProf);
     setInterests(effectiveInterests);

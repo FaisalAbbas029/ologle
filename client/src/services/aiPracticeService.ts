@@ -6,24 +6,6 @@ export interface AIPracticeTurn {
   text: string;
 }
 
-function getApiBaseUrl(): string {
-  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-  if (configuredApiUrl) return configuredApiUrl.replace(/\/+$/, '');
-
-  const websocketUrl = import.meta.env.VITE_WEBSOCKET_URL?.trim();
-  if (websocketUrl) {
-    try {
-      const url = new URL(websocketUrl);
-      url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
-      return url.origin;
-    } catch {
-      // fallback
-    }
-  }
-
-  return window.location.origin;
-}
-
 const FALLBACK_RESPONSES: Record<string, string[]> = {
   'Product Designer': [
     "That's a really interesting point. In design, finding the balance between flexibility and intuitive constraints is always a fun challenge. How are you approaching user feedback on that?",

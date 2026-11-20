@@ -24,7 +24,13 @@ describe('getBackendApiUrl', () => {
     expect(getBackendApiUrl('api/translate')).toBe('https://signal.example/api/translate');
   });
 
-  it('falls back to a relative path when nothing is configured', () => {
+  it('normalizes an explicit VITE_API_URL even if given as wss:// or with a /ws path', () => {
+    vi.stubEnv('VITE_API_URL', 'wss://ologle-backend.vercel.app/ws');
+    vi.stubEnv('VITE_WEBSOCKET_URL', '');
+    expect(getBackendApiUrl('/api/ice-servers')).toBe('https://ologle-backend.vercel.app/api/ice-servers');
+  });
+
+  it('falls back to a relative path when nothing is configured in non-production', () => {
     vi.stubEnv('VITE_API_URL', '');
     vi.stubEnv('VITE_WEBSOCKET_URL', '');
     expect(getBackendApiUrl('/api/translate')).toBe('/api/translate');

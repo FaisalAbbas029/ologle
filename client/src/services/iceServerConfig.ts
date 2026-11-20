@@ -32,14 +32,15 @@ export async function fetchIceServerConfig(): Promise<IceServerResponse> {
     return cachedConfig;
   }
 
+  const explicitApiUrl = import.meta.env.VITE_API_URL?.trim();
   const websocketUrl = resolveWebSocketUrl(
-    import.meta.env.VITE_WEBSOCKET_URL,
+    import.meta.env.VITE_WEBSOCKET_URL || explicitApiUrl,
     import.meta.env.PROD,
     window.location.protocol,
     window.location.host
   );
-  const apiUrl = new URL(websocketUrl);
-  apiUrl.protocol = apiUrl.protocol === 'wss:' ? 'https:' : 'http:';
+  const apiUrl = new URL(explicitApiUrl || websocketUrl);
+  apiUrl.protocol = apiUrl.protocol === 'wss:' || apiUrl.protocol === 'https:' ? 'https:' : 'http:';
   apiUrl.pathname = '/api/ice-servers';
   apiUrl.search = '';
 

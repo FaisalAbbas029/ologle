@@ -38,9 +38,14 @@ export function resolveWebSocketUrl(
       // since older browsers reject non-ws schemes in the WebSocket constructor.
       if (url.protocol === 'https:') url.protocol = 'wss:';
       else if (url.protocol === 'http:') url.protocol = 'ws:';
-      // Ensure the WebSocket path is /ws if not explicitly defined
-      if (!url.pathname || url.pathname === '/') {
+      // Normalize pathname: strip trailing slashes and ensure path is /ws (never /ws/ or /ws/ws)
+      const cleanedPath = (url.pathname || '').replace(/\/+$/, '');
+      if (!cleanedPath || cleanedPath === '/') {
         url.pathname = '/ws';
+      } else if (cleanedPath.endsWith('/ws/ws')) {
+        url.pathname = cleanedPath.replace(/\/ws\/ws$/, '/ws');
+      } else {
+        url.pathname = cleanedPath;
       }
       return appendSessionId(url.toString());
     } catch {
@@ -103,7 +108,7 @@ class OlogleClientSocket {
     this.isExplicitlyClosed = false;
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
     const wsUrl = resolveWebSocketUrl(
-      import.meta.env.VITE_WEBSOCKET_URL,
+      import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.VITE_API_URL,
       import.meta.env.PROD,
       window.location.protocol,
       window.location.host,

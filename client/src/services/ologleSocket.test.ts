@@ -22,6 +22,13 @@ describe('resolveWebSocketUrl', () => {
       .toBe('ws://localhost:4000/ws');
   });
 
+  it('strips trailing slashes and prevents duplicate /ws/ws suffixes', () => {
+    expect(resolveWebSocketUrl('wss://ologle-backend.vercel.app/ws/', true, 'https:', 'ologle-five.vercel.app'))
+      .toBe('wss://ologle-backend.vercel.app/ws');
+    expect(resolveWebSocketUrl('wss://ologle-backend.vercel.app/ws/ws', true, 'https:', 'ologle-five.vercel.app'))
+      .toBe('wss://ologle-backend.vercel.app/ws');
+  });
+
   it('uses the same-origin socket during development', () => {
     expect(resolveWebSocketUrl(undefined, false, 'http:', 'localhost:3000'))
       .toBe('ws://localhost:3000/ws');

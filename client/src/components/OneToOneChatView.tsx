@@ -840,7 +840,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
   // Helper to render the dual video feeds (Stranger + Self) with WebRTC, AudioWave, Subtitles, and Safety ML blur
   const renderDualVideoFeeds = () => (
-    <div className="flex-1 min-h-0 h-full grid grid-cols-1 sm:grid-cols-2 gap-2 relative overflow-hidden">
+    <div className="flex-1 min-h-0 h-full grid grid-cols-1 grid-rows-2 sm:grid-cols-2 sm:grid-rows-1 gap-2 relative overflow-hidden">
       {/* STRANGER VIDEO WITH AUDIO WAVE RIPPLES */}
       <AudioWaveVideoFrame
         isSpeaking={remoteAudio.isSpeaking || isPartnerSpeaking || !!remoteSubtitle}
@@ -900,6 +900,11 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
               <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/40 text-[9px] font-bold">
                 {t('call.reconnecting', 'Reconnecting...')}
               </span>
+            ) : connectionState === 'requesting_media' ? (
+              <span className="px-1.5 py-0.5 rounded-md bg-[#EC5E27]/20 text-[#EC5E27] border border-[#EC5E27]/40 text-[9px] font-bold flex items-center gap-1">
+                <LoaderCircle className="w-2.5 h-2.5 animate-spin" />
+                <span>{t('call.mediaInit', 'Media...')}</span>
+              </span>
             ) : !room.partnerVisitorId ? (
               <span className="px-1.5 py-0.5 rounded-md bg-[#EC5E27]/20 text-[#EC5E27] border border-[#EC5E27]/40 text-[9px] font-bold flex items-center gap-1">
                 <LoaderCircle className="w-2.5 h-2.5 animate-spin" />
@@ -920,7 +925,9 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             className={`w-full h-full object-cover max-h-full transition-all duration-300 ${
               isRemoteStreamBlurred ? 'blur-2xl scale-105' : ''
             } ${
-              isRemoteVideoActive && !partnerLeftReason ? 'opacity-100' : 'opacity-0'
+              (isRemoteVideoActive || (connectionState === 'connected' && (remoteVideoRef.current?.videoWidth || 0) > 0)) && !partnerLeftReason
+                ? 'opacity-100'
+                : 'opacity-0'
             }`}
           />
 
@@ -1008,7 +1015,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
                 </div>
               )}
             </div>
-          ) : (!isRemoteVideoActive || partnerLeftReason || !room.partnerVisitorId) ? (
+          ) : ((!isRemoteVideoActive && !(connectionState === 'connected' && (remoteVideoRef.current?.videoWidth || 0) > 0)) || partnerLeftReason || !room.partnerVisitorId) ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-[#111111]/95">
               <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-white/10 flex items-center justify-center text-neutral-400 mb-1.5 shadow-inner">
                 {!room.partnerVisitorId ? (
@@ -1024,6 +1031,8 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
                   ? t('call.partnerDisconnected', 'Partner disconnected')
                   : connectionState === 'failed'
                   ? t('call.connectionFailed', 'Connection failed')
+                  : connectionState === 'requesting_media'
+                  ? t('call.connectingMedia', 'Connecting media...')
                   : connectionState === 'connected'
                   ? t('call.partnerCameraOff', 'Partner camera off')
                   : t('call.establishingP2P', 'Connecting P2P...')}
@@ -1077,15 +1086,22 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             </div>
           )}
 
-          {/* Placeholder when local camera is off */}
-          {!isCameraOn && (
+          {/* Placeholder when local camera is off or initializing */}
+          {connectionState === 'requesting_media' ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-black/90">
+              <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-white/10 flex items-center justify-center text-[#EC5E27] mb-1.5 shadow-inner">
+                <LoaderCircle className="w-6 h-6 animate-spin text-[#EC5E27]" />
+              </div>
+              <p className="text-xs font-semibold text-white">{t('call.initializingCamera', 'Initializing camera...')}</p>
+            </div>
+          ) : !isCameraOn ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-black">
               <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-white/10 flex items-center justify-center text-neutral-400 mb-1.5 shadow-inner">
                 <VideoOff className="w-6 h-6 text-[#EC5E27]" />
               </div>
               <p className="text-xs font-semibold text-white">{t('call.cameraOff', 'Camera Off')}</p>
             </div>
-          )}
+          ) : null}
         </div>
       </AudioWaveVideoFrame>
     </div>

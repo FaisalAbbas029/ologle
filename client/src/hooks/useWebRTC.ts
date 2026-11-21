@@ -75,6 +75,10 @@ const createVirtualMediaStream = (label = 'You'): MediaStream => {
   draw();
 
   const stream = (canvas as any).captureStream ? (canvas as any).captureStream(15) : new MediaStream();
+  (stream as any)._isVirtual = true;
+  stream.getVideoTracks().forEach((track) => {
+    (track as any)._isVirtual = true;
+  });
 
   let audioCtxInstance: AudioContext | null = null;
   // Add a silent audio track using Web Audio API so RTCPeerConnection negotiation succeeds
@@ -155,6 +159,8 @@ export const useWebRTC = ({
   const processedSignalIdRef = useRef<number | null>(null);
   const mediaPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
   const hasInitializedPcRef = useRef<boolean>(false);
+  const isCameraBusyRef = useRef(false);
+  const remoteVideoCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setIsCameraOn(mediaMode === 'video');
@@ -189,15 +195,14 @@ export const useWebRTC = ({
     setMediaError(null);
 
     const promise = (async () => {
-      // Stop existing local tracks before acquiring new ones
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-        localStreamRef.current = null;
-      }
+      const oldStream = localStreamRef.current;
 
       // If browser doesn't support getUserMedia or is unsecure
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.warn('getUserMedia is not supported in this browser context (requires secure context HTTPS or localhost).');
+        if (oldStream) {
+          oldStream.getTracks().forEach((track) => track.stop());
+        }
         const fallback = createVirtualMediaStream();
         localStreamRef.current = fallback;
         if (localVideoRef.current) {
@@ -216,11 +221,11 @@ export const useWebRTC = ({
       let hasRealVideo = false;
       let hasRealAudio = false;
 
-      // ATTEMPT 1: Full requested constraints
+      // ATTEMPT 1: Full requested constraints with ideal facingMode
       try {
         const constraints: MediaStreamConstraints = {
           video: mediaMode === 'video' ? {
-            facingMode: facingUser ? 'user' : 'environment',
+            facingMode: { ideal: facingUser ? 'user' : 'environment' },
             width: { ideal: 640 },
             height: { ideal: 480 },
           } : false,
@@ -275,6 +280,9 @@ export const useWebRTC = ({
 
       // Physical stream successfully acquired
       if (stream) {
+        if (oldStream && oldStream !== stream) {
+          oldStream.getTracks().forEach((track) => track.stop());
+        }
         setIsCameraOn(hasRealVideo);
         setIsMicOn(hasRealAudio);
         localStreamRef.current = stream;
@@ -310,6 +318,9 @@ export const useWebRTC = ({
       // ATTEMPT 5: Graceful fallback stream (Canvas + silent audio)
       // Allows WebRTC signaling and UI to work without freezing or throwing fatal exceptions
       console.warn('All physical media attempts failed. Generating virtual user stream fallback.');
+      if (oldStream) {
+        oldStream.getTracks().forEach((track) => track.stop());
+      }
       const fallback = createVirtualMediaStream();
       localStreamRef.current = fallback;
       if (localVideoRef.current) {
@@ -387,9 +398,63 @@ export const useWebRTC = ({
         }
       };
 
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
+      const attachRemoteVideoElement = (videoEl: HTMLVideoElement, stream: MediaStream) => {
+        if (remoteVideoCleanupRef.current) {
+          remoteVideoCleanupRef.current();
+          remoteVideoCleanupRef.current = null;
+        }
+
+        if (videoEl.srcObject !== stream) {
+          videoEl.srcObject = stream;
+        }
         void safePlayRemoteVideo();
+
+        const checkDimensions = () => {
+          if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+            setIsRemoteVideoActive(true);
+          }
+        };
+
+        const handlePlaying = () => {
+          checkDimensions();
+        };
+        const handleLoadedMetadata = () => {
+          checkDimensions();
+        };
+        const handleResize = () => {
+          checkDimensions();
+        };
+
+        videoEl.addEventListener('playing', handlePlaying);
+        videoEl.addEventListener('loadedmetadata', handleLoadedMetadata);
+        videoEl.addEventListener('resize', handleResize);
+
+        let rvfcId: number | null = null;
+        if ('requestVideoFrameCallback' in videoEl) {
+          const onFrame = () => {
+            setIsRemoteVideoActive(true);
+            if (rvfcId !== null && 'requestVideoFrameCallback' in videoEl) {
+              rvfcId = (videoEl as any).requestVideoFrameCallback(onFrame);
+            }
+          };
+          rvfcId = (videoEl as any).requestVideoFrameCallback(onFrame);
+        }
+
+        checkDimensions();
+
+        remoteVideoCleanupRef.current = () => {
+          videoEl.removeEventListener('playing', handlePlaying);
+          videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          videoEl.removeEventListener('resize', handleResize);
+          if (rvfcId !== null && 'cancelVideoFrameCallback' in videoEl) {
+            (videoEl as any).cancelVideoFrameCallback(rvfcId);
+            rvfcId = null;
+          }
+        };
+      };
+
+      if (remoteVideoRef.current) {
+        attachRemoteVideoElement(remoteVideoRef.current, remoteStream);
       }
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
@@ -450,18 +515,33 @@ export const useWebRTC = ({
             if (track.kind === 'audio') setIsRemoteAudioActive(true);
           };
           track.onmute = () => {
-            if (track.kind === 'video') setIsRemoteVideoActive(false);
-            if (track.kind === 'audio') setIsRemoteAudioActive(false);
+            if (track.kind === 'video') {
+              const hasLiveVideoTrack = activeRemote.getVideoTracks().some((t) => t.readyState === 'live' && t.enabled);
+              const isRenderingFrames = remoteVideoRef.current ? remoteVideoRef.current.videoWidth > 0 && remoteVideoRef.current.videoHeight > 0 : false;
+              if (!hasLiveVideoTrack && !isRenderingFrames) {
+                setIsRemoteVideoActive(false);
+              }
+            } else if (track.kind === 'audio') {
+              const hasLiveAudioTrack = activeRemote.getAudioTracks().some((t) => t.readyState === 'live' && t.enabled);
+              if (!hasLiveAudioTrack) {
+                setIsRemoteAudioActive(false);
+              }
+            }
           };
           track.onended = () => {
-            if (track.kind === 'video') setIsRemoteVideoActive(false);
-            if (track.kind === 'audio') setIsRemoteAudioActive(false);
+            if (track.kind === 'video') {
+              const remainingLive = activeRemote.getVideoTracks().some((t) => t.readyState === 'live' && t.enabled);
+              setIsRemoteVideoActive(remainingLive);
+            }
+            if (track.kind === 'audio') {
+              const remainingLive = activeRemote.getAudioTracks().some((t) => t.readyState === 'live' && t.enabled);
+              setIsRemoteAudioActive(remainingLive);
+            }
           };
         });
 
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = activeRemote;
-          void safePlayRemoteVideo();
+          attachRemoteVideoElement(remoteVideoRef.current, activeRemote);
         }
       };
 
@@ -840,6 +920,10 @@ export const useWebRTC = ({
       settingRemoteAnswerRef.current = false;
       ignoreOfferRef.current = false;
       iceRestartInProgressRef.current = false;
+      if (remoteVideoCleanupRef.current) {
+        remoteVideoCleanupRef.current();
+        remoteVideoCleanupRef.current = null;
+      }
       if (connectionTimeoutRef.current !== null) {
         window.clearTimeout(connectionTimeoutRef.current);
         connectionTimeoutRef.current = null;
@@ -873,36 +957,55 @@ export const useWebRTC = ({
   }, []);
 
   // Toggle Video Track
-  const toggleCamera = useCallback(() => {
+  const toggleCamera = useCallback(async () => {
     if (mediaMode !== 'video') return;
-    if (!localStreamRef.current) return;
-    const videoTracks = localStreamRef.current.getVideoTracks();
-    const hasOnlyCanvas = videoTracks.some((t) => t.label.includes('canvas') || !t.label);
+    if (isCameraBusyRef.current) return;
 
-    if (videoTracks.length === 0 || (!isCameraOn && (hasOnlyCanvas || mediaError))) {
-      // Re-request real physical camera if currently on canvas fallback or missing
-      startLocalMedia(isFacingUserRef.current, true).then((stream) => {
+    const currentStream = localStreamRef.current;
+    if (!currentStream) return;
+
+    const videoTracks = currentStream.getVideoTracks();
+    const isVirtual = videoTracks.some((t) => (t as any)._isVirtual || t.label.includes('canvas'));
+
+    // If currently on virtual/canvas fallback or has no video tracks, re-request real camera
+    if (videoTracks.length === 0 || (!isCameraOn && (isVirtual || mediaError))) {
+      isCameraBusyRef.current = true;
+      try {
+        const stream = await startLocalMedia(isFacingUserRef.current, true);
         if (stream && pcRef.current) {
           const newVideoTrack = stream.getVideoTracks()[0];
           if (newVideoTrack) {
             const sender = pcRef.current.getSenders().find((s) => s.track?.kind === 'video');
             if (sender) {
-              sender.replaceTrack(newVideoTrack);
+              await sender.replaceTrack(newVideoTrack);
             } else {
               pcRef.current.addTrack(newVideoTrack, stream);
             }
             setIsCameraOn(true);
+            if (localVideoRef.current) {
+              localVideoRef.current.srcObject = stream;
+              localVideoRef.current.play().catch(() => {});
+            }
           }
         }
-      });
+      } catch (err) {
+        console.warn('[webrtc] Failed to turn camera on:', err);
+      } finally {
+        isCameraBusyRef.current = false;
+      }
       return;
     }
 
+    // Physical camera track: directly toggle track.enabled without recreating stream or calling getUserMedia
     const nextState = !isCameraOn;
     videoTracks.forEach((track) => {
       track.enabled = nextState;
     });
     setIsCameraOn(nextState);
+
+    if (nextState && localVideoRef.current) {
+      localVideoRef.current.play().catch(() => {});
+    }
   }, [isCameraOn, mediaError, mediaMode, startLocalMedia]);
 
   // Toggle Audio Track
@@ -937,22 +1040,103 @@ export const useWebRTC = ({
   // Switch Camera (Front vs Back)
   const flipCamera = useCallback(async () => {
     if (mediaMode !== 'video') return;
-    const nextFacing = !isFacingUserRef.current;
-    setIsFacingUser(nextFacing);
-    isFacingUserRef.current = nextFacing;
-    const newStream = await startLocalMedia(nextFacing, true);
-    if (newStream && pcRef.current) {
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      if (newVideoTrack) {
-        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(newVideoTrack);
+    if (isCameraBusyRef.current) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMediaError('Camera switching is not supported on this device/browser.');
+      return;
+    }
+
+    isCameraBusyRef.current = true;
+    const prevFacing = isFacingUserRef.current;
+    const nextFacing = !prevFacing;
+    let newVideoStream: MediaStream | null = null;
+
+    try {
+      // 1. Acquire the new camera video track first
+      newVideoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: nextFacing ? 'user' : 'environment' },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+      });
+
+      const newVideoTrack = newVideoStream.getVideoTracks()[0];
+      if (!newVideoTrack) {
+        throw new Error('No video track returned from requested camera.');
+      }
+
+      // 2. Find existing video RTCRtpSender (or video transceiver)
+      const pc = pcRef.current;
+      if (pc) {
+        let videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
+        if (!videoSender && pc.getTransceivers) {
+          const videoTransceiver = pc.getTransceivers().find(
+            (t) => t.sender.track?.kind === 'video' || t.receiver?.track?.kind === 'video'
+          );
+          if (videoTransceiver) {
+            videoSender = videoTransceiver.sender;
+          }
+        }
+
+        // 3. Await sender.replaceTrack(newVideoTrack)
+        if (videoSender) {
+          await videoSender.replaceTrack(newVideoTrack);
+        } else if (localStreamRef.current) {
+          // 8. Safely handle case where no video sender exists without creating duplicate senders
+          const existingSenders = pc.getSenders().filter((s) => s.track?.kind === 'video');
+          if (existingSenders.length === 0) {
+            pc.addTrack(newVideoTrack, localStreamRef.current);
+          }
         }
       }
+
+      // 4. Only after successful replacement, update local MediaStream and local video preview
+      const currentStream = localStreamRef.current;
+      const oldVideoTracks = currentStream ? currentStream.getVideoTracks() : [];
+
+      if (currentStream) {
+        currentStream.addTrack(newVideoTrack);
+      }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = currentStream || newVideoStream;
+        localVideoRef.current.play().catch(() => {});
+      }
+
+      // 5. Stop the old video track only after the new track is successfully installed
+      oldVideoTracks.forEach((t) => {
+        if (t !== newVideoTrack) {
+          currentStream?.removeTrack(t);
+          t.stop();
+        }
+      });
+
+      // Update state to reflect newly active facing mode
+      setIsFacingUser(nextFacing);
+      isFacingUserRef.current = nextFacing;
+      setIsCameraOn(true);
+      setMediaError(null);
+    } catch (err: any) {
+      console.warn('[webrtc] flipCamera failed:', err);
+      // 6. If replacement or acquisition fails, stop newly acquired track and retain old working track
+      if (newVideoStream) {
+        newVideoStream.getTracks().forEach((t) => t.stop());
+      }
+      // Restore previous camera state
+      setIsFacingUser(prevFacing);
+      isFacingUserRef.current = prevFacing;
+      setMediaError('Could not switch camera. Keeping current camera active.');
+    } finally {
+      isCameraBusyRef.current = false;
     }
-  }, [startLocalMedia]);
+  }, [mediaMode]);
 
   const terminateConnection = useCallback(() => {
+    if (remoteVideoCleanupRef.current) {
+      remoteVideoCleanupRef.current();
+      remoteVideoCleanupRef.current = null;
+    }
     if (pcRef.current) {
       try {
         pcRef.current.close();

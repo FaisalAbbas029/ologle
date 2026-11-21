@@ -28,26 +28,26 @@ export type FrameAnimationType = 'stream' | 'wave' | 'shimmer';
    (Every single image is unique with zero repetitions across all cards)
 ───────────────────────────────────────────────────────────────── */
 const AI_PORTRAITS = {
-  faisalFounder:     '/ai-portraits/faisal_abbas_founder.jpg',
-  miaDesigner:       '/ai-portraits/hero_mia_v1.jpg',
-  aminaCyber:        '/ai-portraits/hero_amina_cyber.jpg',
-  sofiaScientist:    '/ai-portraits/hero_sofia_v2.jpg',
-  sofiaSurgeon:      '/ai-portraits/hero_sofia_v1.jpg',
-  alexBlockchain:    '/ai-portraits/hero_alex_blockchain.jpg',
-  kenjiGameDev:      '/ai-portraits/hero_kenji_gamedev.jpg',
+  faisalFounder:     '/ai-portraits/faisal_abbas_founder.webp',
+  miaDesigner:       '/ai-portraits/hero_mia_v1.webp',
+  aminaCyber:        '/ai-portraits/hero_amina_cyber.webp',
+  sofiaScientist:    '/ai-portraits/hero_sofia_v2.webp',
+  sofiaSurgeon:      '/ai-portraits/hero_sofia_v1.webp',
+  alexBlockchain:    '/ai-portraits/hero_alex_blockchain.webp',
+  kenjiGameDev:      '/ai-portraits/hero_kenji_gamedev.webp',
 
-  marcusAiLead:      '/ai-portraits/hero_marcus_v1.jpg',
-  davidAgritech:     '/ai-portraits/hero_david_agritech.jpg',
-  liamAutomotive:    '/ai-portraits/hero_liam_v1.jpg',
-  elenaAerospace:    '/ai-portraits/hero_mia_v2.jpg',
-  zainabQuantum:     '/ai-portraits/hero_zainab_quantum.jpg',
+  marcusAiLead:      '/ai-portraits/hero_marcus_v1.webp',
+  davidAgritech:     '/ai-portraits/hero_david_agritech.webp',
+  liamAutomotive:    '/ai-portraits/hero_liam_v1.webp',
+  elenaAerospace:    '/ai-portraits/hero_mia_v2.webp',
+  zainabQuantum:     '/ai-portraits/hero_zainab_quantum.webp',
 
-  priyaCloud:        '/ai-portraits/hero_priya_v1.jpg',
-  oliverWebDev:      '/ai-portraits/hero_oliver_developer.jpg',
-  chloeCreative:     '/ai-portraits/hero_chloe_creative.jpg',
-  tariqDataScience:  '/ai-portraits/hero_tariq_datascience.jpg',
-  mateoRobotics:     '/ai-portraits/hero_mateo_robotics.jpg',
-  yunaBroker:        '/ai-portraits/hero_yuna_v1.jpg',
+  priyaCloud:        '/ai-portraits/hero_priya_v1.webp',
+  oliverWebDev:      '/ai-portraits/hero_oliver_developer.webp',
+  chloeCreative:     '/ai-portraits/hero_chloe_creative.webp',
+  tariqDataScience:  '/ai-portraits/hero_tariq_datascience.webp',
+  mateoRobotics:     '/ai-portraits/hero_mateo_robotics.webp',
+  yunaBroker:        '/ai-portraits/hero_yuna_v1.webp',
 };
 
 interface Card {
@@ -131,6 +131,7 @@ const PortraitCard: React.FC<{ card: Card; animMode?: FrameAnimationType; index?
       src={card.photo}
       alt={`${card.name} – ${card.profession}`}
       loading="lazy"
+      decoding="async"
       className="hcard-img"
       style={{
         position: 'absolute',

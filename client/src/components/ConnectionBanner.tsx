@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import WifiOff from 'lucide-react/dist/esm/icons/wifi-off.js';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
 import { ConnectionStatus } from '../services/ologleSocket.ts';
@@ -14,16 +14,44 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
   retrySecondsLeft,
   onReconnectNow,
 }) => {
-  if (status === 'connected') return null;
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
 
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // When fully connected and online, banner is never needed
+  if (status === 'connected' && isOnline) return null;
+
+  // On initial page load while online, allow silent background connection without flashing alarms
+  if (isOnline && (status === 'connecting' || status === 'disconnected') && retrySecondsLeft === 0) {
+    return null;
+  }
+
+  const isActuallyOffline = !isOnline;
   const isReconnecting = status === 'reconnecting';
-  const headline = isReconnecting
+
+  const headline = isActuallyOffline
+    ? 'You appear to be offline'
+    : isReconnecting
     ? 'Reconnecting to signaling server...'
     : 'Connecting to signaling server...';
 
-  const subtext = retrySecondsLeft > 0
-    ? `Retrying in ${retrySecondsLeft}s — server may be waking up (first connect can take ~30s)`
-    : 'Waiting for the matching server...';
+  const subtext = isActuallyOffline
+    ? 'Check your device internet or Wi-Fi connection.'
+    : retrySecondsLeft > 0
+    ? `Retrying in ${retrySecondsLeft}s — server waking up (first connect can take ~20s)`
+    : 'Waiting for server response...';
 
   return (
     <div

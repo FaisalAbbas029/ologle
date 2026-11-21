@@ -92,7 +92,7 @@ const createVirtualMediaStream = (label = 'You'): MediaStream => {
       if (audioCtx.state === 'running') {
         osc.start();
       } else if (audioCtx.state === 'suspended') {
-        audioCtx.resume().then(() => osc.start()).catch(() => {});
+        audioCtx.resume().then(() => osc.start()).catch(() => { });
       }
       dst.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
     }
@@ -106,7 +106,7 @@ const createVirtualMediaStream = (label = 'You'): MediaStream => {
     videoTrack.stop = () => {
       cancelAnimationFrame(animFrame);
       if (audioCtxInstance && audioCtxInstance.state !== 'closed') {
-        audioCtxInstance.close().catch(() => {});
+        audioCtxInstance.close().catch(() => { });
       }
       origStop();
     };
@@ -132,6 +132,7 @@ export const useWebRTC = ({
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [isRemoteVideoActive, setIsRemoteVideoActive] = useState(false);
   const [isRemoteAudioActive, setIsRemoteAudioActive] = useState(false);
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -140,6 +141,7 @@ export const useWebRTC = ({
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const restartIceRef = useRef<() => Promise<void>>(async () => { });
   const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
   const peerConnectionPromiseRef = useRef<Promise<RTCPeerConnection | null> | null>(null);
   const peerConnectionGenerationRef = useRef(0);
@@ -361,9 +363,33 @@ export const useWebRTC = ({
 
       const remoteStream = new MediaStream();
       remoteStreamRef.current = remoteStream;
+
+      const safePlayRemoteVideo = async () => {
+        const videoEl = remoteVideoRef.current;
+        if (!videoEl) return;
+        try {
+          await videoEl.play();
+          setIsAutoplayBlocked(false);
+        } catch (err: any) {
+          if (err && err.name === 'NotAllowedError') {
+            // Browser autoplay policy restricted audio. Mute temporarily so video plays immediately!
+            videoEl.muted = true;
+            try {
+              await videoEl.play();
+              setIsAutoplayBlocked(true);
+              console.warn('[webrtc] Autoplay with sound restricted by browser; playing muted video. Prompting user to unmute.');
+            } catch (muteErr) {
+              console.warn('[webrtc] Muted play also failed:', muteErr);
+            }
+          } else {
+            console.warn('[webrtc] Remote video play error:', err);
+          }
+        }
+      };
+
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
-        remoteVideoRef.current.play().catch(() => { });
+        void safePlayRemoteVideo();
       }
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
@@ -435,7 +461,7 @@ export const useWebRTC = ({
 
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = activeRemote;
-          remoteVideoRef.current.play().catch(() => { });
+          void safePlayRemoteVideo();
         }
       };
 
@@ -480,7 +506,7 @@ export const useWebRTC = ({
             logWebRTC('peer.connection.timeout', { roomId, state: pc.connectionState });
             setConnectionState('failed');
           }
-        }, 30_000);
+        }, 18_000);
       };
 
       const restartIce = async () => {
@@ -524,6 +550,7 @@ export const useWebRTC = ({
           iceRestartInProgressRef.current = false;
         }
       };
+      restartIceRef.current = restartIce;
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
@@ -951,6 +978,23 @@ export const useWebRTC = ({
     setIsRemoteAudioActive(false);
   }, []);
 
+  const unlockAudio = useCallback(async () => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.muted = false;
+      try {
+        await remoteVideoRef.current.play();
+        setIsAutoplayBlocked(false);
+      } catch (e) {
+        console.warn('[webrtc] Failed to unmute remote video:', e);
+      }
+    }
+  }, []);
+
+  const retryConnection = useCallback(() => {
+    logWebRTC('manual.retry-connection', { roomId });
+    void restartIceRef.current();
+  }, [roomId]);
+
   return {
     localVideoRef,
     remoteVideoRef,
@@ -961,6 +1005,9 @@ export const useWebRTC = ({
     hasMultipleCameras,
     isRemoteVideoActive,
     isRemoteAudioActive,
+    isAutoplayBlocked,
+    unlockAudio,
+    retryConnection,
     mediaError,
     toggleCamera,
     toggleMic,

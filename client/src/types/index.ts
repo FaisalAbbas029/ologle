@@ -189,7 +189,7 @@ export interface ClassExploreItem {
 // Client -> Server Action Messages
 export type ClientMessage =
   | { type: 'REGISTER_SESSION'; visitorId?: string; blockedStrangers?: string[]; profession?: string; interests?: string[] }
-  | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; interests: string[]; country?: string; sessionMode?: string }
+  | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; strictProfessionFilter?: boolean; interests: string[]; country?: string; sessionMode?: string }
   | { type: 'CANCEL_MATCHING' }
   | { type: 'NEXT_PERSON' }
   | { type: 'END_CONVERSATION' }

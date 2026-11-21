@@ -392,6 +392,9 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
     isMicOn,
     hasMultipleCameras,
     isRemoteVideoActive,
+    isAutoplayBlocked,
+    unlockAudio,
+    retryConnection,
     mediaError,
     toggleCamera,
     toggleMic,
@@ -413,6 +416,22 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
       setIsMediaErrorDismissed(false);
     }
   }, [mediaError]);
+
+  // One-time gesture listener to unlock peer audio if browser blocked unmuted autoplay
+  useEffect(() => {
+    if (!isAutoplayBlocked) return;
+    const handleGesture = () => {
+      void unlockAudio();
+    };
+    window.addEventListener('click', handleGesture, { once: true });
+    window.addEventListener('keydown', handleGesture, { once: true });
+    window.addEventListener('touchstart', handleGesture, { once: true });
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+    };
+  }, [isAutoplayBlocked, unlockAudio]);
 
   const handleRetryCamera = async () => {
     setIsMediaErrorDismissed(false);
@@ -933,6 +952,18 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             </div>
           )}
 
+          {/* Autoplay Audio Unlock Banner */}
+          {isAutoplayBlocked && (
+            <button
+              type="button"
+              onClick={unlockAudio}
+              className="absolute top-12 left-1/2 -translate-x-1/2 z-40 px-3.5 py-2 rounded-xl bg-[#EC5E27] hover:bg-[#D94E1A] text-white text-xs font-bold flex items-center gap-2 shadow-2xl animate-bounce cursor-pointer"
+            >
+              <Volume2 className="w-4 h-4" />
+              Tap to Enable Peer Audio
+            </button>
+          )}
+
           {/* Floating Live Subtitles Overlay (Synchronized via CC button) */}
           <LiveSubtitleOverlay
             subtitle={remoteSubtitle}
@@ -945,8 +976,12 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-gradient-to-b from-[#18181b] via-[#121214] to-[#09090b]">
               <div className="relative mb-2">
                 <img
-                  src={room.aiAvatar || '/ai-portraits/hero_mia_v1.jpg'}
+                  src={room.aiAvatar || '/ai-portraits/hero_mia_v1.webp'}
                   alt={room.partnerName || 'AI Partner'}
+                  loading="lazy"
+                  decoding="async"
+                  width={96}
+                  height={96}
                   className={`w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl object-cover border-2 shadow-xl transition-all duration-300 ${
                     isPartnerSpeaking
                       ? 'border-emerald-400 scale-105 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
@@ -993,6 +1028,16 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
                   ? t('call.partnerCameraOff', 'Partner camera off')
                   : t('call.establishingP2P', 'Connecting P2P...')}
               </p>
+              {connectionState === 'failed' && (
+                <button
+                  type="button"
+                  onClick={retryConnection}
+                  className="mt-2.5 px-3 py-1.5 rounded-xl bg-[#EC5E27] hover:bg-[#D94E1A] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry Connection
+                </button>
+              )}
             </div>
           ) : null}
         </div>
@@ -1642,9 +1687,9 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
     return (
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 relative">
-        {/* Hidden video elements so browser native WebRTC tracks keep playing through speakers */}
-        <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
-        <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
+        {/* Invisible video elements positioned offscreen so browser native WebRTC audio tracks keep playing continuously */}
+        <video ref={remoteVideoRef} autoPlay playsInline className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none" />
+        <video ref={localVideoRef} autoPlay playsInline muted className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none" />
 
         {/* Left Column: Voice Call Centerpiece (Avatar, Speaking Ripples, Audio Waveform, Call Status, Controls) */}
         <div className="lg:col-span-6 xl:col-span-5 flex flex-col justify-between rounded-2xl bg-white/85 dark:bg-[#141414]/95 backdrop-blur-xl border border-orange-200/80 dark:border-white/10 p-4 sm:p-6 shadow-xl relative overflow-hidden">
@@ -1675,8 +1720,12 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
 
               {room.isAI ? (
                 <img
-                  src={room.aiAvatar || '/ai-portraits/hero_mia_v1.jpg'}
+                  src={room.aiAvatar || '/ai-portraits/hero_mia_v1.webp'}
                   alt={room.partnerName || 'AI Partner'}
+                  loading="lazy"
+                  decoding="async"
+                  width={128}
+                  height={128}
                   className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-4 transition-all duration-300 relative z-10 shadow-2xl ${
                     remoteAudio.isSpeaking || isPartnerSpeaking
                       ? 'border-emerald-500 ring-8 ring-emerald-500/25 scale-105 shadow-[0_0_35px_rgba(16,185,129,0.5)]'

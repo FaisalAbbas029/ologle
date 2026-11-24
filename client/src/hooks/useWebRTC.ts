@@ -18,7 +18,10 @@ export type WebRTCConnectionState =
   | 'connected'
   | 'disconnected'
   | 'failed'
-  | 'permission_denied';
+  | 'permission_denied'
+  | 'unstable'
+  | 'reconnecting'
+  | 'offline';
 
 function logWebRTC(event: string, details: Record<string, string | number | boolean | null>): void {
   console.info('[webrtc]', { event, ...details });
@@ -138,6 +141,9 @@ export const useWebRTC = ({
   const [isRemoteAudioActive, setIsRemoteAudioActive] = useState(false);
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [isJustReconnected, setIsJustReconnected] = useState(false);
+  const [isIceRestarting, setIsIceRestarting] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'critical'>('good');
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -156,6 +162,10 @@ export const useWebRTC = ({
   const iceRestartInProgressRef = useRef(false);
   const disconnectTimerRef = useRef<number | null>(null);
   const connectionTimeoutRef = useRef<number | null>(null);
+  const statsIntervalRef = useRef<number | null>(null);
+  const iceRetryAttemptRef = useRef<number>(0);
+  const iceRetryTimerRef = useRef<number | null>(null);
+  const previousConnectionStateRef = useRef<WebRTCConnectionState>('idle');
   const processedSignalIdRef = useRef<number | null>(null);
   const mediaPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
   const hasInitializedPcRef = useRef<boolean>(false);
@@ -178,6 +188,33 @@ export const useWebRTC = ({
         .catch(() => { });
     }
   }, []);
+
+  // Listen to device network changes (online/offline) for instant recovery
+  useEffect(() => {
+    const handleOnline = () => {
+      logWebRTC('device.online', { roomId });
+      if (pcRef.current && pcRef.current.connectionState !== 'connected') {
+        iceRetryAttemptRef.current = 0;
+        void restartIceRef.current();
+      }
+    };
+    const handleOffline = () => {
+      logWebRTC('device.offline', { roomId });
+      if (iceRetryTimerRef.current !== null) {
+        window.clearTimeout(iceRetryTimerRef.current);
+        iceRetryTimerRef.current = null;
+      }
+      previousConnectionStateRef.current = 'offline';
+      setConnectionState('offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [roomId]);
 
   // Initialize or update local media stream with progressive multi-level fallback
   const startLocalMedia = useCallback(async (facingUser = true, forceFresh = false): Promise<MediaStream | null> => {
@@ -589,6 +626,24 @@ export const useWebRTC = ({
         }, 18_000);
       };
 
+      const scheduleIceRetry = () => {
+        if (iceRetryTimerRef.current !== null) return;
+        const ICE_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000, 30000];
+        const attempt = iceRetryAttemptRef.current;
+        const baseDelay = ICE_RETRY_DELAYS_MS[Math.min(attempt, ICE_RETRY_DELAYS_MS.length - 1)];
+        const jitter = Math.floor(Math.random() * 500) - 250;
+        const delay = Math.max(500, baseDelay + jitter);
+        logWebRTC('ice.retry.scheduled', { roomId, attempt, delay });
+
+        iceRetryTimerRef.current = window.setTimeout(() => {
+          iceRetryTimerRef.current = null;
+          if (pcRef.current === pc && pc.connectionState !== 'connected') {
+            void restartIce();
+          }
+        }, delay);
+        iceRetryAttemptRef.current = attempt + 1;
+      };
+
       const restartIce = async () => {
         if (pcRef.current !== pc || iceRestartInProgressRef.current) return;
 
@@ -608,9 +663,11 @@ export const useWebRTC = ({
         if (pc.signalingState !== 'stable') return;
 
         iceRestartInProgressRef.current = true;
+        setIsIceRestarting(true);
         makingOfferRef.current = true;
         candidatePairLogged = false;
-        setConnectionState('connecting');
+        previousConnectionStateRef.current = 'reconnecting';
+        setConnectionState('reconnecting');
         startConnectionTimeout();
         try {
           const offer = await pc.createOffer({ iceRestart: true });
@@ -628,23 +685,61 @@ export const useWebRTC = ({
         } finally {
           makingOfferRef.current = false;
           iceRestartInProgressRef.current = false;
+          setIsIceRestarting(false);
         }
       };
       restartIceRef.current = restartIce;
+
+      const handleConnectionSuccess = () => {
+        clearConnectionTimers();
+        if (iceRetryTimerRef.current !== null) {
+          window.clearTimeout(iceRetryTimerRef.current);
+          iceRetryTimerRef.current = null;
+        }
+        iceRetryAttemptRef.current = 0;
+        setIsIceRestarting(false);
+
+        const wasInterrupted =
+          previousConnectionStateRef.current === 'disconnected' ||
+          previousConnectionStateRef.current === 'failed' ||
+          previousConnectionStateRef.current === 'reconnecting' ||
+          previousConnectionStateRef.current === 'unstable' ||
+          previousConnectionStateRef.current === 'offline';
+
+        if (wasInterrupted) {
+          setIsJustReconnected(true);
+          window.setTimeout(() => setIsJustReconnected(false), 3500);
+        }
+        previousConnectionStateRef.current = 'connected';
+        setConnectionState('connected');
+        void logSelectedCandidatePair();
+      };
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
         logWebRTC('peer.connection.state', { roomId, state });
         if (state === 'connected') {
-          clearConnectionTimers();
-          setConnectionState('connected');
-          void logSelectedCandidatePair();
+          handleConnectionSuccess();
         } else if (state === 'connecting') {
           setConnectionState('connecting');
         } else if (state === 'disconnected') {
-          setConnectionState('disconnected');
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            previousConnectionStateRef.current = 'offline';
+            setConnectionState('offline');
+          } else {
+            previousConnectionStateRef.current = 'reconnecting';
+            setConnectionState('reconnecting');
+            scheduleIceRetry();
+          }
         } else if (state === 'failed') {
-          setConnectionState('failed');
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            previousConnectionStateRef.current = 'offline';
+            setConnectionState('offline');
+          } else {
+            previousConnectionStateRef.current = 'failed';
+            setConnectionState('failed');
+            scheduleIceRetry();
+          }
         }
       };
 
@@ -652,27 +747,104 @@ export const useWebRTC = ({
         const state = pc.iceConnectionState;
         logWebRTC('ice.connection.state', { roomId, state });
         if (state === 'connected' || state === 'completed') {
-          clearConnectionTimers();
-          setConnectionState('connected');
-          void logSelectedCandidatePair();
+          handleConnectionSuccess();
         } else if (state === 'checking') {
           setConnectionState('connecting');
         } else if (state === 'disconnected') {
-          setConnectionState('disconnected');
-          if (disconnectTimerRef.current === null) {
-            // Stagger responder ICE restart behind initiator; Perfect Negotiation resolves any offer collision
-            const restartDelayMs = isInitiator ? 4000 : 6000;
-            disconnectTimerRef.current = window.setTimeout(() => {
-              disconnectTimerRef.current = null;
-              if (pc.iceConnectionState === 'disconnected') void restartIce();
-            }, restartDelayMs);
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            previousConnectionStateRef.current = 'offline';
+            setConnectionState('offline');
+          } else {
+            previousConnectionStateRef.current = 'reconnecting';
+            setConnectionState('reconnecting');
+            scheduleIceRetry();
           }
         } else if (state === 'failed') {
-          clearConnectionTimers();
-          setConnectionState('failed');
-          void restartIce();
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            previousConnectionStateRef.current = 'offline';
+            setConnectionState('offline');
+          } else {
+            previousConnectionStateRef.current = 'failed';
+            setConnectionState('failed');
+            scheduleIceRetry();
+          }
         }
       };
+
+      // Quality stats monitoring loop (runs every 3.5s)
+      if (statsIntervalRef.current !== null) {
+        window.clearInterval(statsIntervalRef.current);
+      }
+      let lastPacketsReceived = 0;
+      let lastPacketsLost = 0;
+      let lastStatsTime = 0;
+
+      statsIntervalRef.current = window.setInterval(async () => {
+        if (pcRef.current !== pc || pc.connectionState !== 'connected') return;
+        try {
+          const stats = await pc.getStats();
+          let rtt: number | null = null;
+          let packetLossRate: number | null = null;
+
+          stats.forEach((report) => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              if (typeof report.currentRoundTripTime === 'number') {
+                rtt = report.currentRoundTripTime;
+              }
+            }
+            if (report.type === 'inbound-rtp' && report.kind === 'video') {
+              const now = report.timestamp || Date.now();
+              const packetsReceived = report.packetsReceived || 0;
+              const packetsLost = report.packetsLost || 0;
+
+              if (lastStatsTime > 0) {
+                const deltaPackets = packetsReceived - lastPacketsReceived;
+                const deltaLost = packetsLost - lastPacketsLost;
+                const totalExpected = deltaPackets + deltaLost;
+                if (totalExpected > 0) {
+                  packetLossRate = Math.max(0, deltaLost / totalExpected);
+                }
+              }
+              lastPacketsReceived = packetsReceived;
+              lastPacketsLost = packetsLost;
+              lastStatsTime = now;
+            }
+          });
+
+          const isRttHigh = rtt !== null && rtt > 0.600; // > 600ms
+          const isLossHigh = packetLossRate !== null && packetLossRate > 0.08; // > 8%
+
+          if (isRttHigh || isLossHigh) {
+            setConnectionQuality('poor');
+            setConnectionState((prev) => (prev === 'connected' ? 'unstable' : prev));
+
+            // Congestion response: reduce video bitrate to 250 kbps to preserve audio
+            const senders = pc.getSenders();
+            const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
+            if (videoSender && videoSender.getParameters && videoSender.setParameters) {
+              const params = videoSender.getParameters();
+              if (params.encodings && params.encodings[0] && params.encodings[0].maxBitrate !== 250_000) {
+                params.encodings[0].maxBitrate = 250_000;
+                void videoSender.setParameters(params).catch(() => {});
+              }
+            }
+          } else if (rtt !== null && rtt < 0.300 && (packetLossRate === null || packetLossRate < 0.03)) {
+            setConnectionQuality('good');
+            setConnectionState((prev) => (prev === 'unstable' ? 'connected' : prev));
+
+            // Restore video bitrate to 1.2 Mbps
+            const senders = pc.getSenders();
+            const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
+            if (videoSender && videoSender.getParameters && videoSender.setParameters) {
+              const params = videoSender.getParameters();
+              if (params.encodings && params.encodings[0] && params.encodings[0].maxBitrate === 250_000) {
+                params.encodings[0].maxBitrate = 1_200_000;
+                void videoSender.setParameters(params).catch(() => {});
+              }
+            }
+          }
+        } catch {}
+      }, 3500);
 
       startConnectionTimeout();
 
@@ -932,6 +1104,14 @@ export const useWebRTC = ({
         window.clearTimeout(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
       }
+      if (statsIntervalRef.current !== null) {
+        window.clearInterval(statsIntervalRef.current);
+        statsIntervalRef.current = null;
+      }
+      if (iceRetryTimerRef.current !== null) {
+        window.clearTimeout(iceRetryTimerRef.current);
+        iceRetryTimerRef.current = null;
+      }
       if (pcRef.current) {
         try {
           pcRef.current.close();
@@ -1133,6 +1313,17 @@ export const useWebRTC = ({
   }, [mediaMode]);
 
   const terminateConnection = useCallback(() => {
+    if (statsIntervalRef.current !== null) {
+      window.clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = null;
+    }
+    if (iceRetryTimerRef.current !== null) {
+      window.clearTimeout(iceRetryTimerRef.current);
+      iceRetryTimerRef.current = null;
+    }
+    iceRetryAttemptRef.current = 0;
+    setIsIceRestarting(false);
+
     if (remoteVideoCleanupRef.current) {
       remoteVideoCleanupRef.current();
       remoteVideoCleanupRef.current = null;
@@ -1183,6 +1374,9 @@ export const useWebRTC = ({
     localVideoRef,
     remoteVideoRef,
     connectionState,
+    isJustReconnected,
+    isIceRestarting,
+    connectionQuality,
     isCameraOn,
     isMicOn,
     isFacingUser,

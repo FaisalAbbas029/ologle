@@ -71,6 +71,17 @@ export interface EphemeralSession {
   isRestrictedUntil: number; // Unix timestamp
   skipTimestamps: number[];
   messageTimestamps: number[];
+  isRecovering?: boolean;
+  sharedInterests?: string[];
+  sharedTopics?: string[];
+  matchScore?: number;
+  partnerProfession?: string;
+  partnerCountry?: string;
+  partnerVisitorId?: string;
+  partnerSessionId?: string;
+  scoreBreakdown?: ScoreBreakdown;
+  isInitiator?: boolean;
+  endedWhileOfflineReason?: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' | null;
 }
 
 export interface CommunityRoom {
@@ -152,6 +163,21 @@ export type ServerMessage =
       scoreBreakdown?: ScoreBreakdown;
       isInitiator?: boolean;
     }
+  | {
+      type: 'SESSION_RESTORED';
+      roomId: string;
+      sharedInterests: string[];
+      sharedTopics: string[];
+      score: number;
+      partnerProfession?: string;
+      partnerCountry?: string;
+      partnerVisitorId?: string;
+      partnerSessionId?: string;
+      scoreBreakdown?: ScoreBreakdown;
+      isInitiator?: boolean;
+    }
+  | { type: 'PARTNER_RECONNECTING'; graceSeconds: number }
+  | { type: 'PARTNER_RECONNECTED'; roomId: string }
   | { type: 'PARTNER_LEFT'; reason: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' }
   | { type: 'WEBRTC_SIGNAL'; signal: any }
   | { type: 'VOICE_TRANSCRIPT'; id: string; text: string; language: string; isFinal: boolean; senderSessionId: string; timestamp: number }
@@ -212,9 +238,28 @@ export class OlogleEngine {
 
   private readonly SESSION_INACTIVITY_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
 
+  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+  private reconnectGraceWindowMs: number = Number(process.env.SESSION_RECOVERY_WINDOW_MS) || 25000; // 25-second recovery window for unexpected loss
+
   constructor() {
     this.initializePresetRooms();
     this.startInactivityGarbageCollector();
+  }
+
+  public setRecoveryWindowMs(ms: number): void {
+    this.reconnectGraceWindowMs = Math.max(50, ms);
+  }
+
+  public getRecoveryWindowMs(): number {
+    return this.reconnectGraceWindowMs;
+  }
+
+  private clearPendingDisconnectTimer(sessionId: string): void {
+    const pendingTimer = this.disconnectTimers.get(sessionId);
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      this.disconnectTimers.delete(sessionId);
+    }
   }
 
   private initializePresetRooms(): void {
@@ -405,7 +450,11 @@ export class OlogleEngine {
     const now = Date.now();
     const hashedIp = this.hashSessionIp(ipAddress);
 
+    this.clearPendingDisconnectTimer(sessionId);
+
     let session = this.sessions.get(sessionId);
+    const wasRecoveringLocal1on1 = Boolean(session && session.currentMode === '1on1' && session.isRecovering);
+
     if (!session) {
       session = {
         sessionId,
@@ -438,6 +487,34 @@ export class OlogleEngine {
     }
 
     this.send(ws, { type: 'SESSION_REGISTERED', sessionId });
+
+    if (wasRecoveringLocal1on1 && session.currentRoomId && session.pairedSessionId) {
+      session.isRecovering = false;
+      this.send(ws, {
+        type: 'SESSION_RESTORED',
+        roomId: session.currentRoomId,
+        sharedInterests: session.sharedInterests || [],
+        sharedTopics: session.sharedTopics || [],
+        score: session.matchScore ?? 100,
+        partnerProfession: session.partnerProfession,
+        partnerCountry: session.partnerCountry || 'GLOBAL',
+        partnerVisitorId: session.partnerVisitorId,
+        partnerSessionId: session.partnerSessionId,
+        scoreBreakdown: session.scoreBreakdown,
+        isInitiator: session.isInitiator,
+      });
+      this.sendToPartner(session.pairedSessionId, {
+        type: 'PARTNER_RECONNECTED',
+        roomId: session.currentRoomId,
+      });
+    } else if (session.endedWhileOfflineReason) {
+      this.send(ws, {
+        type: 'PARTNER_LEFT',
+        reason: session.endedWhileOfflineReason,
+      });
+      session.endedWhileOfflineReason = null;
+    }
+
     return session;
   }
 
@@ -447,30 +524,64 @@ export class OlogleEngine {
 
     session.ws = null;
     session.lastActivity = Date.now();
+    const graceSeconds = Math.max(1, Math.ceil(this.reconnectGraceWindowMs / 1000));
 
-    // Handle leave based on active mode
+    // Handle unexpected socket drop based on active mode
     if (session.currentMode === 'matching') {
       this.matchQueue.remove(sessionId);
+      session.currentMode = 'none';
     } else if (session.currentMode === '1on1' && session.pairedSessionId) {
-      this.notifyPartnerLeft(session.pairedSessionId, 'disconnected');
-      const partner = this.sessions.get(session.pairedSessionId);
-      if (partner) {
-        partner.currentMode = 'none';
-        partner.pairedSessionId = null;
-        partner.currentRoomId = null;
-      }
+      // Preserve active 1-on-1 room during the recovery grace window!
+      // Do NOT send PARTNER_LEFT immediately on transient network loss.
+      session.isRecovering = true;
+      this.sendToPartner(session.pairedSessionId, {
+        type: 'PARTNER_RECONNECTING',
+        graceSeconds,
+      });
     } else if (session.currentMode === 'community' && session.currentRoomId) {
       this.leaveCommunity(session);
+      session.currentMode = 'none';
+      session.currentRoomId = null;
     } else if (session.currentMode === 'class' && session.currentRoomId) {
       this.leaveClass(session);
+      session.currentMode = 'none';
+      session.currentRoomId = null;
     }
 
-    session.currentMode = 'none';
-    session.currentRoomId = null;
-    session.pairedSessionId = null;
+    this.clearPendingDisconnectTimer(sessionId);
+
+    const timer = setTimeout(() => {
+      this.disconnectTimers.delete(sessionId);
+      const current = this.sessions.get(sessionId);
+      if (!current) return;
+      if (current.ws !== null) return;
+
+      // User failed to reconnect within the recovery window: now notify partner and clean up
+      if (current.currentMode === '1on1' && current.pairedSessionId) {
+        const partnerId = current.pairedSessionId;
+        this.notifyPartnerLeft(partnerId, 'disconnected');
+        const partner = this.sessions.get(partnerId);
+        if (partner && partner.pairedSessionId === sessionId) {
+          partner.currentMode = 'none';
+          partner.pairedSessionId = null;
+          partner.currentRoomId = null;
+          if (!partner.ws) {
+            partner.endedWhileOfflineReason = 'disconnected';
+          }
+        }
+      }
+
+      this.destroySession(sessionId);
+    }, this.reconnectGraceWindowMs);
+
+    if (typeof timer === 'object' && 'unref' in timer) {
+      timer.unref();
+    }
+    this.disconnectTimers.set(sessionId, timer);
   }
 
   public destroySession(sessionId: string): void {
+    this.clearPendingDisconnectTimer(sessionId);
     const session = this.sessions.get(sessionId);
     if (!session) return;
     this.matchQueue.remove(sessionId);
@@ -790,6 +901,28 @@ export class OlogleEngine {
       totalScore: scoreResult.score,
     };
 
+    sessionA.sharedInterests = scoreResult.sharedInterests;
+    sessionA.sharedTopics = scoreResult.sharedTopics;
+    sessionA.matchScore = scoreResult.score;
+    sessionA.partnerProfession = sessionB.profession;
+    sessionA.partnerCountry = sessionB.country || 'GLOBAL';
+    sessionA.partnerVisitorId = sessionB.visitorId;
+    sessionA.partnerSessionId = sessionB.sessionId;
+    sessionA.scoreBreakdown = scoreBreakdown;
+    sessionA.isInitiator = true;
+    sessionA.isRecovering = false;
+
+    sessionB.sharedInterests = scoreResult.sharedInterests;
+    sessionB.sharedTopics = scoreResult.sharedTopics;
+    sessionB.matchScore = scoreResult.score;
+    sessionB.partnerProfession = sessionA.profession;
+    sessionB.partnerCountry = sessionA.country || 'GLOBAL';
+    sessionB.partnerVisitorId = sessionA.visitorId;
+    sessionB.partnerSessionId = sessionA.sessionId;
+    sessionB.scoreBreakdown = scoreBreakdown;
+    sessionB.isInitiator = false;
+    sessionB.isRecovering = false;
+
     const payloadA: ServerMessage = {
       type: 'MATCH_FOUND',
       roomId,
@@ -870,11 +1003,15 @@ export class OlogleEngine {
       session.blockedSessionIds.add(prevPartnerId);
       const partner = this.sessions.get(prevPartnerId);
       if (partner) {
+        this.clearPendingDisconnectTimer(partner.sessionId);
         partner.blockedSessionIds.add(session.sessionId);
         this.notifyPartnerLeft(prevPartnerId, 'skipped');
         partner.currentMode = 'none';
         partner.pairedSessionId = null;
         partner.currentRoomId = null;
+        if (!partner.ws) {
+          partner.endedWhileOfflineReason = 'skipped';
+        }
       }
     }
 
@@ -888,12 +1025,16 @@ export class OlogleEngine {
   private handleEndConversation(session: EphemeralSession): void {
     const partnerId = session.pairedSessionId;
     if (partnerId) {
-      this.notifyPartnerLeft(partnerId, 'ended');
       const partner = this.sessions.get(partnerId);
       if (partner) {
+        this.clearPendingDisconnectTimer(partner.sessionId);
+        this.notifyPartnerLeft(partnerId, 'ended');
         partner.currentMode = 'none';
         partner.pairedSessionId = null;
         partner.currentRoomId = null;
+        if (!partner.ws) {
+          partner.endedWhileOfflineReason = 'ended';
+        }
       }
     }
 
@@ -911,6 +1052,7 @@ export class OlogleEngine {
     // Mutual separation
     session.blockedSessionIds.add(partnerId);
     if (partner) {
+      this.clearPendingDisconnectTimer(partner.sessionId);
       partner.blockedSessionIds.add(session.sessionId);
       partner.violationCount += 1;
 
@@ -938,6 +1080,9 @@ export class OlogleEngine {
       partner.currentMode = 'none';
       partner.pairedSessionId = null;
       partner.currentRoomId = null;
+      if (!partner.ws) {
+        partner.endedWhileOfflineReason = 'reported';
+      }
     }
 
     session.currentMode = 'none';
@@ -1007,6 +1152,7 @@ export class OlogleEngine {
     session.blockedSessionIds.add(partnerId);
     const partner = this.sessions.get(partnerId);
     if (partner) {
+      this.clearPendingDisconnectTimer(partner.sessionId);
       partner.blockedSessionIds.add(session.sessionId);
       if (partner.visitorId && session.visitorId) {
         this.blockedPairs.add(`${session.visitorId}:${partner.visitorId}`);
@@ -1018,6 +1164,9 @@ export class OlogleEngine {
       partner.currentMode = 'none';
       partner.pairedSessionId = null;
       partner.currentRoomId = null;
+      if (!partner.ws) {
+        partner.endedWhileOfflineReason = 'blocked';
+      }
     }
 
     session.currentMode = 'none';
@@ -1621,6 +1770,8 @@ export class OlogleEngine {
   // --- Utilities ---
 
   private cleanCurrentSessionState(session: EphemeralSession): void {
+    this.clearPendingDisconnectTimer(session.sessionId);
+    session.isRecovering = false;
     if (session.currentMode === 'matching') {
       this.matchQueue.remove(session.sessionId);
     } else if (session.currentMode === '1on1' && session.pairedSessionId) {
@@ -1629,6 +1780,13 @@ export class OlogleEngine {
       this.leaveCommunity(session);
     } else if (session.currentMode === 'class') {
       this.leaveClass(session);
+    }
+  }
+
+  private sendToPartner(partnerId: string, message: ServerMessage): void {
+    const partner = this.sessions.get(partnerId);
+    if (partner && partner.ws) {
+      this.send(partner.ws, message);
     }
   }
 

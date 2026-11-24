@@ -12,9 +12,12 @@ describe('useWebRTC Signaling & Lifecycle Contracts', () => {
       'disconnected',
       'failed',
       'permission_denied',
+      'unstable',
+      'reconnecting',
+      'offline',
     ];
 
-    expect(validStates).toHaveLength(8);
+    expect(validStates).toHaveLength(11);
     for (const state of validStates) {
       expect(typeof state).toBe('string');
     }

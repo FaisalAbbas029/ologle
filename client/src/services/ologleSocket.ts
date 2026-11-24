@@ -1,7 +1,7 @@
 import { ServerMessage, ClientMessage } from '../types/index.ts';
 
 export type SocketListener = (msg: ServerMessage) => void;
-export type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
+export type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected' | 'offline';
 export type StatusListener = (status: ConnectionStatus, retrySecondsLeft?: number) => void;
 
 // Default fallback host if VITE_WEBSOCKET_URL is not set in Vercel environment variables.
@@ -93,9 +93,18 @@ class OlogleClientSocket {
   constructor() {
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('online', () => {
-        if (!this.isExplicitlyClosed && !this.isConnected) {
+        if (!this.isExplicitlyClosed) {
           this.reconnectNow();
         }
+      });
+      window.addEventListener('offline', () => {
+        this.clearTimers();
+        if (this.socket) {
+          try { this.socket.close(); } catch {}
+        }
+        this.socket = null;
+        this.isConnected = false;
+        this.setStatus('offline');
       });
     }
   }
@@ -199,10 +208,20 @@ class OlogleClientSocket {
   }
 
   private scheduleReconnect(): void {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.setStatus('offline');
+      return;
+    }
+
     this.clearTimers();
     this.attemptCount++;
-    // Exponential backoff: 1.5s, 3s, 6s, max 10s + random jitter
-    const delayMs = Math.min(10000, Math.pow(1.8, this.attemptCount) * 1000 + Math.random() * 500);
+    // Exponential backoff strategy: 1s, 2s, 4s, 8s, 15s, max 30s + random jitter
+    const BACKOFF_SCHEDULE = [1000, 2000, 4000, 8000, 15000];
+    const baseDelay = this.attemptCount <= BACKOFF_SCHEDULE.length
+      ? BACKOFF_SCHEDULE[this.attemptCount - 1]
+      : 30000;
+    const jitter = Math.floor(Math.random() * 500) - 250; // +/- 250ms
+    const delayMs = Math.max(800, Math.min(30000, baseDelay + jitter));
     this.retrySecondsLeft = Math.ceil(delayMs / 1000);
     this.setStatus('reconnecting', this.retrySecondsLeft);
 
@@ -251,6 +270,10 @@ class OlogleClientSocket {
     return () => {
       this.statusListeners.delete(listener);
     };
+  }
+
+  public onStatusChange(listener: StatusListener): () => void {
+    return this.subscribeStatus(listener);
   }
 
   public subscribe(listener: SocketListener): () => void {

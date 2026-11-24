@@ -11,8 +11,8 @@ import { InputVoiceTranscribeButton } from './InputVoiceTranscribeButton.tsx';
 import { CountryFlag } from './CountryFlag.tsx';
 import { soundService } from '../services/soundService.ts';
 import { useChatTranslation } from '../hooks/useChatTranslation.ts';
-import { ologleSocket } from '../services/ologleSocket.ts';
-import { translateCaption } from '../services/translationService.ts';
+import { ologleSocket, type ConnectionStatus } from '../services/ologleSocket.ts';
+import { translateCaption, autoDetectAndTranslateMessage } from '../services/translationService.ts';
 import { getBackendApiUrl } from '../services/apiConfig.ts';
 import { analyzeInFlightText } from '../utils/zeroStorageModeration.ts';
 import { validateChatMessage } from '../utils/chatSafety.ts';
@@ -43,6 +43,8 @@ import {
   Mic,
   MicOff,
   RefreshCw,
+  Maximize,
+  Minimize,
   Maximize2,
   Minimize2,
   User,
@@ -89,6 +91,8 @@ interface OneToOneChatViewProps {
   onToggleMute: () => void;
   skipCooldownSeconds?: number;
   onUpdateMessage?: (id: string, updates: Partial<ChatMessage>) => void;
+  isPartnerReconnecting?: boolean;
+  partnerJustReconnected?: boolean;
   sessionMode: 'video' | 'voice' | 'messaging';
   isInitiator: boolean;
 }
@@ -110,6 +114,8 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
   onToggleMute,
   skipCooldownSeconds = 0,
   onUpdateMessage,
+  isPartnerReconnecting = false,
+  partnerJustReconnected = false,
   sessionMode,
   isInitiator,
 }) => {
@@ -388,6 +394,9 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
     localVideoRef,
     remoteVideoRef,
     connectionState,
+    isJustReconnected,
+    isIceRestarting,
+    connectionQuality,
     isCameraOn,
     isMicOn,
     hasMultipleCameras,
@@ -409,6 +418,103 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
     incomingSignal,
     autoStart: sessionMode !== 'messaging',
   });
+
+  const [socketStatus, setSocketStatus] = useState<ConnectionStatus>('connected');
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    return ologleSocket.onStatusChange((status) => {
+      setSocketStatus(status);
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  const getDynamicStatus = useCallback(() => {
+    if (!isOnline) {
+      return {
+        message: 'You are offline. Reconnecting as soon as internet is back...',
+        color: 'bg-rose-500/90 text-white border-rose-400/50 shadow-rose-950/40',
+      };
+    }
+    if (socketStatus === 'reconnecting' || socketStatus === 'disconnected' || socketStatus === 'offline') {
+      return {
+        message: 'Connection unstable. Reconnecting to signaling server...',
+        color: 'bg-amber-500/90 text-black border-amber-300 shadow-amber-950/40',
+      };
+    }
+    if (isPartnerReconnecting) {
+      return {
+        message: 'Partner connection lost. Waiting for them to rejoin...',
+        color: 'bg-amber-500/90 text-black border-amber-300 shadow-amber-950/40',
+      };
+    }
+    if (partnerJustReconnected) {
+      return {
+        message: 'Partner reconnected! Resuming video...',
+        color: 'bg-emerald-500/90 text-white border-emerald-300 shadow-emerald-950/40',
+      };
+    }
+    if (isIceRestarting) {
+      return {
+        message: 'Re-establishing peer connection...',
+        color: 'bg-amber-500/90 text-black border-amber-300 shadow-amber-950/40',
+      };
+    }
+    if (connectionState === 'disconnected' || connectionState === 'failed' || connectionState === 'reconnecting') {
+      return {
+        message: 'Video connection interrupted. Attempting automatic recovery...',
+        color: 'bg-amber-500/90 text-black border-amber-300 shadow-amber-950/40',
+      };
+    }
+    if (connectionState === 'unstable') {
+      return {
+        message: 'Network unstable. Optimizing video quality...',
+        color: 'bg-amber-500/90 text-black border-amber-300 shadow-amber-950/40',
+      };
+    }
+    if (isJustReconnected) {
+      return {
+        message: 'Connection restored!',
+        color: 'bg-emerald-500/90 text-white border-emerald-300 shadow-emerald-950/40',
+      };
+    }
+    return null;
+  }, [
+    isOnline,
+    socketStatus,
+    isPartnerReconnecting,
+    partnerJustReconnected,
+    isIceRestarting,
+    connectionState,
+    isJustReconnected,
+  ]);
 
   const [isMediaErrorDismissed, setIsMediaErrorDismissed] = useState(false);
   useEffect(() => {
@@ -567,18 +673,37 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
         const sCode = sLang.split('-')[0].toLowerCase();
         const tCode = tLang.split('-')[0].toLowerCase();
 
-        if (sCode !== tCode) {
-          translateCaption(msg.text, sLang, tLang).then((translated) => {
-            setRemoteSubtitle({
-              text: msg.text,
-              sourceLanguage: msg.language,
-              translatedText: translated,
-              targetLanguage: subtitleLanguage,
-              isFinal: msg.isFinal,
-              speakerName: 'Stranger',
-              timestamp: msg.timestamp,
+        // Check if translation is needed:
+        // 1. Explicitly different language codes, OR
+        // 2. Contains non-ASCII foreign characters (e.g. Urdu, Arabic, Persian, French, Spanish, Russian, Hindi, etc.)
+        const hasForeignScript = /[^\u0000-\u007F]/.test(msg.text);
+
+        if (sCode !== tCode || hasForeignScript) {
+          autoDetectAndTranslateMessage(msg.text, tCode)
+            .then((res) => {
+              setRemoteSubtitle({
+                text: msg.text,
+                sourceLanguage: res.detectedLanguage || msg.language || 'auto',
+                translatedText: res.isTranslated ? res.translatedText : (sCode !== tCode ? res.translatedText : undefined),
+                targetLanguage: subtitleLanguage,
+                isFinal: msg.isFinal,
+                speakerName: 'Stranger',
+                timestamp: msg.timestamp || Date.now(),
+              });
+            })
+            .catch(() => {
+              translateCaption(msg.text, sLang, tLang).then((translated) => {
+                setRemoteSubtitle({
+                  text: msg.text,
+                  sourceLanguage: msg.language,
+                  translatedText: translated,
+                  targetLanguage: subtitleLanguage,
+                  isFinal: msg.isFinal,
+                  speakerName: 'Stranger',
+                  timestamp: msg.timestamp || Date.now(),
+                });
+              });
             });
-          });
         } else {
           setRemoteSubtitle({
             text: msg.text,
@@ -586,7 +711,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             targetLanguage: subtitleLanguage,
             isFinal: msg.isFinal,
             speakerName: 'Stranger',
-            timestamp: msg.timestamp,
+            timestamp: msg.timestamp || Date.now(),
           });
         }
       } else if (msg.type === 'TYPING_INDICATOR') {
@@ -839,10 +964,27 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
   };
 
   // Helper to render the dual video feeds (Stranger + Self) with WebRTC, AudioWave, Subtitles, and Safety ML blur
-  const renderDualVideoFeeds = () => (
-    <div className="flex-1 min-h-0 h-full grid grid-cols-1 grid-rows-2 sm:grid-cols-2 sm:grid-rows-1 gap-2 relative overflow-hidden">
-      {/* STRANGER VIDEO WITH AUDIO WAVE RIPPLES */}
-      <AudioWaveVideoFrame
+  const renderDualVideoFeeds = () => {
+    const dynStatus = getDynamicStatus();
+    return (
+      <div className="flex-1 min-h-0 h-full grid grid-cols-1 grid-rows-2 sm:grid-cols-2 sm:grid-rows-1 gap-2 relative overflow-hidden">
+        {/* Dynamic Status Notification Overlay Banner (Part 1 D) */}
+        {dynStatus && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 max-w-[92%] px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md flex items-center gap-2 pointer-events-none transition-all duration-300 text-xs">
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                dynStatus.message.includes('restored') || dynStatus.message.includes('reconnected!')
+                  ? 'bg-emerald-400 animate-ping'
+                  : 'bg-amber-400 animate-pulse'
+              }`}
+            />
+            <span className={`font-semibold truncate ${dynStatus.color}`}>
+              {dynStatus.message}
+            </span>
+          </div>
+        )}
+        {/* STRANGER VIDEO WITH AUDIO WAVE RIPPLES */}
+        <AudioWaveVideoFrame
         isSpeaking={remoteAudio.isSpeaking || isPartnerSpeaking || !!remoteSubtitle}
         audioLevel={remoteAudio.audioLevel}
         isActive={connectionState === 'connected' && !partnerLeftReason}
@@ -1106,6 +1248,7 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
       </AudioWaveVideoFrame>
     </div>
   );
+};
 
   // Helper to render the video control toolbar (Below video feeds)
   const renderVideoToolbar = (mode: 'compact' | 'expanded') => (
@@ -1228,6 +1371,16 @@ export const OneToOneChatView: React.FC<OneToOneChatViewProps> = ({
             <span>{t('call.compactView', 'Compact View')}</span>
           </button>
         )}
+
+        {/* Fullscreen Button */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="p-1 sm:p-1.5 rounded-lg bg-white/80 dark:bg-[#1A1A1A] hover:bg-orange-50 dark:hover:bg-[#262626] border border-orange-200/80 dark:border-white/10 text-slate-700 dark:text-neutral-300 text-xs font-semibold flex items-center transition-colors cursor-pointer"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize className="w-3.5 h-3.5 text-[#EC5E27]" /> : <Maximize className="w-3.5 h-3.5 text-[#EC5E27]" />}
+        </button>
 
         {/* End Conversation Button below video */}
         <button

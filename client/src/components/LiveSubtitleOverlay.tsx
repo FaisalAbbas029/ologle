@@ -32,6 +32,7 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
 }) => {
   const [currentDisplay, setCurrentDisplay] = useState<SubtitleData | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [captionMode, setCaptionMode] = useState<'translated' | 'original'>('translated');
 
   useEffect(() => {
     if (!subtitle || !subtitle.text.trim()) {
@@ -99,10 +100,32 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
 
           <div className="flex items-center gap-1.5">
             {isCrossLanguage && (
-              <span className="flex items-center gap-1 text-[10px] text-amber-200 font-medium bg-[#EC5E27]/30 px-1.5 py-0.5 rounded border border-[#EC5E27]/50">
-                <Sparkles className="w-2.5 h-2.5" />
-                <span>AI Translated</span>
-              </span>
+              <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-md border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCaptionMode('translated')}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                    captionMode === 'translated'
+                      ? 'bg-[#EC5E27] text-white shadow-xs'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title="Show English translation (Default)"
+                >
+                  EN Translation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCaptionMode('original')}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                    captionMode === 'original'
+                      ? 'bg-[#EC5E27] text-white shadow-xs'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title="Show original spoken transcript"
+                >
+                  Original
+                </button>
+              </div>
             )}
             {onDismiss && (
               <button
@@ -118,19 +141,33 @@ export const LiveSubtitleOverlay: React.FC<LiveSubtitleOverlayProps> = ({
 
         {/* Caption Body */}
         <div className="flex flex-col gap-1">
-          {/* If cross-language: show translated text prominently */}
+          {/* If cross-language: show based on selected dual display mode */}
           {isCrossLanguage && currentDisplay.translatedText ? (
-            <>
-              <p className="text-sm sm:text-base font-semibold text-[#ffffff] leading-snug drop-shadow-sm tracking-wide">
-                {currentDisplay.translatedText}
-                {!currentDisplay.isFinal && (
-                  <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#ffffff] animate-pulse align-middle" />
-                )}
-              </p>
-              <p className="text-xs text-neutral-300 dark:text-neutral-400 italic leading-tight">
-                "{currentDisplay.text}"
-              </p>
-            </>
+            captionMode === 'translated' ? (
+              <>
+                <p className="text-sm sm:text-base font-semibold text-[#ffffff] leading-snug drop-shadow-sm tracking-wide">
+                  {currentDisplay.translatedText}
+                  {!currentDisplay.isFinal && (
+                    <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#ffffff] animate-pulse align-middle" />
+                  )}
+                </p>
+                <p className="text-xs text-neutral-300 dark:text-neutral-400 italic leading-tight">
+                  "{currentDisplay.text}"
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm sm:text-base font-semibold text-[#ffffff] leading-snug drop-shadow-sm tracking-wide">
+                  {currentDisplay.text}
+                  {!currentDisplay.isFinal && (
+                    <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#ffffff] animate-pulse align-middle" />
+                  )}
+                </p>
+                <p className="text-xs text-[#EC5E27] leading-tight">
+                  EN: "{currentDisplay.translatedText}"
+                </p>
+              </>
+            )
           ) : (
             /* Same language: show transcribed text */
             <p className="text-sm sm:text-base font-medium text-[#ffffff] leading-snug drop-shadow-sm">

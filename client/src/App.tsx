@@ -183,6 +183,8 @@ export default function App() {
 
   // Partner status & rate limiting
   const [partnerLeftReason, setPartnerLeftReason] = useState<string | null>(null);
+  const [isPartnerReconnecting, setIsPartnerReconnecting] = useState<boolean>(false);
+  const [partnerJustReconnected, setPartnerJustReconnected] = useState<boolean>(false);
   const [skipCooldownSeconds, setSkipCooldownSeconds] = useState(0);
   const [isMatchReady, setIsMatchReady] = useState(false);
 
@@ -414,6 +416,7 @@ export default function App() {
           break;
 
         case 'SESSION_RESTORED':
+          setIsPartnerReconnecting(false);
           pendingMatchingRequestRef.current = null;
           activeMatchingRequestRef.current = null;
           setIsMatchReady(false);
@@ -438,6 +441,7 @@ export default function App() {
           break;
 
         case 'PARTNER_RECONNECTING':
+          setIsPartnerReconnecting(true);
           addToast(
             'info',
             `Partner connection interrupted. Waiting up to ${msg.graceSeconds || 20}s for reconnection...`
@@ -445,12 +449,16 @@ export default function App() {
           break;
 
         case 'PARTNER_RECONNECTED':
+          setIsPartnerReconnecting(false);
+          setPartnerJustReconnected(true);
+          setTimeout(() => setPartnerJustReconnected(false), 3500);
           setPartnerLeftReason(null);
           addToast('info', 'Partner reconnected!');
           setIncomingSignal({ signal: { type: 'reconnect_check' }, id: signalCounterRef.current++ });
           break;
 
         case 'MATCHING_STARTED': {
+          setIsPartnerReconnecting(false);
           activeMatchingRequestRef.current = activeMatchingRequestRef.current || pendingMatchingRequestRef.current;
           setIsMatchReady(true);
           setPartnerLeftReason(null);
@@ -459,6 +467,7 @@ export default function App() {
         }
 
         case 'MATCHING_CANCELED':
+          setIsPartnerReconnecting(false);
           pendingMatchingRequestRef.current = null;
           activeMatchingRequestRef.current = null;
           setIsMatchReady(false);
@@ -467,6 +476,7 @@ export default function App() {
           break;
 
         case 'MATCH_FOUND':
+          setIsPartnerReconnecting(false);
           pendingMatchingRequestRef.current = null;
           activeMatchingRequestRef.current = null;
           setIsMatchReady(false);
@@ -510,6 +520,7 @@ export default function App() {
           break;
 
         case 'PARTNER_LEFT':
+          setIsPartnerReconnecting(false);
           setPartnerLeftReason(msg.reason);
           setIncomingSignal(null);
           playChime(392.0); // lower tone for exit
@@ -1192,6 +1203,8 @@ export default function App() {
               onToggleMute={() => setIsMuted((prev) => !prev)}
               skipCooldownSeconds={skipCooldownSeconds}
               onUpdateMessage={handleUpdate1on1Message}
+              isPartnerReconnecting={isPartnerReconnecting}
+              partnerJustReconnected={partnerJustReconnected}
               sessionMode={sessionMode}
               isInitiator={active1on1 ? (active1on1.isInitiator ?? Boolean(
                 active1on1.partnerVisitorId &&

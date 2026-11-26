@@ -158,6 +158,7 @@ html.dark {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -169,6 +170,7 @@ html.dark {
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -176,6 +178,7 @@ html.dark {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -187,7 +190,10 @@ html.dark {
 }
 
 @layer base {
-  *, ::before, ::after {
+
+  *,
+  ::before,
+  ::after {
     box-sizing: border-box;
   }
 
@@ -225,13 +231,16 @@ html.dark {
   }
 
   @media (min-width: 1024px) {
-    html, body {
+
+    html,
+    body {
       width: 100%;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
       overflow: hidden;
     }
+
     #root {
       width: 100%;
       height: 100vh;
@@ -241,22 +250,35 @@ html.dark {
     }
   }
 
-  h1, h2, h3, h4, h5, h6, .font-heading, .font-display {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-heading,
+  .font-display {
     font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, sans-serif !important;
     letter-spacing: -0.03em;
     font-weight: 800;
   }
 
-  button, input, select, textarea, label {
+  button,
+  input,
+  select,
+  textarea,
+  label {
     font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, sans-serif;
   }
 
-  a, .site-link {
+  a,
+  .site-link {
     color: var(--accent-color, #EC5E27);
     transition: color 0.2s ease;
   }
 
-  a:hover, .site-link:hover {
+  a:hover,
+  .site-link:hover {
     color: var(--accent-hover, #D94E1A);
   }
 }
@@ -267,13 +289,13 @@ html.dark {
 
 .ai-glow-background {
   background-color: var(--bg-primary);
-  background-image: 
+  background-image:
     radial-gradient(ellipse 90% 60% at 50% -20%, var(--accent-glow, rgba(236, 94, 39, 0.18)), transparent 75%),
     radial-gradient(circle 600px at 85% 30%, var(--accent-glow, rgba(236, 94, 39, 0.08)), transparent 60%);
 }
 
 .ai-mesh-grid {
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(125, 125, 125, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(125, 125, 125, 0.05) 1px, transparent 1px);
   background-size: 48px 48px;
@@ -281,7 +303,7 @@ html.dark {
 
 .prism-grid-bg {
   background-color: var(--bg-primary);
-  background-image: 
+  background-image:
     radial-gradient(circle at 50% 0%, var(--accent-glow, rgba(236, 94, 39, 0.15)) 0%, transparent 70%),
     linear-gradient(to right, rgba(125, 125, 125, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(125, 125, 125, 0.05) 1px, transparent 1px);
@@ -441,10 +463,13 @@ html.dark {
 }
 
 @keyframes pulse-orange {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.5;
     transform: scale(0.85);
@@ -500,6 +525,7 @@ html.dark #hero-find-match-btn {
   background-image: none !important;
   background: #1E293B !important;
 }
+
 html.dark #hero-find-match-btn {
   background: #EC5E27 !important;
 }
@@ -553,13 +579,16 @@ a:active,
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-primary, #fdedd1);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-color, #E2E8F0);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-color, #EC5E27);
 }
@@ -574,9 +603,9 @@ a:active,
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #0B0F17;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 0.3s ease;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s ease;
   will-change: transform, box-shadow;
 }
 
@@ -613,6 +642,7 @@ a:active,
    PRINT-READY STYLESHEET
    ========================================================================== */
 @media print {
+
   *,
   *::before,
   *::after {
@@ -621,7 +651,8 @@ a:active,
     box-shadow: none !important;
   }
 
-  html, body {
+  html,
+  body {
     background: #ffffff !important;
     color: #000000 !important;
     font-size: 11pt !important;
@@ -729,4 +760,16 @@ select {
 [dir="rtl"] .btn-crimson-primary,
 [dir="rtl"] .btn-glass-secondary {
   direction: ltr !important;
+}
+
+/* Hide scrollbar utility for clean horizontal/vertical scrolling without visible scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  /* IE and Edge */
+  scrollbar-width: none !important;
+  /* Firefox */
 }

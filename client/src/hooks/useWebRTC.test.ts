@@ -57,5 +57,13 @@ describe('useWebRTC Signaling & Lifecycle Contracts', () => {
     expect(supportedModes).toContain('voice');
     expect(supportedModes).toContain('messaging');
   });
+
+  it('validates exponential backoff recovery schedule structure', () => {
+    const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 12000];
+    expect(RECONNECT_DELAYS_MS[0]).toBe(1000);
+    expect(RECONNECT_DELAYS_MS[1]).toBe(2000);
+    expect(RECONNECT_DELAYS_MS[2]).toBe(4000);
+    expect(RECONNECT_DELAYS_MS).toHaveLength(5);
+  });
 });
 

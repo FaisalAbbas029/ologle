@@ -14,11 +14,13 @@ import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2.js';
 import Crown from 'lucide-react/dist/esm/icons/crown.js';
 import Globe from 'lucide-react/dist/esm/icons/globe.js';
 import Zap from 'lucide-react/dist/esm/icons/zap.js';
+import Subtitles from 'lucide-react/dist/esm/icons/subtitles.js';
+import Languages from 'lucide-react/dist/esm/icons/languages.js';
 import { CountryFlag } from './CountryFlag.tsx';
 import { searchProfessions, validateProfession, validateTargetInterest, OLOGLE_PROFESSIONS, OLOGLE_PURPOSES } from '../data/constants.ts';
 import { COUNTRIES_LIST } from '../data/countriesData.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
-import { SUPPORTED_LANGUAGES } from '../data/languages.ts';
+import { SUPPORTED_LANGUAGES, getLanguageByCode } from '../data/languages.ts';
 import { getSuggestedInterestsForProfession } from '../data/professionInterests.ts';
 
 export type FrameAnimationType = 'stream' | 'wave' | 'shimmer';
@@ -591,6 +593,26 @@ const FilterCard: React.FC<FilterCardProps> = ({
     return currentLanguageOption?.englishName || (localStorage.getItem('ologle_primary_language') || localStorage.getItem('hayloo_primary_language')) || 'English';
   });
 
+  const [spokenLanguage, setSpokenLanguage] = useState<string>(() => {
+    return localStorage.getItem('ologle_spoken_lang') || 'en-US';
+  });
+  const [subtitleLanguage, setSubtitleLanguage] = useState<string>(() => {
+    return localStorage.getItem('ologle_subtitle_lang') || localStorage.getItem('ologle_sub_lang') || 'ja-JP';
+  });
+  const [spokenLangQuery, setSpokenLangQuery] = useState<string>('');
+  const [showSpokenLangDropdown, setShowSpokenLangDropdown] = useState<boolean>(false);
+  const [subtitleLangQuery, setSubtitleLangQuery] = useState<string>('');
+  const [showSubtitleLangDropdown, setShowSubtitleLangDropdown] = useState<boolean>(false);
+  const spokenLangDropdownRef = useRef<HTMLDivElement>(null);
+  const subtitleLangDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [captionsDefaultOn, setCaptionsDefaultOn] = useState<boolean>(() => {
+    return localStorage.getItem('ologle_captions_on') !== 'false';
+  });
+  const [autoTranslateEnabled, setAutoTranslateEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('ologle_auto_translate_captions') !== 'false';
+  });
+
   useEffect(() => {
     if (currentLanguageOption?.englishName) {
       setPrimaryLanguage(currentLanguageOption.englishName);
@@ -609,6 +631,12 @@ const FilterCard: React.FC<FilterCardProps> = ({
       localStorage.setItem('ologle_match_purpose', matchPurpose);
       localStorage.setItem('ologle_session_mode', sessionMode);
       localStorage.setItem('ologle_primary_language', primaryLanguage);
+      localStorage.setItem('ologle_spoken_lang', spokenLanguage);
+      localStorage.setItem('ologle_subtitle_lang', subtitleLanguage);
+      localStorage.setItem('ologle_sub_lang', subtitleLanguage);
+      localStorage.setItem('ologle_captions_on', captionsDefaultOn ? 'true' : 'false');
+      localStorage.setItem('ologle_auto_translate_captions', autoTranslateEnabled ? 'true' : 'false');
+      localStorage.setItem('ologle_auto_translate', autoTranslateEnabled ? 'true' : 'false');
     } catch {}
     setLanguage(primaryLanguage);
     setShowFilterSettings(false);
@@ -695,6 +723,62 @@ const FilterCard: React.FC<FilterCardProps> = ({
     };
   }, [showTargetProfDropdown]);
 
+  // Close spoken language dropdown on click outside
+  useEffect(() => {
+    const handleOutsideSpokenClick = (e: MouseEvent) => {
+      if (spokenLangDropdownRef.current && !spokenLangDropdownRef.current.contains(e.target as Node)) {
+        setShowSpokenLangDropdown(false);
+      }
+    };
+    if (showSpokenLangDropdown) {
+      document.addEventListener('mousedown', handleOutsideSpokenClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideSpokenClick);
+    };
+  }, [showSpokenLangDropdown]);
+
+  // Close subtitle language dropdown on click outside
+  useEffect(() => {
+    const handleOutsideSubtitleClick = (e: MouseEvent) => {
+      if (subtitleLangDropdownRef.current && !subtitleLangDropdownRef.current.contains(e.target as Node)) {
+        setShowSubtitleLangDropdown(false);
+      }
+    };
+    if (showSubtitleLangDropdown) {
+      document.addEventListener('mousedown', handleOutsideSubtitleClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideSubtitleClick);
+    };
+  }, [showSubtitleLangDropdown]);
+
+  // Filtered spoken languages for searchable dropdown
+  const filteredSpokenLanguages = useMemo(() => {
+    const q = spokenLangQuery.trim().toLowerCase();
+    if (!q) return SUPPORTED_LANGUAGES;
+    return SUPPORTED_LANGUAGES.filter(
+      (l) =>
+        l.englishName.toLowerCase().includes(q) ||
+        l.label.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q) ||
+        l.shortCode.toLowerCase().includes(q)
+    );
+  }, [spokenLangQuery]);
+
+  // Filtered subtitle languages for searchable dropdown
+  const filteredSubtitleLanguages = useMemo(() => {
+    const q = subtitleLangQuery.trim().toLowerCase();
+    if (!q) return SUPPORTED_LANGUAGES;
+    return SUPPORTED_LANGUAGES.filter(
+      (l) =>
+        l.englishName.toLowerCase().includes(q) ||
+        l.label.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q) ||
+        l.shortCode.toLowerCase().includes(q)
+    );
+  }, [subtitleLangQuery]);
+
   // Filtered countries for type-and-search dropdown
   const filteredCountries = useMemo(() => {
     const q = countrySearchQuery.trim().toLowerCase();
@@ -733,6 +817,14 @@ const FilterCard: React.FC<FilterCardProps> = ({
     setTargetProfQuery('');
     setMatchPurpose('EXCHANGE_IDEAS');
     setPrimaryLanguage('English');
+    setSpokenLanguage('en-US');
+    setSubtitleLanguage('ja-JP');
+    setSpokenLangQuery('');
+    setSubtitleLangQuery('');
+    setShowSpokenLangDropdown(false);
+    setShowSubtitleLangDropdown(false);
+    setCaptionsDefaultOn(true);
+    setAutoTranslateEnabled(true);
     setProfessionError(null);
     setTagError(null);
     setShowFilterSettings(false);
@@ -745,6 +837,12 @@ const FilterCard: React.FC<FilterCardProps> = ({
       localStorage.setItem('ologle_match_purpose', 'EXCHANGE_IDEAS');
       localStorage.setItem('ologle_session_mode', sessionMode);
       localStorage.setItem('ologle_primary_language', 'English');
+      localStorage.setItem('ologle_spoken_lang', 'en-US');
+      localStorage.setItem('ologle_subtitle_lang', 'ja-JP');
+      localStorage.setItem('ologle_sub_lang', 'ja-JP');
+      localStorage.setItem('ologle_captions_on', 'true');
+      localStorage.setItem('ologle_auto_translate_captions', 'true');
+      localStorage.setItem('ologle_auto_translate', 'true');
     } catch {}
     if (onSelectCountry) onSelectCountry('GLOBAL');
   };
@@ -871,6 +969,12 @@ const FilterCard: React.FC<FilterCardProps> = ({
       localStorage.setItem('ologle_user_interests', JSON.stringify(effectiveTags));
       localStorage.setItem('ologle_selected_country', country);
       localStorage.setItem('ologle_match_country_only', matchCountryOnly ? 'true' : 'false');
+      localStorage.setItem('ologle_spoken_lang', spokenLanguage);
+      localStorage.setItem('ologle_subtitle_lang', subtitleLanguage);
+      localStorage.setItem('ologle_sub_lang', subtitleLanguage);
+      localStorage.setItem('ologle_captions_on', captionsDefaultOn ? 'true' : 'false');
+      localStorage.setItem('ologle_auto_translate_captions', autoTranslateEnabled ? 'true' : 'false');
+      localStorage.setItem('ologle_auto_translate', autoTranslateEnabled ? 'true' : 'false');
     } catch {}
 
     if (onSelectCountry) {
@@ -1180,6 +1284,232 @@ const FilterCard: React.FC<FilterCardProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Filter 1: I Speak */}
+              <div className="relative" ref={spokenLangDropdownRef}>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="hero-modal-spoken-lang-input" className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <Mic className="w-3.5 h-3.5 text-[#EC5E27]" />
+                      <span>{t('hero.iSpeak', 'I speak')}</span>
+                    </span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {getLanguageByCode(spokenLanguage).englishName}
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-sm pointer-events-none select-none">
+                      {getLanguageByCode(spokenLanguage).flag}
+                    </span>
+                    <input
+                      id="hero-modal-spoken-lang-input"
+                      type="text"
+                      value={showSpokenLangDropdown ? spokenLangQuery : `${getLanguageByCode(spokenLanguage).englishName} (${getLanguageByCode(spokenLanguage).label})`}
+                      onChange={(e) => {
+                        setSpokenLangQuery(e.target.value);
+                        setShowSpokenLangDropdown(true);
+                      }}
+                      onFocus={() => setShowSpokenLangDropdown(true)}
+                      placeholder={t('hero.searchLanguage', 'Type to search language...')}
+                      className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white/90 dark:bg-slate-800 pl-8 pr-8 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:border-[#EC5E27] focus:ring-2 focus:ring-[#EC5E27]/15 focus:outline-none transition-all shadow-2xs"
+                    />
+                    {showSpokenLangDropdown && spokenLangQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => setSpokenLangQuery('')}
+                        className="absolute right-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                        title="Clear"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <ChevronRight
+                        className={`absolute right-2.5 w-3.5 h-3.5 text-slate-400 transition-transform duration-200 pointer-events-none ${
+                          showSpokenLangDropdown ? '-rotate-90' : 'rotate-90'
+                        }`}
+                      />
+                    )}
+                  </div>
+
+                  {/* Searchable Dropdown for I Speak */}
+                  {showSpokenLangDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl z-50 py-1 text-xs no-scrollbar">
+                      <div className="px-3 py-1 text-[9.5px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider border-b border-slate-100 dark:border-white/5">
+                        Select Spoken Language (Default: English)
+                      </div>
+                      {filteredSpokenLanguages.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-slate-500 italic">No language matching "{spokenLangQuery}"</div>
+                      ) : (
+                        filteredSpokenLanguages.map((lang) => {
+                          const isSel = lang.code === spokenLanguage;
+                          return (
+                            <button
+                              key={lang.code}
+                              type="button"
+                              onClick={() => {
+                                setSpokenLanguage(lang.code);
+                                setSpokenLangQuery('');
+                                setShowSpokenLangDropdown(false);
+                                try {
+                                  localStorage.setItem('ologle_spoken_lang', lang.code);
+                                } catch {}
+                              }}
+                              className={`w-full text-left px-3 py-2 flex items-center justify-between font-semibold cursor-pointer transition-colors ${
+                                isSel
+                                  ? 'bg-[#FFF7ED] dark:bg-[#EC5E27]/20 text-[#EC5E27]'
+                                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2 truncate">
+                                <span>{lang.flag}</span>
+                                <span>{lang.englishName}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500">({lang.label})</span>
+                              </span>
+                              {isSel && <Check className="w-3.5 h-3.5 text-[#EC5E27] shrink-0" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter 2: Translate Subtitles To */}
+              <div className="relative" ref={subtitleLangDropdownRef}>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="hero-modal-subtitle-lang-input" className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <Subtitles className="w-3.5 h-3.5 text-[#EC5E27]" />
+                      <span>{t('hero.translateSubtitlesTo', 'Translate subtitles to')}</span>
+                    </span>
+                  </label>
+                  <span className="text-[10px] text-[#EC5E27] font-semibold">
+                    {getLanguageByCode(subtitleLanguage).englishName}
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-sm pointer-events-none select-none">
+                      {getLanguageByCode(subtitleLanguage).flag}
+                    </span>
+                    <input
+                      id="hero-modal-subtitle-lang-input"
+                      type="text"
+                      value={showSubtitleLangDropdown ? subtitleLangQuery : `${getLanguageByCode(subtitleLanguage).englishName} (${getLanguageByCode(subtitleLanguage).label})`}
+                      onChange={(e) => {
+                        setSubtitleLangQuery(e.target.value);
+                        setShowSubtitleLangDropdown(true);
+                      }}
+                      onFocus={() => setShowSubtitleLangDropdown(true)}
+                      placeholder={t('hero.searchLanguage', 'Type to search language...')}
+                      className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white/90 dark:bg-slate-800 pl-8 pr-8 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:border-[#EC5E27] focus:ring-2 focus:ring-[#EC5E27]/15 focus:outline-none transition-all shadow-2xs"
+                    />
+                    {showSubtitleLangDropdown && subtitleLangQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => setSubtitleLangQuery('')}
+                        className="absolute right-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                        title="Clear"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <ChevronRight
+                        className={`absolute right-2.5 w-3.5 h-3.5 text-slate-400 transition-transform duration-200 pointer-events-none ${
+                          showSubtitleLangDropdown ? '-rotate-90' : 'rotate-90'
+                        }`}
+                      />
+                    )}
+                  </div>
+
+                  {/* Searchable Dropdown for Translate Subtitles To */}
+                  {showSubtitleLangDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl z-50 py-1 text-xs no-scrollbar">
+                      <div className="px-3 py-1 text-[9.5px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider border-b border-slate-100 dark:border-white/5">
+                        Select Subtitles Language (Default: Japanese)
+                      </div>
+                      {filteredSubtitleLanguages.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-slate-500 italic">No language matching "{subtitleLangQuery}"</div>
+                      ) : (
+                        filteredSubtitleLanguages.map((lang) => {
+                          const isSel = lang.code === subtitleLanguage;
+                          return (
+                            <button
+                              key={lang.code}
+                              type="button"
+                              onClick={() => {
+                                setSubtitleLanguage(lang.code);
+                                setSubtitleLangQuery('');
+                                setShowSubtitleLangDropdown(false);
+                                try {
+                                  localStorage.setItem('ologle_subtitle_lang', lang.code);
+                                  localStorage.setItem('ologle_sub_lang', lang.code);
+                                } catch {}
+                              }}
+                              className={`w-full text-left px-3 py-2 flex items-center justify-between font-semibold cursor-pointer transition-colors ${
+                                isSel
+                                  ? 'bg-[#FFF7ED] dark:bg-[#EC5E27]/20 text-[#EC5E27]'
+                                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2 truncate">
+                                <span>{lang.flag}</span>
+                                <span>{lang.englishName}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500">({lang.label})</span>
+                              </span>
+                              {isSel && <Check className="w-3.5 h-3.5 text-[#EC5E27] shrink-0" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Captions & Auto-Translate Preferences */}
+              <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex flex-col gap-2">
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <span className="flex items-center gap-2">
+                    <Subtitles className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{t('hero.enableCaptions', 'Enable Live Closed Captions (CC) by default')}</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={captionsDefaultOn}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setCaptionsDefaultOn(checked);
+                      try {
+                        localStorage.setItem('ologle_captions_on', checked ? 'true' : 'false');
+                      } catch {}
+                    }}
+                    className="w-4 h-4 accent-[#EC5E27] rounded cursor-pointer"
+                  />
+                </label>
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <span className="flex items-center gap-2">
+                    <Languages className="w-3.5 h-3.5 text-[#EC5E27]" />
+                    <span>{t('hero.autoTranslateCaptions', 'Auto-translate foreign speech to subtitle language')}</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={autoTranslateEnabled}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setAutoTranslateEnabled(checked);
+                      try {
+                        localStorage.setItem('ologle_auto_translate_captions', checked ? 'true' : 'false');
+                        localStorage.setItem('ologle_auto_translate', checked ? 'true' : 'false');
+                      } catch {}
+                    }}
+                    className="w-4 h-4 accent-[#EC5E27] rounded cursor-pointer"
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Footer - Save only (Does NOT direct to match) */}
@@ -1252,7 +1582,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           {[
             { id: 'video', label: t('hero.videoCall', 'Video Call'), title: 'Video Call', icon: Video },
             { id: 'voice', label: t('hero.voiceCall', 'Voice Call'), title: 'Voice Call', icon: Mic },
@@ -1272,7 +1602,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
                 title={mode.title}
                 type="button"
                 onClick={() => handleModeChange(mode.id)}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 sm:px-2.5 rounded-xl border text-[11.5px] font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2.5 rounded-xl border text-[10.5px] sm:text-[11.5px] font-bold transition-all cursor-pointer min-w-0 ${
                   active
                     ? 'shadow-xs ring-1 ring-[#EC5E27]'
                     : 'border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
@@ -1289,6 +1619,32 @@ const FilterCard: React.FC<FilterCardProps> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* ── REAL-TIME LANGUAGE & CAPTIONS PREFERENCES BAR ── */}
+      <div className="mb-2 p-1.5 sm:p-2 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 shadow-2xs backdrop-blur-sm flex flex-wrap items-center justify-between gap-1.5 text-xs">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {t('hero.speechCaptions', 'Speech & CC')}:
+          </span>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/80 dark:bg-slate-700/80 border border-slate-200/70 dark:border-white/10 text-[10.5px] font-semibold text-slate-700 dark:text-slate-200" title="My spoken speech recognition language">
+            <Mic className="w-3 h-3 text-[#EC5E27]" />
+            <span>{getLanguageByCode(spokenLanguage).englishName}</span>
+          </div>
+          <span className="text-slate-400 text-xs">→</span>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/80 dark:bg-slate-700/80 border border-slate-200/70 dark:border-white/10 text-[10.5px] font-semibold text-slate-700 dark:text-slate-200" title="Subtitles live translation target">
+            <Subtitles className="w-3 h-3 text-[#EC5E27]" />
+            <span>{getLanguageByCode(subtitleLanguage).englishName}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowFilterSettings(true)}
+          className="text-[10px] font-bold text-[#EC5E27] hover:underline cursor-pointer flex items-center gap-1 ml-auto"
+        >
+          <Languages className="w-3 h-3" />
+          <span>{t('hero.configureLanguages', 'Settings')}</span>
+        </button>
       </div>
 
       {/* ── STRAIGHT LINEAR INPUTS (Linear to each other, side-by-side) ── */}

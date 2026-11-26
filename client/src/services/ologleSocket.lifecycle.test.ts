@@ -59,6 +59,34 @@ describe('ologleSocket Client Lifecycle & Signaling Simulation', () => {
     expect(sent).toBe(false);
   });
 
+  it('safely buffers WEBRTC_SIGNAL messages when socket is disconnected or reconnecting', () => {
+    ologleSocket.setActiveRoomId('room_reconnect_test');
+    const sent = ologleSocket.send({
+      type: 'WEBRTC_SIGNAL',
+      roomId: 'room_reconnect_test',
+      signal: { type: 'offer', sdp: 'mock-sdp-data' },
+    });
+    expect(sent).toBe(true);
+  });
+
+  it('discards stale signaling messages when room changes before flush', () => {
+    ologleSocket.setActiveRoomId('room_old');
+    ologleSocket.send({
+      type: 'WEBRTC_SIGNAL',
+      roomId: 'room_old',
+      signal: { type: 'candidate', candidate: 'stale-candidate' },
+    });
+    // Room changes to new match: old queue is automatically purged
+    ologleSocket.setActiveRoomId('room_new');
+    // Attempting to send signal targeting old departed room is rejected
+    const rejectedOld = ologleSocket.send({
+      type: 'WEBRTC_SIGNAL',
+      roomId: 'room_old',
+      signal: { type: 'candidate', candidate: 'stale-candidate-2' },
+    });
+    expect(rejectedOld).toBe(false);
+  });
+
   it('handles simulated MATCH_FOUND server message', () => {
     let matchPayload: any = null;
     const unsubscribe = ologleSocket.subscribe((msg) => {

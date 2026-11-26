@@ -99,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="navbar-logo-btn"
               type="button"
-              onClick={() => onNavigate('landing')}
+              onClick={() => (isInActiveSession && onLeaveSession ? onLeaveSession() : onNavigate('landing'))}
               className="group flex items-center text-left cursor-pointer select-none"
               title="Ologle Home"
               aria-label="Ologle Home"
@@ -110,6 +110,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Desktop Controls (Tablet & Desktop: sm and up) */}
           <div className="hidden sm:flex items-center gap-2 sm:gap-3 ml-auto">
+            {/* Active Session Indicator / Leave Button */}
+            {isInActiveSession && onLeaveSession && (
+              <button
+                type="button"
+                onClick={onLeaveSession}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                title="Leave active session"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="hidden sm:inline">Leave Session</span>
+              </button>
+            )}
+
             {/* Dark & White Mode Switcher */}
             {onToggleTheme && (
               <ThemeToggle
@@ -139,25 +152,37 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Mobile Right Controls: Hamburger Menu Button (< sm) */}
+          {/* Mobile Right Controls: Hide Hamburger during Active Call / Session */}
           <div className="sm:hidden flex items-center ml-auto">
-            {/* Mobile Hamburger Button */}
-            <button
-              id="navbar-mobile-hamburger-btn"
-              type="button"
-              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={isMobileMenuOpen}
-              title="Menu"
-              className="flex items-center justify-center w-10 h-10 rounded-xl border transition-all cursor-pointer active:scale-95 shadow-xs"
-              style={{
-                backgroundColor: isMobileMenuOpen ? 'var(--accent-color, #EC5E27)' : 'var(--card-bg, #FFFFFF)',
-                borderColor: 'var(--accent-color, #EC5E27)',
-                color: isMobileMenuOpen ? '#FFFFFF' : 'var(--accent-color, #EC5E27)',
-              }}
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            {isInActiveSession && onLeaveSession ? (
+              <button
+                type="button"
+                onClick={onLeaveSession}
+                className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                title="Leave active session"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Leave</span>
+              </button>
+            ) : (
+              /* Mobile Hamburger Button (Only on home / idle screens, NEVER in video call) */
+              <button
+                id="navbar-mobile-hamburger-btn"
+                type="button"
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={isMobileMenuOpen}
+                title="Menu"
+                className="flex items-center justify-center w-10 h-10 rounded-xl border transition-all cursor-pointer active:scale-95 shadow-xs"
+                style={{
+                  backgroundColor: isMobileMenuOpen ? 'var(--accent-color, #EC5E27)' : 'var(--card-bg, #FFFFFF)',
+                  borderColor: 'var(--accent-color, #EC5E27)',
+                  color: isMobileMenuOpen ? '#FFFFFF' : 'var(--accent-color, #EC5E27)',
+                }}
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -239,6 +264,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {/* Navigation Links */}
               <nav className="space-y-1">
+                {isInActiveSession && onLeaveSession && (
+                  <div className="pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onLeaveSession();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:bg-rose-500/25 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span>Leave Active Session</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    </button>
+                  </div>
+                )}
                 <div className="space-y-1 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block px-3 mb-1">
                     More

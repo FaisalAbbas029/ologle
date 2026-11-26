@@ -181,6 +181,11 @@ export default function App() {
   const active1on1Ref = useRef<Active1on1Room | null>(null);
   active1on1Ref.current = active1on1;
 
+  // Synchronize active room with signaling socket so stale signals are automatically purged
+  useEffect(() => {
+    ologleSocket.setActiveRoomId(active1on1?.roomId || null);
+  }, [active1on1?.roomId]);
+
   // Partner status & rate limiting
   const [partnerLeftReason, setPartnerLeftReason] = useState<string | null>(null);
   const [isPartnerReconnecting, setIsPartnerReconnecting] = useState<boolean>(false);
@@ -1081,7 +1086,8 @@ export default function App() {
   const isInActiveSession =
     currentView === '1on1_chat' ||
     currentView === 'voice_session' ||
-    currentView === 'conversation';
+    currentView === 'conversation' ||
+    currentView === 'matching';
 
   const handleLeaveCurrentSession = () => {
     if (currentView === '1on1_chat' || currentView === 'voice_session' || currentView === 'conversation') {
@@ -1113,22 +1119,24 @@ export default function App() {
         onReconnectNow={() => ologleSocket.reconnectNow()}
       />
 
-      {/* Universal Top Bar Header */}
-      <Navbar
-        onNavigate={navigateTo}
-        onStartFlow={() => navigateTo('landing')}
-        isInActiveSession={isInActiveSession}
-        onLeaveSession={handleLeaveCurrentSession}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenPrivacyInspector={() => setIsPrivacyInspectorOpen(true)}
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenReport={() => setIsReportOpen(true)}
-        onOpenSupport={() => setIsSupportOpen(true)}
-        currentUser={currentUser}
-        isHumanVerified={isHumanVerified}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      {/* Universal Top Bar Header (Hidden during active full-screen video calls to provide 100% viewport coverage) */}
+      {!(isInActiveSession && sessionMode === 'video') && (
+        <Navbar
+          onNavigate={navigateTo}
+          onStartFlow={() => navigateTo('landing')}
+          isInActiveSession={isInActiveSession}
+          onLeaveSession={handleLeaveCurrentSession}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenPrivacyInspector={() => setIsPrivacyInspectorOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenReport={() => setIsReportOpen(true)}
+          onOpenSupport={() => setIsSupportOpen(true)}
+          currentUser={currentUser}
+          isHumanVerified={isHumanVerified}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      )}
 
       {/* Safety Warning and Block Notifications */}
       <SafetyWarningBanner

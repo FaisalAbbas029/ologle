@@ -86,9 +86,11 @@ class OlogleClientSocket {
   private isExplicitlyClosed = false;
   private attemptCount = 0;
   private retrySecondsLeft = 0;
+  private pendingOutboundQueue: { msg: ClientMessage; timestamp: number }[] = [];
   public status: ConnectionStatus = 'disconnected';
   public sessionId: string | null = null;
   public isConnected = false;
+  public currentActiveRoomId: string | null = null;
 
   constructor() {
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
@@ -100,7 +102,7 @@ class OlogleClientSocket {
       window.addEventListener('offline', () => {
         this.clearTimers();
         if (this.socket) {
-          try { this.socket.close(); } catch {}
+          try { this.socket.close(); } catch { }
         }
         this.socket = null;
         this.isConnected = false;
@@ -116,11 +118,13 @@ class OlogleClientSocket {
 
     this.isExplicitlyClosed = false;
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
+    const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+    const host = typeof window !== 'undefined' ? window.location.host : 'localhost:5173';
     const wsUrl = resolveWebSocketUrl(
       import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.VITE_API_URL,
       import.meta.env.PROD,
-      window.location.protocol,
-      window.location.host,
+      protocol,
+      host,
       this.sessionId
     );
 
@@ -136,6 +140,24 @@ class OlogleClientSocket {
         this.clearTimers();
         this.startHeartbeat();
         this.setStatus('connected');
+
+        // Flush any buffered signaling messages on reconnect, strictly validating room ID
+        if (this.pendingOutboundQueue.length > 0) {
+          const queued = this.pendingOutboundQueue.splice(0);
+          for (const item of queued) {
+            const msgRoomId = (item.msg as any).roomId;
+            // Validate that the signal belongs to the currently active room
+            if (this.currentActiveRoomId && msgRoomId && msgRoomId !== this.currentActiveRoomId) {
+              console.warn('[socket] Dropping stale buffered signaling message for departed room:', msgRoomId);
+              continue;
+            }
+            try {
+              socket.send(JSON.stringify(item.msg));
+            } catch (err) {
+              console.warn('[socket] Failed to flush queued signaling message:', err);
+            }
+          }
+        }
       };
 
       socket.onmessage = (event) => {
@@ -183,7 +205,7 @@ class OlogleClientSocket {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         try {
           this.socket.send(JSON.stringify({ type: 'PING', timestamp: Date.now() }));
-        } catch {}
+        } catch { }
       }
     }, 20000);
   }
@@ -293,17 +315,73 @@ class OlogleClientSocket {
     }
   }
 
+  public setActiveRoomId(roomId: string | null): void {
+    this.currentActiveRoomId = roomId;
+    if (!roomId) {
+      this.clearSignalingQueue();
+    } else {
+      // Discard any queued messages that belonged to a previous room
+      this.pendingOutboundQueue = this.pendingOutboundQueue.filter((item) => {
+        const msgRoomId = (item.msg as any).roomId;
+        return !msgRoomId || msgRoomId === roomId;
+      });
+    }
+  }
+
+  public clearSignalingQueue(roomId?: string): void {
+    if (roomId) {
+      this.pendingOutboundQueue = this.pendingOutboundQueue.filter((item) => {
+        return (item.msg as any).roomId !== roomId;
+      });
+    } else {
+      this.pendingOutboundQueue = [];
+    }
+  }
+
   public send(msg: ClientMessage): boolean {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify(msg));
+      try {
+        this.socket.send(JSON.stringify(msg));
+        return true;
+      } catch {
+        // Fall through to queueing if message is signaling
+      }
+    }
+
+    // Safely buffer critical WebRTC signaling messages during temporary network/socket reconnection
+    if (msg.type === 'WEBRTC_SIGNAL') {
+      const now = Date.now();
+      const msgRoomId = (msg as any).roomId;
+
+      // Drop immediately if signal belongs to an old room that is no longer active
+      if (this.currentActiveRoomId && msgRoomId && msgRoomId !== this.currentActiveRoomId) {
+        return false;
+      }
+
+      // Keep only fresh signals within 15 seconds matching current active room
+      this.pendingOutboundQueue = this.pendingOutboundQueue.filter((item) => {
+        const isFresh = now - item.timestamp < 15_000;
+        const matchesRoom = !this.currentActiveRoomId || !(item.msg as any).roomId || (item.msg as any).roomId === this.currentActiveRoomId;
+        return isFresh && matchesRoom;
+      });
+
+      if (this.pendingOutboundQueue.length < 50) {
+        this.pendingOutboundQueue.push({ msg, timestamp: now });
+      }
+      if (!this.socket || this.socket.readyState === WebSocket.CLOSED) {
+        this.connect();
+      }
       return true;
     }
+
     return false;
   }
 
   public disconnect(): void {
     this.isExplicitlyClosed = true;
     this.clearTimers();
+    this.pendingOutboundQueue = [];
+    this.currentActiveRoomId = null;
     const socket = this.socket;
     this.socket = null;
     if (socket) {

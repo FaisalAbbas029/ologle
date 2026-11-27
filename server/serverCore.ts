@@ -57,8 +57,10 @@ export interface EphemeralSession {
   isLoopback: boolean;
   ws: WebSocket | null;
   profession: string;
+  strictProfessionFilter?: boolean;
   interests: string[];
   country?: string; // 'GLOBAL' or country code/name
+  sessionMode?: string; // 'video' | 'voice' | 'messaging'
   currentMode: 'none' | 'matching' | '1on1' | 'community' | 'class';
   currentRoomId: string | null;
   pairedSessionId: string | null;
@@ -118,9 +120,9 @@ export interface ClassRoom {
 // Client -> Server Action Messages
 export type ClientMessage =
   | { type: 'REGISTER_SESSION'; visitorId?: string; blockedStrangers?: string[]; profession?: string; interests?: string[] }
-  | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; interests: string[]; country?: string }
+  | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; strictProfessionFilter?: boolean; interests: string[]; country?: string; mode?: string; sessionMode?: string }
   | { type: 'CANCEL_MATCHING' }
-  | { type: 'NEXT_PERSON' }
+  | { type: 'NEXT_PERSON'; visitorId?: string; blockedStrangers?: string[]; profession?: string; strictProfessionFilter?: boolean; interests?: string[]; country?: string; mode?: string; sessionMode?: string }
   | { type: 'END_CONVERSATION' }
   | { type: 'SEND_1ON1_MESSAGE'; text: string }
   | { type: 'JOIN_COMMUNITY'; communityId: string }
@@ -144,7 +146,8 @@ export type ClientMessage =
   | { type: 'GET_EXPLORE_DATA' }
   | { type: 'MOD_SUBSCRIBE' }
   | { type: 'MOD_ACTION'; ticketId: string; action: 'KICK' | 'MUTE' | 'DISMISS' }
-  | { type: 'FLAG_LIVE_STREAM'; reason: string; confidence: number };
+  | { type: 'FLAG_LIVE_STREAM'; reason: string; confidence: number }
+  | { type: 'PING'; timestamp?: number };
 
 // Server -> Client Event Messages
 export type ServerMessage =
@@ -179,6 +182,7 @@ export type ServerMessage =
   | { type: 'PARTNER_RECONNECTING'; graceSeconds: number }
   | { type: 'PARTNER_RECONNECTED'; roomId: string }
   | { type: 'PARTNER_LEFT'; reason: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' }
+  | { type: 'PONG'; timestamp: number }
   | { type: 'WEBRTC_SIGNAL'; signal: any }
   | { type: 'VOICE_TRANSCRIPT'; id: string; text: string; language: string; isFinal: boolean; senderSessionId: string; timestamp: number }
   | { type: 'RECEIVE_1ON1_MESSAGE'; id: string; text: string; sender: 'self' | 'peer'; timestamp: number }
@@ -602,8 +606,13 @@ export class OlogleEngine {
       return;
     }
 
-    // Check active restrictions
     const now = Date.now();
+    if (msg.type === 'PING') {
+      this.send(session.ws, { type: 'PONG', timestamp: now });
+      return;
+    }
+
+    // Check active restrictions
     if (session.isRestrictedUntil > now) {
       this.send(session.ws, {
         type: 'TEMPORARY_RESTRICTION',
@@ -637,7 +646,14 @@ export class OlogleEngine {
             if (bid && typeof bid === 'string') session.blockedVisitorIds.add(bid);
           }
         }
-        this.startMatching(session, msg.profession, msg.interests, msg.country);
+        this.startMatching(
+          session,
+          msg.profession,
+          msg.interests,
+          msg.country,
+          msg.sessionMode || msg.mode,
+          msg.strictProfessionFilter
+        );
         break;
 
       case 'CANCEL_MATCHING':
@@ -645,6 +661,27 @@ export class OlogleEngine {
         break;
 
       case 'NEXT_PERSON':
+        if (msg.visitorId) session.visitorId = msg.visitorId;
+        if (msg.blockedStrangers && Array.isArray(msg.blockedStrangers)) {
+          for (const bid of msg.blockedStrangers) {
+            if (bid && typeof bid === 'string') session.blockedVisitorIds.add(bid);
+          }
+        }
+        if (msg.profession) {
+          const val = validateProfession(msg.profession);
+          if (val.isValid) {
+            session.profession = msg.profession.trim();
+          }
+        }
+        if (msg.interests && Array.isArray(msg.interests) && msg.interests.length > 0) {
+          session.interests = msg.interests;
+        }
+        if (msg.country) {
+          session.country = msg.country;
+        }
+        if (msg.sessionMode || msg.mode) {
+          session.sessionMode = this.getQueueMode(msg.sessionMode || msg.mode);
+        }
         this.handleNextPerson(session);
         break;
 
@@ -778,7 +815,21 @@ export class OlogleEngine {
 
   // --- Matchmaking Implementation ---
 
-  private startMatching(session: EphemeralSession, profession: string, interests: string[], country?: string): void {
+  private getQueueMode(mode?: string): string {
+    const raw = (mode || 'video').trim().toLowerCase();
+    if (raw === 'voice' || raw === 'audio') return 'voice';
+    if (raw === 'messaging' || raw === 'text') return 'messaging';
+    return 'video';
+  }
+
+  private startMatching(
+    session: EphemeralSession,
+    profession: string,
+    interests: string[],
+    country?: string,
+    mode?: string,
+    strictProfessionFilter?: boolean
+  ): void {
     const banCheck = this.isBanned(session.visitorId, session.ipAddress);
     if (banCheck.banned) {
       if (session.ws) {
@@ -796,6 +847,9 @@ export class OlogleEngine {
     if (country) {
       session.country = country;
     }
+    const queueMode = this.getQueueMode(mode || session.sessionMode);
+    session.sessionMode = queueMode;
+    session.strictProfessionFilter = Boolean(strictProfessionFilter);
 
     const profValidation = validateProfession(cleanProf);
     if (!profValidation.isValid) {
@@ -814,6 +868,7 @@ export class OlogleEngine {
 
     // Clear existing paired state if any
     this.cleanCurrentSessionState(session);
+    this.matchQueue.remove(session.sessionId);
 
     session.profession = cleanProf;
     session.interests = activeInterests;
@@ -825,8 +880,10 @@ export class OlogleEngine {
       ipAddress: session.ipAddress,
       isLoopback: session.isLoopback,
       profession: session.profession,
+      strictProfessionFilter: session.strictProfessionFilter,
       interests: session.interests,
       country: session.country || 'GLOBAL',
+      mode: queueMode,
       queuedAt: Date.now(),
       blockedSessionIds: session.blockedSessionIds,
       blockedVisitorIds: session.blockedVisitorIds,
@@ -1019,7 +1076,14 @@ export class OlogleEngine {
     session.currentRoomId = null;
 
     // Put straight back into matching queue
-    this.startMatching(session, session.profession, session.interests, session.country);
+    this.startMatching(
+      session,
+      session.profession,
+      session.interests,
+      session.country,
+      session.sessionMode,
+      session.strictProfessionFilter
+    );
   }
 
   private handleEndConversation(session: EphemeralSession): void {
@@ -1271,7 +1335,7 @@ export class OlogleEngine {
       partner.currentRoomId !== session.currentRoomId ||
       !signal ||
       typeof signal !== 'object' ||
-      !['offer', 'answer', 'candidate'].includes(signal.type) ||
+      !['offer', 'answer', 'candidate', 'peer_ready'].includes(signal.type) ||
       JSON.stringify(signal).length > 128_000
     ) {
       return;

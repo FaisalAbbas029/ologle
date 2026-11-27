@@ -962,7 +962,16 @@ const FilterCard: React.FC<FilterCardProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const effectiveProf = profession.trim() || 'Software Engineer';
-    const effectiveTags = tags.length > 0 ? tags : ['Technology', 'Ideas', 'Networking'];
+    const pendingTag = input.trim();
+    const mergedTags =
+      pendingTag && !tags.includes(pendingTag) && validateTargetInterest(pendingTag).isValid
+        ? [...tags, pendingTag]
+        : tags;
+    const effectiveTags = mergedTags.length > 0 ? mergedTags : ['Technology', 'Ideas', 'Networking'];
+    if (pendingTag && mergedTags !== tags) {
+      setTags(mergedTags);
+      setInput('');
+    }
 
     try {
       localStorage.setItem('ologle_user_profession', effectiveProf);

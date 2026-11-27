@@ -84,8 +84,23 @@ export async function fetchIceServerConfig(): Promise<IceServerResponse> {
       throw new Error('ICE server configuration response is invalid.');
     }
 
+    // Merge backend ICE servers with fallback multi-provider STUN servers (port 3478 & 19302)
+    // so restrictive firewalls blocking port 19302 always have standard port 3478 STUN + any backend TURN relays.
+    const existingUrls = new Set<string>();
+    for (const entry of config.iceServers) {
+      const urls = Array.isArray(entry.urls) ? entry.urls : [entry.urls];
+      for (const u of urls) existingUrls.add(u);
+    }
+    const mergedServers: RTCIceServer[] = [...config.iceServers];
+    for (const fallback of FALLBACK_ICE_SERVERS) {
+      const urls = Array.isArray(fallback.urls) ? fallback.urls : [fallback.urls];
+      if (urls.some((u) => !existingUrls.has(u))) {
+        mergedServers.push(fallback);
+      }
+    }
+
     const result: IceServerResponse = {
-      iceServers: config.iceServers,
+      iceServers: mergedServers,
       relayAvailable: config.relayAvailable,
       expiresAt,
     };

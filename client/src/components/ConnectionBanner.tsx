@@ -40,15 +40,20 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
 
   const isActuallyOffline = !isOnline;
   const isReconnecting = status === 'reconnecting';
+  const isExhausted = status === 'disconnected' && retrySecondsLeft < 0;
 
   const headline = isActuallyOffline
     ? 'You appear to be offline'
+    : isExhausted
+    ? 'Connection to signaling server failed'
     : isReconnecting
     ? 'Reconnecting to signaling server...'
     : 'Connecting to signaling server...';
 
   const subtext = isActuallyOffline
     ? 'Check your device internet or Wi-Fi connection.'
+    : isExhausted
+    ? 'Could not reach the server after multiple attempts. Click Retry Now to try again.'
     : retrySecondsLeft > 0
     ? `Retrying in ${retrySecondsLeft}s — server waking up (first connect can take ~20s)`
     : 'Waiting for server response...';

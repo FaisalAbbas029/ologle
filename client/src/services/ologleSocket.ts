@@ -83,9 +83,12 @@ class OlogleClientSocket {
   private reconnectTimer: any = null;
   private countdownTimer: any = null;
   private heartbeatTimer: any = null;
+  private connectTimeoutTimer: any = null;
   private isExplicitlyClosed = false;
   private attemptCount = 0;
   private retrySecondsLeft = 0;
+  private connectionAttemptId = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 10;
   private pendingOutboundQueue: { msg: ClientMessage; timestamp: number }[] = [];
   public status: ConnectionStatus = 'disconnected';
   public sessionId: string | null = null;
@@ -101,9 +104,7 @@ class OlogleClientSocket {
       });
       window.addEventListener('offline', () => {
         this.clearTimers();
-        if (this.socket) {
-          try { this.socket.close(); } catch { }
-        }
+        this.cleanupSocket(this.socket);
         this.socket = null;
         this.isConnected = false;
         this.setStatus('offline');
@@ -111,12 +112,33 @@ class OlogleClientSocket {
     }
   }
 
+  private cleanupSocket(sock: WebSocket | null): void {
+    if (!sock) return;
+    try {
+      sock.onopen = null;
+      sock.onmessage = null;
+      sock.onclose = null;
+      sock.onerror = null;
+      if (sock.readyState === WebSocket.OPEN || sock.readyState === WebSocket.CONNECTING) {
+        sock.close();
+      }
+    } catch { }
+  }
+
   public connect(): void {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
 
+    // Clean up any stale socket reference before opening a new one
+    if (this.socket) {
+      this.cleanupSocket(this.socket);
+      this.socket = null;
+    }
+
     this.isExplicitlyClosed = false;
+    this.connectionAttemptId++;
+    const currentAttemptId = this.connectionAttemptId;
     this.setStatus(this.attemptCount > 0 ? 'reconnecting' : 'connecting');
     const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
     const host = typeof window !== 'undefined' ? window.location.host : 'localhost:5173';
@@ -132,14 +154,44 @@ class OlogleClientSocket {
       const socket = new WebSocket(wsUrl);
       this.socket = socket;
 
+      if (this.connectTimeoutTimer) {
+        clearTimeout(this.connectTimeoutTimer);
+      }
+      // Guard against hung TCP/TLS handshakes (12s timeout)
+      this.connectTimeoutTimer = setTimeout(() => {
+        this.connectTimeoutTimer = null;
+        if (this.socket === socket && socket.readyState === WebSocket.CONNECTING) {
+          console.info('[socket]', {
+            event: 'connect.timeout',
+            attemptId: currentAttemptId,
+            attemptCount: this.attemptCount,
+          });
+          this.cleanupSocket(socket);
+          this.socket = null;
+          this.isConnected = false;
+          if (!this.isExplicitlyClosed) {
+            this.scheduleReconnect();
+          }
+        }
+      }, 12000);
+
       socket.onopen = () => {
         if (this.socket !== socket) return;
+        if (this.connectTimeoutTimer) {
+          clearTimeout(this.connectTimeoutTimer);
+          this.connectTimeoutTimer = null;
+        }
         this.isConnected = true;
         this.attemptCount = 0;
         this.retrySecondsLeft = 0;
         this.clearTimers();
         this.startHeartbeat();
         this.setStatus('connected');
+        console.info('[socket]', {
+          event: 'connected',
+          attemptId: currentAttemptId,
+          sessionId: this.sessionId ? this.sessionId.slice(0, 10) : null,
+        });
 
         // Flush any buffered signaling messages on reconnect, strictly validating room ID
         if (this.pendingOutboundQueue.length > 0) {
@@ -166,6 +218,11 @@ class OlogleClientSocket {
           const data: ServerMessage = JSON.parse(event.data);
           if (data.type === 'SESSION_REGISTERED') {
             this.sessionId = data.sessionId;
+            console.info('[socket]', {
+              event: 'session.registered',
+              attemptId: currentAttemptId,
+              sessionId: data.sessionId.slice(0, 10),
+            });
           }
           if (data.type === 'PONG') {
             return;
@@ -176,11 +233,21 @@ class OlogleClientSocket {
         }
       };
 
-      socket.onclose = () => {
+      socket.onclose = (ev) => {
         if (this.socket !== socket) return;
+        if (this.connectTimeoutTimer) {
+          clearTimeout(this.connectTimeoutTimer);
+          this.connectTimeoutTimer = null;
+        }
         this.socket = null;
         this.isConnected = false;
         this.stopHeartbeat();
+        console.info('[socket]', {
+          event: 'closed',
+          attemptId: currentAttemptId,
+          code: ev?.code || 0,
+          explicit: this.isExplicitlyClosed,
+        });
         if (!this.isExplicitlyClosed) {
           this.scheduleReconnect();
         } else {
@@ -218,6 +285,10 @@ class OlogleClientSocket {
   }
 
   private clearTimers(): void {
+    if (this.connectTimeoutTimer) {
+      clearTimeout(this.connectTimeoutTimer);
+      this.connectTimeoutTimer = null;
+    }
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -237,6 +308,18 @@ class OlogleClientSocket {
 
     this.clearTimers();
     this.attemptCount++;
+
+    // Do not endlessly reconnect when backend is permanently unavailable
+    if (this.attemptCount > this.MAX_RECONNECT_ATTEMPTS) {
+      console.warn('[socket]', {
+        event: 'reconnect.exhausted',
+        attempts: this.attemptCount - 1,
+      });
+      this.retrySecondsLeft = -1;
+      this.setStatus('disconnected', -1);
+      return;
+    }
+
     // Exponential backoff strategy: 1s, 2s, 4s, 8s, 15s, max 30s + random jitter
     const BACKOFF_SCHEDULE = [1000, 2000, 4000, 8000, 15000];
     const baseDelay = this.attemptCount <= BACKOFF_SCHEDULE.length
@@ -268,9 +351,7 @@ class OlogleClientSocket {
     this.socket = null;
     this.isConnected = false;
     this.attemptCount = 0;
-    if (previousSocket && previousSocket.readyState !== WebSocket.CLOSED) {
-      previousSocket.close();
-    }
+    this.cleanupSocket(previousSocket);
     this.connect();
   }
 

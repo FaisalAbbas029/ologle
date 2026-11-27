@@ -165,11 +165,68 @@ export default function App() {
 
   // User input criteria
   const [sessionId, setSessionId] = useState<string>('');
-  const [profession, setProfession] = useState<string>('');
-  const [interests, setInterests] = useState<string[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>('GLOBAL');
-  const [incomingSignal, setIncomingSignal] = useState<{ signal: any; id: number } | null>(null);
+  const [profession, setProfession] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return (localStorage.getItem('ologle_user_profession') || localStorage.getItem('hayloo_user_profession') || '').trim();
+      } catch { }
+    }
+    return '';
+  });
+  const [interests, setInterests] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('ologle_user_interests') || localStorage.getItem('hayloo_user_interests');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch { }
+    }
+    return [];
+  });
+  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('ologle_selected_country') || localStorage.getItem('hayloo_selected_country') || 'GLOBAL';
+      } catch { }
+    }
+    return 'GLOBAL';
+  });
+  const professionRef = useRef<string>(profession);
+  professionRef.current = profession;
+  const interestsRef = useRef<string[]>(interests);
+  interestsRef.current = interests;
+  const selectedCountryRef = useRef<string>(selectedCountry);
+  selectedCountryRef.current = selectedCountry;
+
+  const [incomingSignal, setIncomingSignal] = useState<{
+    signal: any;
+    id: number;
+    queue?: Array<{ signal: any; id: number; roomId?: string }>;
+  } | null>(null);
   const signalCounterRef = useRef<number>(1);
+  const signalQueueRef = useRef<Array<{ signal: any; id: number; roomId?: string }>>([]);
+
+  const clearIncomingSignals = useCallback(() => {
+    signalQueueRef.current = [];
+    setIncomingSignal(null);
+  }, []);
+
+  const enqueueIncomingSignal = useCallback((signal: any, roomId?: string) => {
+    const item = {
+      signal,
+      id: signalCounterRef.current++,
+      roomId: roomId || active1on1Ref.current?.roomId,
+    };
+    const nextQueue = [...signalQueueRef.current.slice(-63), item];
+    signalQueueRef.current = nextQueue;
+    setIncomingSignal({
+      signal,
+      id: item.id,
+      queue: nextQueue,
+    });
+  }, []);
 
   // Active Session Rooms
   const [active1on1, setActive1on1] = useState<Active1on1Room | null>(null);
@@ -367,26 +424,9 @@ export default function App() {
     };
   }, [profession, interests.length]);
 
-  // Connect to WebSocket after initial paint or on interaction
+  // Connect to WebSocket immediately on mount
   useEffect(() => {
-    let socketStarted = false;
-    const startSocket = () => {
-      if (socketStarted) return;
-      socketStarted = true;
-      ologleSocket.connect();
-    };
-
-    const handleInteraction = () => {
-      startSocket();
-      window.removeEventListener('pointerdown', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-    };
-
-    window.addEventListener('pointerdown', handleInteraction, { once: true, passive: true });
-    window.addEventListener('keydown', handleInteraction, { once: true, passive: true });
-
-    // Start socket after 3.5s if no user interaction
-    const socketTimer = setTimeout(startSocket, 3500);
+    ologleSocket.connect();
 
     const unsubscribeStatus = ologleSocket.subscribeStatus((status, secs) => {
       setConnectionStatus(status);
@@ -405,8 +445,11 @@ export default function App() {
             type: 'REGISTER_SESSION',
             visitorId: visitorId.current,
             blockedStrangers: getBlockedStrangers(),
-            profession: profession.trim(),
-            interests,
+            profession: (professionRef.current || 'Software Engineer').trim(),
+            interests:
+              interestsRef.current.length >= 3
+                ? interestsRef.current
+                : ['Technology', 'Ideas', 'Networking'],
           });
           ologleSocket.send({ type: 'GET_EXPLORE_DATA' });
           // Only re-send a pending matchmaking request if NOT currently in an active 1-on-1 conversation
@@ -430,19 +473,19 @@ export default function App() {
             prev && prev.roomId === msg.roomId
               ? prev
               : {
-                  roomId: msg.roomId,
-                  sharedInterests: msg.sharedInterests,
-                  sharedTopics: msg.sharedTopics,
-                  score: msg.score,
-                  partnerProfession: msg.partnerProfession,
-                  partnerCountry: msg.partnerCountry,
-                  partnerVisitorId: msg.partnerVisitorId,
-                  breakdown: msg.scoreBreakdown || msg.breakdown,
-                  isInitiator: msg.isInitiator,
-                  isAI: false,
-                }
+                roomId: msg.roomId,
+                sharedInterests: msg.sharedInterests,
+                sharedTopics: msg.sharedTopics,
+                score: msg.score,
+                partnerProfession: msg.partnerProfession,
+                partnerCountry: msg.partnerCountry,
+                partnerVisitorId: msg.partnerVisitorId,
+                breakdown: msg.scoreBreakdown || msg.breakdown,
+                isInitiator: msg.isInitiator,
+                isAI: false,
+              }
           );
-          setIncomingSignal({ signal: { type: 'reconnect_check' }, id: signalCounterRef.current++ });
+          enqueueIncomingSignal({ type: 'reconnect_check' }, msg.roomId);
           break;
 
         case 'PARTNER_RECONNECTING':
@@ -459,7 +502,7 @@ export default function App() {
           setTimeout(() => setPartnerJustReconnected(false), 3500);
           setPartnerLeftReason(null);
           addToast('info', 'Partner reconnected!');
-          setIncomingSignal({ signal: { type: 'reconnect_check' }, id: signalCounterRef.current++ });
+          enqueueIncomingSignal({ type: 'reconnect_check' }, msg.roomId);
           break;
 
         case 'MATCHING_STARTED': {
@@ -467,7 +510,7 @@ export default function App() {
           activeMatchingRequestRef.current = activeMatchingRequestRef.current || pendingMatchingRequestRef.current;
           setIsMatchReady(true);
           setPartnerLeftReason(null);
-          setIncomingSignal(null);
+          clearIncomingSignals();
           break;
         }
 
@@ -476,7 +519,7 @@ export default function App() {
           pendingMatchingRequestRef.current = null;
           activeMatchingRequestRef.current = null;
           setIsMatchReady(false);
-          setIncomingSignal(null);
+          clearIncomingSignals();
           setCurrentView('landing');
           break;
 
@@ -485,9 +528,9 @@ export default function App() {
           pendingMatchingRequestRef.current = null;
           activeMatchingRequestRef.current = null;
           setIsMatchReady(false);
-          setIncomingSignal(null);
+          clearIncomingSignals();
           soundService.playMatchFound();
-          const wasAI = Boolean(active1on1?.isAI);
+          const wasAI = Boolean(active1on1Ref.current?.isAI);
           setActive1on1({
             roomId: msg.roomId,
             sharedInterests: msg.sharedInterests,
@@ -527,12 +570,12 @@ export default function App() {
         case 'PARTNER_LEFT':
           setIsPartnerReconnecting(false);
           setPartnerLeftReason(msg.reason);
-          setIncomingSignal(null);
+          clearIncomingSignals();
           playChime(392.0); // lower tone for exit
           break;
 
         case 'WEBRTC_SIGNAL':
-          setIncomingSignal({ signal: msg.signal, id: signalCounterRef.current++ });
+          enqueueIncomingSignal(msg.signal, active1on1Ref.current?.roomId);
           break;
 
         case 'RECEIVE_1ON1_MESSAGE':
@@ -600,13 +643,10 @@ export default function App() {
     });
 
     return () => {
-      clearTimeout(socketTimer);
-      window.removeEventListener('pointerdown', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
       unsubscribeStatus();
       unsubscribe();
     };
-  }, [addToast, playChime, currentView]);
+  }, [addToast, clearIncomingSignals, enqueueIncomingSignal, playChime]);
 
   // Handle skip cooldown countdown timer
   useEffect(() => {
@@ -835,6 +875,7 @@ export default function App() {
     setIsMatchReady(true);
     setActive1on1(null);
     setChat1on1Messages([]);
+    clearIncomingSignals();
 
     // Launch specific chat interface corresponding to selected mode
     switch (modeToUse) {
@@ -976,11 +1017,69 @@ export default function App() {
     setActive1on1(null);
     setChat1on1Messages([]);
     setPartnerLeftReason(null);
-    setIncomingSignal(null);
-    ologleSocket.send({ type: 'NEXT_PERSON' });
+    setIsMatchReady(true);
+    clearIncomingSignals();
+
+    const profToUse = (professionRef.current || localStorage.getItem('ologle_user_profession') || 'Software Engineer').trim();
+    const effectiveProf = (profToUse && validateProfession(profToUse).isValid) ? profToUse : 'Software Engineer';
+    const fallbackInterests = ['Technology', 'Ideas', 'Networking'];
+    const cleanedInterests: string[] = Array.from(
+      new Set((interestsRef.current || []).map((i: unknown) => String(i || '').trim()).filter(Boolean))
+    );
+    const effectiveInterests: string[] = cleanedInterests.length >= 3
+      ? cleanedInterests
+      : Array.from(new Set([...cleanedInterests, ...fallbackInterests])).slice(0, 3);
+    const countryToUse = selectedCountryRef.current || 'GLOBAL';
+    const modeToUse = sessionModeRef.current || 'video';
+
+    const matchReq: Extract<ClientMessage, { type: 'START_MATCHING' }> = {
+      type: 'START_MATCHING',
+      visitorId: visitorId.current,
+      blockedStrangers: getBlockedStrangers(),
+      profession: effectiveProf,
+      interests: effectiveInterests,
+      country: countryToUse,
+      sessionMode: modeToUse,
+    };
+    activeMatchingRequestRef.current = matchReq;
+
+    if (
+      ologleSocket.send({
+        type: 'NEXT_PERSON',
+        visitorId: visitorId.current,
+        blockedStrangers: getBlockedStrangers(),
+        profession: effectiveProf,
+        interests: effectiveInterests,
+        country: countryToUse,
+        sessionMode: modeToUse,
+      })
+    ) {
+      pendingMatchingRequestRef.current = null;
+    } else {
+      pendingMatchingRequestRef.current = matchReq;
+      ologleSocket.connect();
+    }
   };
 
+  // Auto-start matchmaking when loading directly on /video-call, /voice-call, or /messages (e.g. page refresh)
+  const didAutoStartDirectUrlRef = useRef(false);
+  useEffect(() => {
+    if (didAutoStartDirectUrlRef.current) return;
+    const isDirectSessionView =
+      currentView === 'conversation' ||
+      currentView === 'voice_session' ||
+      currentView === '1on1_chat';
+    if (isDirectSessionView && !active1on1 && !activeMatchingRequestRef.current && !pendingMatchingRequestRef.current) {
+      didAutoStartDirectUrlRef.current = true;
+      handleStart1on1(undefined, undefined, undefined, sessionMode);
+    }
+  }, [active1on1, currentView, sessionMode]);
+
   const handleEndConversation = () => {
+    pendingMatchingRequestRef.current = null;
+    activeMatchingRequestRef.current = null;
+    setIsMatchReady(false);
+    clearIncomingSignals();
     ologleSocket.send({ type: 'END_CONVERSATION' });
     setActive1on1(null);
     setChat1on1Messages([]);

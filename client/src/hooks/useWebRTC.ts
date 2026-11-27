@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchIceServerConfig, getFallbackIceServers } from '../services/iceServerConfig.ts';
 
+interface QueuedWebRTCSignal {
+  signal: any;
+  id: number;
+  roomId?: string;
+}
+
 interface UseWebRTCOptions {
   roomId: string;
   isInitiator?: boolean;
   mediaMode?: 'video' | 'voice' | 'messaging';
   onSendSignal: (signal: any) => boolean | void;
-  incomingSignal: { signal: any; id: number } | null;
+  incomingSignal: { signal: any; id: number; queue?: QueuedWebRTCSignal[] } | null;
   autoStart?: boolean;
 }
 
@@ -27,63 +33,65 @@ function logWebRTC(event: string, details: Record<string, string | number | bool
   console.info('[webrtc]', { event, ...details });
 }
 
-// Creates a lightweight, high-performance virtual MediaStream with an animated canvas video track and silent audio track
-const createVirtualMediaStream = (label = 'You'): MediaStream => {
-  const canvas = document.createElement('canvas');
-  canvas.width = 640;
-  canvas.height = 480;
-  const ctx = canvas.getContext('2d');
-
-  let animFrame: number;
-  let angle = 0;
-
-  const draw = () => {
-    if (!ctx) return;
-    // Dark modern gradient
-    const grad = ctx.createLinearGradient(0, 0, 640, 480);
-    grad.addColorStop(0, '#121214');
-    grad.addColorStop(1, '#1A1A1E');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 640, 480);
-
-    // Subtle pulsing ring
-    angle += 0.04;
-    const pulse = Math.sin(angle) * 6;
-    ctx.beginPath();
-    ctx.arc(320, 200, 56 + pulse, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(236, 94, 39, 0.45)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Center Avatar Circle
-    ctx.beginPath();
-    ctx.arc(320, 200, 50, 0, Math.PI * 2);
-    ctx.fillStyle = '#EC5E27';
-    ctx.fill();
-
-    // User Initial
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText((label.charAt(0) || 'Y').toUpperCase(), 320, 202);
-
-    // Status label below avatar
-    ctx.fillStyle = '#94A3B8';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('Camera Inactive • Ready to Connect', 320, 290);
-
-    animFrame = requestAnimationFrame(draw);
-  };
-  draw();
-
-  const stream = (canvas as any).captureStream ? (canvas as any).captureStream(15) : new MediaStream();
+// Creates a lightweight, high-performance virtual MediaStream with an animated canvas video track (when includeVideo is true) and silent audio track
+const createVirtualMediaStream = (label = 'You', includeVideo = true): MediaStream => {
+  const stream = new MediaStream();
   (stream as any)._isVirtual = true;
-  stream.getVideoTracks().forEach((track) => {
-    (track as any)._isVirtual = true;
-  });
 
+  let animFrame: number | null = null;
   let audioCtxInstance: AudioContext | null = null;
+
+  if (includeVideo && typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    let angle = 0;
+
+    const draw = () => {
+      if (!ctx) return;
+      const grad = ctx.createLinearGradient(0, 0, 640, 480);
+      grad.addColorStop(0, '#121214');
+      grad.addColorStop(1, '#1A1A1E');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 640, 480);
+
+      angle += 0.04;
+      const pulse = Math.sin(angle) * 6;
+      ctx.beginPath();
+      ctx.arc(320, 200, 56 + pulse, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(236, 94, 39, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(320, 200, 50, 0, Math.PI * 2);
+      ctx.fillStyle = '#EC5E27';
+      ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((label.charAt(0) || 'Y').toUpperCase(), 320, 202);
+
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('Camera Inactive • Ready to Connect', 320, 290);
+
+      animFrame = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const canvasStream: MediaStream | null = (canvas as any).captureStream ? (canvas as any).captureStream(15) : null;
+    if (canvasStream) {
+      canvasStream.getVideoTracks().forEach((track) => {
+        (track as any)._isVirtual = true;
+        stream.addTrack(track);
+      });
+    }
+  }
+
   // Add a silent audio track using Web Audio API so RTCPeerConnection negotiation succeeds
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -101,23 +109,32 @@ const createVirtualMediaStream = (label = 'You'): MediaStream => {
       } else if (audioCtx.state === 'suspended') {
         audioCtx.resume().then(() => osc.start()).catch(() => { });
       }
-      dst.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+      dst.stream.getAudioTracks().forEach((t) => {
+        (t as any)._isVirtual = true;
+        stream.addTrack(t);
+      });
     }
   } catch (e) {
     console.warn('AudioContext silent track creation skipped:', e);
   }
 
-  const videoTrack = stream.getVideoTracks()[0];
-  if (videoTrack) {
-    const origStop = videoTrack.stop.bind(videoTrack);
-    videoTrack.stop = () => {
+  const cleanupVirtual = () => {
+    if (animFrame !== null) {
       cancelAnimationFrame(animFrame);
-      if (audioCtxInstance && audioCtxInstance.state !== 'closed') {
-        audioCtxInstance.close().catch(() => { });
-      }
+      animFrame = null;
+    }
+    if (audioCtxInstance && audioCtxInstance.state !== 'closed') {
+      audioCtxInstance.close().catch(() => { });
+    }
+  };
+
+  stream.getTracks().forEach((track) => {
+    const origStop = track.stop.bind(track);
+    track.stop = () => {
+      cleanupVirtual();
       origStop();
     };
-  }
+  });
 
   return stream;
 };
@@ -150,6 +167,11 @@ export const useWebRTC = ({
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
+  const onSendSignalRef = useRef(onSendSignal);
+  onSendSignalRef.current = onSendSignal;
+  const isInitiatorRef = useRef(isInitiator);
+  isInitiatorRef.current = isInitiator;
+
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -165,15 +187,18 @@ export const useWebRTC = ({
   const iceRestartInProgressRef = useRef(false);
   const disconnectTimerRef = useRef<number | null>(null);
   const connectionTimeoutRef = useRef<number | null>(null);
+  const offerRetransmitTimerRef = useRef<number | null>(null);
   const statsIntervalRef = useRef<number | null>(null);
   const iceRetryAttemptRef = useRef<number>(0);
   const iceRetryTimerRef = useRef<number | null>(null);
   const previousConnectionStateRef = useRef<WebRTCConnectionState>('idle');
-  const processedSignalIdRef = useRef<number | null>(null);
+  const processedSignalIdRef = useRef<number>(0);
   const mediaPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
   const hasInitializedPcRef = useRef<boolean>(false);
   const isCameraBusyRef = useRef(false);
   const remoteVideoCleanupRef = useRef<(() => void) | null>(null);
+  const attachedRemoteElRef = useRef<HTMLVideoElement | null>(null);
+  const attachRemoteVideoElementRef = useRef<((videoEl: HTMLVideoElement, stream: MediaStream) => void) | null>(null);
 
   useEffect(() => {
     setIsCameraOn(mediaMode === 'video');
@@ -245,7 +270,7 @@ export const useWebRTC = ({
         if (oldStream) {
           oldStream.getTracks().forEach((track) => track.stop());
         }
-        const fallback = createVirtualMediaStream();
+        const fallback = createVirtualMediaStream('You', mediaMode === 'video');
         localStreamRef.current = fallback;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = fallback;
@@ -357,13 +382,13 @@ export const useWebRTC = ({
         return stream;
       }
 
-      // ATTEMPT 5: Graceful fallback stream (Canvas + silent audio)
+      // ATTEMPT 5: Graceful fallback stream (Canvas in video mode + silent audio)
       // Allows WebRTC signaling and UI to work without freezing or throwing fatal exceptions
       console.warn('All physical media attempts failed. Generating virtual user stream fallback.');
       if (oldStream) {
         oldStream.getTracks().forEach((track) => track.stop());
       }
-      const fallback = createVirtualMediaStream();
+      const fallback = createVirtualMediaStream('You', mediaMode === 'video');
       localStreamRef.current = fallback;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = fallback;
@@ -415,7 +440,7 @@ export const useWebRTC = ({
       hasInitializedPcRef.current = true;
       // Preserve any early candidates in iceCandidatesQueue.current so they are not wiped
       setConnectionState('connecting');
-      logWebRTC('peer.created', { roomId, role: isInitiator ? 'initiator' : 'responder' });
+      logWebRTC('peer.created', { roomId, role: isInitiatorRef.current ? 'initiator' : 'responder' });
 
       const remoteStream = new MediaStream();
       remoteStreamRef.current = remoteStream;
@@ -448,6 +473,7 @@ export const useWebRTC = ({
           remoteVideoCleanupRef.current();
           remoteVideoCleanupRef.current = null;
         }
+        attachedRemoteElRef.current = videoEl;
 
         if (videoEl.srcObject !== stream) {
           videoEl.srcObject = stream;
@@ -497,6 +523,7 @@ export const useWebRTC = ({
           }
         };
       };
+      attachRemoteVideoElementRef.current = attachRemoteVideoElement;
 
       if (remoteVideoRef.current) {
         attachRemoteVideoElement(remoteVideoRef.current, remoteStream);
@@ -592,7 +619,7 @@ export const useWebRTC = ({
 
       pc.onicecandidate = (event) => {
         if (!event.candidate) return;
-        const sent = onSendSignal({
+        const sent = onSendSignalRef.current({
           type: 'candidate',
           candidate: event.candidate.toJSON(),
         });
@@ -620,6 +647,10 @@ export const useWebRTC = ({
           window.clearTimeout(disconnectTimerRef.current);
           disconnectTimerRef.current = null;
         }
+        if (offerRetransmitTimerRef.current !== null) {
+          window.clearTimeout(offerRetransmitTimerRef.current);
+          offerRetransmitTimerRef.current = null;
+        }
       };
 
       const MAX_RECONNECT_ATTEMPTS = 5;
@@ -643,7 +674,7 @@ export const useWebRTC = ({
 
         // If a local offer was already created while the signaling socket was reconnecting, re-send it
         if (pc.signalingState === 'have-local-offer' && pc.localDescription) {
-          const resent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
+          const resent = onSendSignalRef.current({ type: 'offer', sdp: pc.localDescription });
           logWebRTC('ice.restart.resent', { roomId, sent: resent !== false });
           if (resent === false && disconnectTimerRef.current === null) {
             disconnectTimerRef.current = window.setTimeout(() => {
@@ -666,7 +697,7 @@ export const useWebRTC = ({
         try {
           const offer = await pc.createOffer({ iceRestart: true });
           await pc.setLocalDescription(offer);
-          const sent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
+          const sent = onSendSignalRef.current({ type: 'offer', sdp: pc.localDescription });
           logWebRTC('ice.restart.sent', { roomId, sent: sent !== false });
           if (sent === false && disconnectTimerRef.current === null) {
             disconnectTimerRef.current = window.setTimeout(() => {
@@ -708,20 +739,9 @@ export const useWebRTC = ({
           settingRemoteAnswerRef.current = false;
           ignoreOfferRef.current = false;
 
-          const newPc = await initPeerConnection(stream);
-          if (!newPc) return;
-
-          if (isInitiator) {
-            makingOfferRef.current = true;
-            try {
-              const offer = await newPc.createOffer({ iceRestart: true });
-              await newPc.setLocalDescription(offer);
-              const sent = onSendSignal({ type: 'offer', sdp: newPc.localDescription });
-              logWebRTC('ice.recreate.offer-sent', { roomId, sent: sent !== false });
-            } finally {
-              makingOfferRef.current = false;
-            }
-          }
+          // initPeerConnection already creates and sends the initial offer when isInitiator is true,
+          // and notifies peer_ready when responder is ready. Do NOT call createOffer a second time here.
+          await initPeerConnection(stream);
         } catch (error) {
           console.error('[webrtc] Recreate peer connection failed:', error);
         } finally {
@@ -763,8 +783,12 @@ export const useWebRTC = ({
 
           if (pcRef.current && pcRef.current.connectionState === 'connected') return;
 
-          // Attempt 0 & 1: ICE restart on existing connection
-          if (attempt < 2 && pcRef.current && pcRef.current.signalingState === 'stable') {
+          // Attempt 0 & 1: ICE restart or offer re-send on existing connection
+          if (
+            attempt < 2 &&
+            pcRef.current &&
+            (pcRef.current.signalingState === 'stable' || pcRef.current.signalingState === 'have-local-offer')
+          ) {
             void restartIce();
           } else {
             // Attempt 2+: Full clean PeerConnection re-creation
@@ -934,20 +958,47 @@ export const useWebRTC = ({
 
       startConnectionTimeout();
 
-      if (isInitiator) {
+      if (isInitiatorRef.current) {
         makingOfferRef.current = true;
         try {
           const offer = await pc.createOffer();
           if (pcRef.current !== pc || generation !== peerConnectionGenerationRef.current) return null;
           await pc.setLocalDescription(offer);
-          const sent = onSendSignal({ type: 'offer', sdp: pc.localDescription });
+          const sent = onSendSignalRef.current({ type: 'offer', sdp: pc.localDescription });
           logWebRTC('sdp.offer.sent', { roomId, sent: sent !== false });
+
+          // Schedule non-destructive offer re-transmission if responder takes time to grant camera/mic permissions
+          const scheduleOfferRetransmit = (delayMs: number) => {
+            if (offerRetransmitTimerRef.current !== null) {
+              window.clearTimeout(offerRetransmitTimerRef.current);
+            }
+            offerRetransmitTimerRef.current = window.setTimeout(() => {
+              offerRetransmitTimerRef.current = null;
+              if (
+                pcRef.current === pc &&
+                pc.connectionState !== 'connected' &&
+                pc.signalingState === 'have-local-offer' &&
+                pc.localDescription &&
+                !pc.remoteDescription
+              ) {
+                const resent = onSendSignalRef.current({ type: 'offer', sdp: pc.localDescription });
+                logWebRTC('sdp.offer.retransmitted', { roomId, sent: resent !== false });
+                if (delayMs < 5000) {
+                  scheduleOfferRetransmit(3000);
+                }
+              }
+            }, delayMs);
+          };
+          scheduleOfferRetransmit(2500);
         } catch (error) {
           console.error('[webrtc]', { event: 'sdp.offer.failed', roomId, error });
           setConnectionState('failed');
         } finally {
           makingOfferRef.current = false;
         }
+      } else if (!pc.remoteDescription) {
+        // Responder is ready (e.g. after camera/mic permission dialog); ask initiator to send/re-send offer if needed
+        onSendSignalRef.current({ type: 'peer_ready' });
       }
 
       return pc;
@@ -961,14 +1012,21 @@ export const useWebRTC = ({
         peerConnectionPromiseRef.current = null;
       }
     }
-  }, [isInitiator, onSendSignal, roomId]);
+  }, [roomId]);
 
-  // Keep video refs synced with streams whenever re-rendered
+  // Keep video refs synced with streams whenever re-rendered or layout swaps (e.g. mobile PiP / desktop)
   useEffect(() => {
     if (remoteVideoRef.current && remoteStreamRef.current) {
-      if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
-        remoteVideoRef.current.srcObject = remoteStreamRef.current;
-        remoteVideoRef.current.play().catch(() => { });
+      if (
+        remoteVideoRef.current.srcObject !== remoteStreamRef.current ||
+        attachedRemoteElRef.current !== remoteVideoRef.current
+      ) {
+        if (attachRemoteVideoElementRef.current) {
+          attachRemoteVideoElementRef.current(remoteVideoRef.current, remoteStreamRef.current);
+        } else {
+          remoteVideoRef.current.srcObject = remoteStreamRef.current;
+          remoteVideoRef.current.play().catch(() => { });
+        }
       }
     }
     if (localVideoRef.current && localStreamRef.current) {
@@ -980,154 +1038,191 @@ export const useWebRTC = ({
     }
   });
 
-  // Handle incoming signals from the signaling server
+  // Handle incoming signals from the signaling server (processes full FIFO queue so no batched offers/candidates are dropped)
   useEffect(() => {
-    if (!incomingSignal || !incomingSignal.signal || incomingSignal.id === processedSignalIdRef.current) {
+    if (!incomingSignal) {
       return;
     }
 
-    processedSignalIdRef.current = incomingSignal.id;
-    const signal = incomingSignal.signal;
+    const rawList: QueuedWebRTCSignal[] = Array.isArray(incomingSignal.queue) && incomingSignal.queue.length > 0
+      ? incomingSignal.queue
+      : incomingSignal.signal
+        ? [{ signal: incomingSignal.signal, id: incomingSignal.id }]
+        : [];
+
+    const pendingItems = rawList.filter(
+      (item) =>
+        item &&
+        item.signal &&
+        item.id > processedSignalIdRef.current &&
+        (!item.roomId || !roomId || item.roomId === roomId)
+    );
+
+    if (pendingItems.length === 0) {
+      return;
+    }
+
     const generation = peerConnectionGenerationRef.current;
-    logWebRTC('signal.received', { roomId, type: signal.type || 'unknown' });
 
-    const handleSignal = async (): Promise<void> => {
-      try {
-        if (generation !== peerConnectionGenerationRef.current) return;
+    for (const item of pendingItems) {
+      processedSignalIdRef.current = Math.max(processedSignalIdRef.current, item.id);
+      const signal = item.signal;
+      logWebRTC('signal.received', { roomId, type: signal.type || 'unknown', signalId: item.id });
 
-        if (signal.type === 'reconnect_check') {
-          const currentPc = pcRef.current;
+      const handleSignal = async (): Promise<void> => {
+        try {
+          if (generation !== peerConnectionGenerationRef.current) return;
+
+          if (signal.type === 'peer_ready') {
+            const currentPc = pcRef.current;
+            if (
+              isInitiatorRef.current &&
+              currentPc &&
+              currentPc.connectionState !== 'connected' &&
+              currentPc.signalingState === 'have-local-offer' &&
+              currentPc.localDescription &&
+              !currentPc.remoteDescription
+            ) {
+              const sent = onSendSignalRef.current({ type: 'offer', sdp: currentPc.localDescription });
+              logWebRTC('sdp.offer.resent-on-peer-ready', { roomId, sent: sent !== false });
+            }
+            return;
+          }
+
+          if (signal.type === 'reconnect_check') {
+            const currentPc = pcRef.current;
+            if (!currentPc) {
+              let stream = localStreamRef.current;
+              if (!stream) stream = await startLocalMedia(isFacingUserRef.current);
+              if (stream) await initPeerConnection(stream);
+              return;
+            }
+            if (currentPc.connectionState !== 'connected') {
+              iceRetryAttemptRef.current = 0;
+              setReconnectAttempt(0);
+              setIsExhausted(false);
+              autoRecoveryRef.current();
+            }
+            return;
+          }
+
+          if (signal.type === 'candidate' && signal.candidate) {
+            const currentPc = pcRef.current;
+            if (ignoreOfferRef.current) return;
+            if (!currentPc?.remoteDescription) {
+              iceCandidatesQueue.current.push(signal.candidate);
+              return;
+            }
+
+            const candidate = new RTCIceCandidate(signal.candidate);
+            await currentPc.addIceCandidate(candidate);
+            logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
+            return;
+          }
+
+          if (signal.type !== 'offer' && signal.type !== 'answer') return;
+
+          let currentPc = pcRef.current;
           if (!currentPc) {
             let stream = localStreamRef.current;
             if (!stream) stream = await startLocalMedia(isFacingUserRef.current);
-            if (stream) await initPeerConnection(stream);
-            return;
-          }
-          if (currentPc.connectionState !== 'connected') {
-            iceRetryAttemptRef.current = 0;
-            setReconnectAttempt(0);
-            setIsExhausted(false);
-            autoRecoveryRef.current();
-          }
-          return;
-        }
-
-        if (signal.type === 'candidate' && signal.candidate) {
-          const currentPc = pcRef.current;
-          if (ignoreOfferRef.current) return;
-          if (!currentPc?.remoteDescription) {
-            iceCandidatesQueue.current.push(signal.candidate);
-            return;
-          }
-
-          const candidate = new RTCIceCandidate(signal.candidate);
-          await currentPc.addIceCandidate(candidate);
-          logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
-          return;
-        }
-
-        if (signal.type !== 'offer' && signal.type !== 'answer') return;
-
-        let currentPc = pcRef.current;
-        if (!currentPc) {
-          let stream = localStreamRef.current;
-          if (!stream) stream = await startLocalMedia(isFacingUserRef.current);
-          if (generation !== peerConnectionGenerationRef.current) return;
-          if (stream) {
-            const initializedPc = await initPeerConnection(stream);
-            if (initializedPc) currentPc = initializedPc;
-          }
-        }
-        if (!currentPc || generation !== peerConnectionGenerationRef.current) return;
-
-        const description = signal.sdp?.type
-          ? signal.sdp as RTCSessionDescriptionInit
-          : { type: signal.type, sdp: signal.sdp } as RTCSessionDescriptionInit;
-
-        if (signal.type === 'offer') {
-          if (
-            currentPc.remoteDescription?.type === 'offer' &&
-            currentPc.remoteDescription.sdp === description.sdp
-          ) {
-            if (currentPc.localDescription?.type === 'answer') {
-              const sent = onSendSignal({ type: 'answer', sdp: currentPc.localDescription });
-              logWebRTC('sdp.answer.resent', { roomId, sent: sent !== false });
+            if (generation !== peerConnectionGenerationRef.current) return;
+            if (stream) {
+              const initializedPc = await initPeerConnection(stream);
+              if (initializedPc) currentPc = initializedPc;
             }
-            return;
           }
+          if (!currentPc || generation !== peerConnectionGenerationRef.current) return;
 
-          const readyForOffer = !makingOfferRef.current &&
-            (currentPc.signalingState === 'stable' || settingRemoteAnswerRef.current);
-          const offerCollision = !readyForOffer;
-          const isPolite = !isInitiator;
-          ignoreOfferRef.current = !isPolite && offerCollision;
-          if (ignoreOfferRef.current) {
-            logWebRTC('sdp.offer.ignored', { roomId, reason: 'offer-collision' });
-            return;
-          }
-          if (offerCollision) {
-            await currentPc.setLocalDescription({ type: 'rollback' });
-          }
+          const description = signal.sdp?.type
+            ? signal.sdp as RTCSessionDescriptionInit
+            : { type: signal.type, sdp: signal.sdp } as RTCSessionDescriptionInit;
 
-          await currentPc.setRemoteDescription(description);
-          if (generation !== peerConnectionGenerationRef.current) return;
-          ignoreOfferRef.current = false;
-          logWebRTC('sdp.offer.received', { roomId });
-        } else {
-          if (
-            currentPc.remoteDescription?.type === 'answer' &&
-            currentPc.remoteDescription.sdp === description.sdp
-          ) {
-            logWebRTC('sdp.answer.duplicate', { roomId });
-            return;
-          }
-          if (currentPc.signalingState !== 'have-local-offer') {
-            logWebRTC('sdp.answer.ignored', { roomId, state: currentPc.signalingState });
-            return;
-          }
+          if (signal.type === 'offer') {
+            if (
+              currentPc.remoteDescription?.type === 'offer' &&
+              currentPc.remoteDescription.sdp === description.sdp
+            ) {
+              if (currentPc.localDescription?.type === 'answer') {
+                const sent = onSendSignalRef.current({ type: 'answer', sdp: currentPc.localDescription });
+                logWebRTC('sdp.answer.resent', { roomId, sent: sent !== false });
+              }
+              return;
+            }
 
-          settingRemoteAnswerRef.current = true;
-          try {
+            const readyForOffer = !makingOfferRef.current &&
+              (currentPc.signalingState === 'stable' || settingRemoteAnswerRef.current);
+            const offerCollision = !readyForOffer;
+            const isPolite = !isInitiatorRef.current;
+            ignoreOfferRef.current = !isPolite && offerCollision;
+            if (ignoreOfferRef.current) {
+              logWebRTC('sdp.offer.ignored', { roomId, reason: 'offer-collision' });
+              return;
+            }
+            if (offerCollision) {
+              await currentPc.setLocalDescription({ type: 'rollback' });
+            }
+
             await currentPc.setRemoteDescription(description);
-          } finally {
-            settingRemoteAnswerRef.current = false;
-          }
-          if (generation !== peerConnectionGenerationRef.current) return;
-          ignoreOfferRef.current = false;
-          logWebRTC('sdp.answer.received', { roomId });
-        }
+            if (generation !== peerConnectionGenerationRef.current) return;
+            ignoreOfferRef.current = false;
+            logWebRTC('sdp.offer.received', { roomId });
+          } else {
+            if (
+              currentPc.remoteDescription?.type === 'answer' &&
+              currentPc.remoteDescription.sdp === description.sdp
+            ) {
+              logWebRTC('sdp.answer.duplicate', { roomId });
+              return;
+            }
+            if (currentPc.signalingState !== 'have-local-offer') {
+              logWebRTC('sdp.answer.ignored', { roomId, state: currentPc.signalingState });
+              return;
+            }
 
-        const queuedCandidates = iceCandidatesQueue.current.splice(0);
-        for (const candidateInit of queuedCandidates) {
-          try {
-            const candidate = new RTCIceCandidate(candidateInit);
-            await currentPc.addIceCandidate(candidate);
-            logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
-          } catch (error) {
-            if (!ignoreOfferRef.current) {
-              console.warn('[webrtc]', { event: 'ice.candidate.add-failed', roomId, error });
+            settingRemoteAnswerRef.current = true;
+            try {
+              await currentPc.setRemoteDescription(description);
+            } finally {
+              settingRemoteAnswerRef.current = false;
+            }
+            if (generation !== peerConnectionGenerationRef.current) return;
+            ignoreOfferRef.current = false;
+            logWebRTC('sdp.answer.received', { roomId });
+          }
+
+          const queuedCandidates = iceCandidatesQueue.current.splice(0);
+          for (const candidateInit of queuedCandidates) {
+            try {
+              const candidate = new RTCIceCandidate(candidateInit);
+              await currentPc.addIceCandidate(candidate);
+              logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
+            } catch (error) {
+              if (!ignoreOfferRef.current) {
+                console.warn('[webrtc]', { event: 'ice.candidate.add-failed', roomId, error });
+              }
             }
           }
-        }
 
-        if (signal.type === 'offer') {
-          const answer = await currentPc.createAnswer();
-          if (generation !== peerConnectionGenerationRef.current) return;
-          await currentPc.setLocalDescription(answer);
-          const sent = onSendSignal({ type: 'answer', sdp: currentPc.localDescription });
-          logWebRTC('sdp.answer.sent', { roomId, sent: sent !== false });
+          if (signal.type === 'offer') {
+            const answer = await currentPc.createAnswer();
+            if (generation !== peerConnectionGenerationRef.current) return;
+            await currentPc.setLocalDescription(answer);
+            const sent = onSendSignalRef.current({ type: 'answer', sdp: currentPc.localDescription });
+            logWebRTC('sdp.answer.sent', { roomId, sent: sent !== false });
+          }
+        } catch (err) {
+          console.error('[webrtc]', { event: 'signal.processing.failed', roomId, type: signal.type || 'unknown', error: err });
         }
-      } catch (err) {
-        console.error('[webrtc]', { event: 'signal.processing.failed', roomId, type: signal.type || 'unknown', error: err });
-      }
-    };
+      };
 
-    signalProcessingRef.current = signalProcessingRef.current
-      .then(handleSignal)
-      .catch((error) => {
-        console.error('[webrtc]', { event: 'signal.queue.failed', roomId, error });
-      });
-  }, [incomingSignal, initPeerConnection, isInitiator, onSendSignal, roomId, startLocalMedia]);
+      signalProcessingRef.current = signalProcessingRef.current
+        .then(handleSignal)
+        .catch((error) => {
+          console.error('[webrtc]', { event: 'signal.queue.failed', roomId, error });
+        });
+    }
+  }, [incomingSignal, initPeerConnection, roomId, startLocalMedia]);
 
   // Setup on mount and teardown on unmount / room change
   useEffect(() => {
@@ -1178,6 +1273,10 @@ export const useWebRTC = ({
         window.clearTimeout(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
       }
+      if (offerRetransmitTimerRef.current !== null) {
+        window.clearTimeout(offerRetransmitTimerRef.current);
+        offerRetransmitTimerRef.current = null;
+      }
       if (statsIntervalRef.current !== null) {
         window.clearInterval(statsIntervalRef.current);
         statsIntervalRef.current = null;
@@ -1198,7 +1297,7 @@ export const useWebRTC = ({
       }
       iceCandidatesQueue.current = [];
     };
-  }, [roomId, autoStart, mediaMode, isInitiator, initPeerConnection, startLocalMedia]);
+  }, [roomId, autoStart, mediaMode, initPeerConnection, startLocalMedia]);
 
   // Clean up local media when hook unmounts completely
   useEffect(() => {
@@ -1390,6 +1489,18 @@ export const useWebRTC = ({
     if (statsIntervalRef.current !== null) {
       window.clearInterval(statsIntervalRef.current);
       statsIntervalRef.current = null;
+    }
+    if (connectionTimeoutRef.current !== null) {
+      window.clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    if (disconnectTimerRef.current !== null) {
+      window.clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = null;
+    }
+    if (offerRetransmitTimerRef.current !== null) {
+      window.clearTimeout(offerRetransmitTimerRef.current);
+      offerRetransmitTimerRef.current = null;
     }
     if (iceRetryTimerRef.current !== null) {
       window.clearTimeout(iceRetryTimerRef.current);

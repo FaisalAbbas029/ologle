@@ -10,8 +10,10 @@ export interface QueuedSession {
   ipAddress?: string;
   isLoopback?: boolean;
   profession: string;
+  strictProfessionFilter?: boolean;
   interests: string[];
   country?: string; // 'GLOBAL' or country code/name
+  mode?: string; // 'video' | 'voice' | 'messaging'
   queuedAt: number;
   blockedSessionIds: Set<string>; // Sessions this user has skipped, reported, or blocked
   blockedVisitorIds?: Set<string>; // Persistent visitor IDs blocked by this user
@@ -187,6 +189,11 @@ export const INTEREST_SYNONYMS: Record<string, string> = {
   'backpacking': 'Travel',
   'philosophy': 'Philosophy',
   'history': 'History',
+  'technology': 'Technology',
+  'tech': 'Technology',
+  'ideas': 'Ideas',
+  'networking': 'Networking',
+  'career': 'Networking',
 };
 
 // Broad topic categorizations
@@ -195,8 +202,11 @@ export const INTEREST_TOPIC_MAP: Record<string, string> = {
   'Programming': 'Technology',
   'Web Development': 'Technology',
   'Data Science': 'Technology',
+  'Technology': 'Technology',
   'Startups': 'Business & Innovation',
   'Business': 'Business & Innovation',
+  'Ideas': 'Business & Innovation',
+  'Networking': 'Business & Innovation',
   'Mathematics': 'STEM',
   'Science': 'STEM',
   'Philosophy': 'Humanities',
@@ -486,8 +496,12 @@ export class MatchmakerQueue {
     let bestMatch: QueuedSession | null = null;
     let bestResult: MatchScoreResult | null = null;
 
+    const targetMode = (currentSession.mode || 'video').toLowerCase();
+
     for (const [candidateId, candidateSession] of this.queue.entries()) {
       if (candidateId === currentSession.sessionId) continue;
+      const candidateMode = (candidateSession.mode || 'video').toLowerCase();
+      if (candidateMode !== targetMode) continue;
       if (
         !(currentSession.isLoopback && candidateSession.isLoopback) &&
         currentSession.visitorId &&

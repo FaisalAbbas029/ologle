@@ -191,9 +191,9 @@ app.post('/api/ai-practice/reply', async (req, res) => {
       : [];
     const safeMessages: Array<{ role: 'user' | 'assistant'; text: string }> = Array.isArray(messages)
       ? messages.slice(-10).map((m: any) => ({
-          role: (m?.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-          text: sanitizeText(m?.text, 1000),
-        }))
+        role: (m?.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+        text: sanitizeText(m?.text, 1000),
+      }))
       : [];
 
     const reply = await generateAIPracticeReply({
@@ -296,7 +296,18 @@ wss.on('connection', (ws, req) => {
     ? forwarded.split(',')[0].trim()
     : req.socket.remoteAddress || '127.0.0.1';
 
-  const session = ologleEngine.registerSession(ws as any, undefined, ip);
+  let existingSessionId: string | undefined;
+  if (req.url) {
+    try {
+      const parsedUrl = new URL(req.url, 'http://localhost');
+      const sid = parsedUrl.searchParams.get('sessionId');
+      if (sid && /^hl_[a-zA-Z0-9_-]{8,64}$/.test(sid)) {
+        existingSessionId = sid;
+      }
+    } catch { }
+  }
+
+  const session = ologleEngine.registerSession(ws as any, existingSessionId, ip);
 
   ws.on('message', (data) => {
     ologleEngine.processMessage(session.sessionId, data.toString());
@@ -348,7 +359,7 @@ server.listen(PORT, '0.0.0.0', () => {
         });
         req.on('error', (err) => console.warn('[keep-alive] Self-ping failed:', err.message));
         req.end();
-      }).catch(() => {});
+      }).catch(() => { });
     }, PING_INTERVAL_MS);
   }
 });

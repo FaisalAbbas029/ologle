@@ -191,7 +191,7 @@ export type ClientMessage =
   | { type: 'REGISTER_SESSION'; visitorId?: string; blockedStrangers?: string[]; profession?: string; interests?: string[] }
   | { type: 'START_MATCHING'; visitorId?: string; blockedStrangers?: string[]; profession: string; strictProfessionFilter?: boolean; interests: string[]; country?: string; sessionMode?: string }
   | { type: 'CANCEL_MATCHING' }
-  | { type: 'NEXT_PERSON' }
+  | { type: 'NEXT_PERSON'; visitorId?: string; blockedStrangers?: string[]; profession?: string; strictProfessionFilter?: boolean; interests?: string[]; country?: string; sessionMode?: string }
   | { type: 'END_CONVERSATION' }
   | { type: 'SEND_1ON1_MESSAGE'; text: string }
   | { type: 'PAD_UPDATE'; content: string; language: string }
@@ -236,32 +236,32 @@ export type ServerMessage =
   | { type: 'MATCHING_STARTED' }
   | { type: 'MATCHING_CANCELED' }
   | {
-      type: 'MATCH_FOUND';
-      roomId: string;
-      sharedInterests: string[];
-      sharedTopics: string[];
-      score: number;
-      partnerProfession?: string;
-      partnerCountry?: string;
-      partnerVisitorId?: string;
-      scoreBreakdown?: ScoreBreakdown;
-      breakdown?: ScoreBreakdown;
-      isInitiator?: boolean;
-    }
+    type: 'MATCH_FOUND';
+    roomId: string;
+    sharedInterests: string[];
+    sharedTopics: string[];
+    score: number;
+    partnerProfession?: string;
+    partnerCountry?: string;
+    partnerVisitorId?: string;
+    scoreBreakdown?: ScoreBreakdown;
+    breakdown?: ScoreBreakdown;
+    isInitiator?: boolean;
+  }
   | {
-      type: 'SESSION_RESTORED';
-      roomId: string;
-      sharedInterests: string[];
-      sharedTopics: string[];
-      score: number;
-      partnerProfession?: string;
-      partnerCountry?: string;
-      partnerVisitorId?: string;
-      partnerSessionId?: string;
-      scoreBreakdown?: ScoreBreakdown;
-      breakdown?: ScoreBreakdown;
-      isInitiator?: boolean;
-    }
+    type: 'SESSION_RESTORED';
+    roomId: string;
+    sharedInterests: string[];
+    sharedTopics: string[];
+    score: number;
+    partnerProfession?: string;
+    partnerCountry?: string;
+    partnerVisitorId?: string;
+    partnerSessionId?: string;
+    scoreBreakdown?: ScoreBreakdown;
+    breakdown?: ScoreBreakdown;
+    isInitiator?: boolean;
+  }
   | { type: 'PARTNER_RECONNECTING'; graceSeconds: number }
   | { type: 'PARTNER_RECONNECTED'; roomId: string }
   | { type: 'PARTNER_LEFT'; reason: 'skipped' | 'ended' | 'disconnected' | 'reported' | 'blocked' }

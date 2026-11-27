@@ -42,4 +42,24 @@ describe('ICE server configuration', () => {
       TURN_SHARED_SECRET: 'secret',
     })).toThrow('TURN_URLS must contain only valid turn: or turns: URLs.');
   });
+
+  it('supports static TURN_USERNAME and TURN_CREDENTIAL with automatic UDP/TCP transport expansion', () => {
+    const config = createIceServerConfig({
+      TURN_URLS: 'turn:global.relay.metered.ca:80,turns:global.relay.metered.ca:443',
+      TURN_USERNAME: 'metered-user-123',
+      TURN_CREDENTIAL: 'metered-pass-456',
+    });
+
+    expect(config.relayAvailable).toBe(true);
+    expect(config.expiresAt).toBeNull();
+    expect(config.iceServers[1]).toEqual({
+      urls: [
+        'turn:global.relay.metered.ca:80?transport=udp',
+        'turn:global.relay.metered.ca:80?transport=tcp',
+        'turns:global.relay.metered.ca:443?transport=tcp',
+      ],
+      username: 'metered-user-123',
+      credential: 'metered-pass-456',
+    });
+  });
 });

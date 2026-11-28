@@ -656,17 +656,22 @@ export const useWebRTC = ({
       const MAX_RECONNECT_ATTEMPTS = 5;
       const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 12000];
 
-      const startConnectionTimeout = () => {
+      const startConnectionTimeout = (timeoutMs = 15_000) => {
         if (connectionTimeoutRef.current !== null) {
           window.clearTimeout(connectionTimeoutRef.current);
         }
-        // Give 10 seconds for initial connection before automatically triggering recovery
+        // Give 15 seconds for initial connection (plus a 6s extension if actively ICE checking across high-latency networks)
         connectionTimeoutRef.current = window.setTimeout(() => {
           if (pcRef.current === pc && pc.connectionState !== 'connected') {
+            if (pc.iceConnectionState === 'checking' && timeoutMs === 15_000) {
+              logWebRTC('peer.connection.checking-extended', { roomId, state: pc.connectionState });
+              startConnectionTimeout(6_000);
+              return;
+            }
             logWebRTC('peer.connection.timeout', { roomId, state: pc.connectionState });
             scheduleAutoRecovery();
           }
-        }, 10_000);
+        }, timeoutMs);
       };
 
       const restartIce = async () => {
@@ -682,6 +687,16 @@ export const useWebRTC = ({
               if (pcRef.current === pc && pc.connectionState !== 'connected') void restartIce();
             }, 1500);
           }
+          return;
+        }
+
+        // If responder triggers ICE recovery while stable, request a fresh offer from initiator via peer_ready
+        if (!isInitiatorRef.current) {
+          previousConnectionStateRef.current = 'reconnecting';
+          setConnectionState('reconnecting');
+          startConnectionTimeout();
+          const sent = onSendSignalRef.current({ type: 'peer_ready', iceRestart: true });
+          logWebRTC('ice.restart.requested-from-initiator', { roomId, sent: sent !== false });
           return;
         }
 
@@ -1075,16 +1090,15 @@ export const useWebRTC = ({
 
           if (signal.type === 'peer_ready') {
             const currentPc = pcRef.current;
-            if (
-              isInitiatorRef.current &&
-              currentPc &&
-              currentPc.connectionState !== 'connected' &&
-              currentPc.signalingState === 'have-local-offer' &&
-              currentPc.localDescription &&
-              !currentPc.remoteDescription
-            ) {
-              const sent = onSendSignalRef.current({ type: 'offer', sdp: currentPc.localDescription });
-              logWebRTC('sdp.offer.resent-on-peer-ready', { roomId, sent: sent !== false });
+            if (isInitiatorRef.current && currentPc && currentPc.connectionState !== 'connected') {
+              if (currentPc.signalingState === 'have-local-offer' && currentPc.localDescription) {
+                const sent = onSendSignalRef.current({ type: 'offer', sdp: currentPc.localDescription });
+                logWebRTC('sdp.offer.resent-on-peer-ready', { roomId, sent: sent !== false });
+              } else if (currentPc.signalingState === 'stable') {
+                // Responder either finished media setup after an earlier reset or recreated its PeerConnection:
+                // send a fresh offer with iceRestart so both sides converge on the same SDP/ICE generation.
+                void restartIceRef.current();
+              }
             }
             return;
           }
@@ -1109,14 +1123,23 @@ export const useWebRTC = ({
           if (signal.type === 'candidate' && signal.candidate) {
             const currentPc = pcRef.current;
             if (ignoreOfferRef.current) return;
-            if (!currentPc?.remoteDescription) {
+            if (!currentPc?.remoteDescription || settingRemoteAnswerRef.current || makingOfferRef.current) {
               iceCandidatesQueue.current.push(signal.candidate);
               return;
             }
 
-            const candidate = new RTCIceCandidate(signal.candidate);
-            await currentPc.addIceCandidate(candidate);
-            logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
+            try {
+              const candidate = new RTCIceCandidate(signal.candidate);
+              await currentPc.addIceCandidate(candidate);
+              logWebRTC('ice.candidate.received', { roomId, candidateType: candidate.type || 'unknown' });
+            } catch (candidateErr) {
+              // If an ICE restart or offer renegotiation is in flight, queue the candidate for after setRemoteDescription
+              if (currentPc.signalingState !== 'stable' || iceRestartInProgressRef.current) {
+                iceCandidatesQueue.current.push(signal.candidate);
+              } else {
+                console.warn('[webrtc]', { event: 'ice.candidate.add-failed', roomId, error: candidateErr });
+              }
+            }
             return;
           }
 

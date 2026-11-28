@@ -49,10 +49,9 @@ export function createIceServerConfig(
 
   const sharedSecret = (
     env.TURN_SHARED_SECRET ||
-    env.METERED_SECRET_KEY ||
-    env.METERED_API_KEY ||
     env.COTURN_SHARED_SECRET ||
-    env.TURN_SECRET
+    env.TURN_SECRET ||
+    env.METERED_SECRET_KEY
   )?.trim();
 
   const staticUsername = (env.TURN_USERNAME || env.TURN_USER)?.trim();
@@ -80,6 +79,17 @@ export function createIceServerConfig(
 
   const expandedUrls = expandTurnTransports(rawTurnUrls);
 
+  if (staticUsername && staticCredential) {
+    return {
+      iceServers: [
+        { urls: STUN_URLS },
+        { urls: expandedUrls, username: staticUsername, credential: staticCredential },
+      ],
+      relayAvailable: true,
+      expiresAt: null,
+    };
+  }
+
   if (sharedSecret) {
     const ttlSeconds = Number(env.TURN_CREDENTIAL_TTL_SECONDS || 600);
     if (!Number.isInteger(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 86400) {
@@ -97,17 +107,6 @@ export function createIceServerConfig(
       ],
       relayAvailable: true,
       expiresAt,
-    };
-  }
-
-  if (staticUsername && staticCredential) {
-    return {
-      iceServers: [
-        { urls: STUN_URLS },
-        { urls: expandedUrls, username: staticUsername, credential: staticCredential },
-      ],
-      relayAvailable: true,
-      expiresAt: null,
     };
   }
 

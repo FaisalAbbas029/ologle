@@ -43,11 +43,12 @@ describe('ICE server configuration', () => {
     })).toThrow('TURN_URLS must contain only valid turn: or turns: URLs.');
   });
 
-  it('supports static TURN_USERNAME and TURN_CREDENTIAL with automatic UDP/TCP transport expansion', () => {
+  it('supports static TURN_USERNAME and TURN_CREDENTIAL with automatic UDP/TCP transport expansion and priority over TURN_SHARED_SECRET', () => {
     const config = createIceServerConfig({
-      TURN_URLS: 'turn:global.relay.metered.ca:80,turns:global.relay.metered.ca:443',
+      TURN_URLS: 'turn:global.relay.metered.ca:80,turn:global.relay.metered.ca:443,turns:global.relay.metered.ca:443',
       TURN_USERNAME: 'metered-user-123',
       TURN_CREDENTIAL: 'metered-pass-456',
+      TURN_SHARED_SECRET: 'ignored-when-static-present',
     });
 
     expect(config.relayAvailable).toBe(true);
@@ -56,6 +57,8 @@ describe('ICE server configuration', () => {
       urls: [
         'turn:global.relay.metered.ca:80?transport=udp',
         'turn:global.relay.metered.ca:80?transport=tcp',
+        'turn:global.relay.metered.ca:443?transport=udp',
+        'turn:global.relay.metered.ca:443?transport=tcp',
         'turns:global.relay.metered.ca:443?transport=tcp',
       ],
       username: 'metered-user-123',
